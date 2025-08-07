@@ -16,7 +16,12 @@
       "mcp__ide__getDiagnostics",
       "Bash(grep:*)",
       "Bash(flutter create:*)",
-      "Bash(flutter run:*)"
+      "Bash(flutter run:*)",
+      "mcp__playwright__browser_navigate",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(ls:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }
