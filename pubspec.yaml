@@ -1,7 +1,7 @@
 name: flutter_dev_panel
 description: "A comprehensive Flutter debug panel for development with network monitoring, performance tracking, and environment switching."
 version: 0.0.1
-homepage: https://github.com/yourusername/flutter_dev_panel
+homepage: https://github.com/royorange/flutter-dev-panel
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -13,18 +13,18 @@ dependencies:
   
   # 核心依赖
   get: ^4.6.6
-  logger: ^2.4.0
+  logger: ^2.6.0
   
   # 网络监控
-  alice: ^0.4.2
   dio: ^5.4.0
+  intl: ^0.19.0  # 时间格式化
   
   # 设备信息
   device_info_plus: ^10.1.0
   package_info_plus: ^8.0.0
   
   # 性能监控
-  flutter_fps: ^2.0.0
+  # flutter_fps: ^2.0.0  # 暂时注释，后续寻找替代方案
   
   # 存储
   shared_preferences: ^2.2.3
@@ -34,7 +34,7 @@ dependencies:
   shimmer: ^3.0.0
   
   # 传感器（摇一摇）
-  sensors_plus: ^5.0.1
+  sensors_plus: ^6.1.1
 
 dev_dependencies:
   flutter_test:

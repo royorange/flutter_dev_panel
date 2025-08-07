@@ -7,8 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 库名称： flutter_dev_panel
 - 主要功能：
     - 网络监控
-        - 参考并使用 alice 库
+        - 自建网络监控模块，使用 Dio 拦截器实现
         - 显示当前请求详细信息和状态，并可以点击请求查看详细信息
+        - 支持请求/响应数据查看、搜索、过滤功能
     - 动态切换
         - 通过配置切换不同的环境，比如开发环境、测试环境、生产环境以及对应的参数（如 api_url 等，可以自定义）
         - 切换主题：系统、暗色、亮色
@@ -27,28 +28,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### pubspec核心依赖：
     # 核心依赖
-    get: ^4.6.6
-    logger: ^2.0.2
+    get  # 状态管理和路由
+    logger  # 日志工具
 
     # 网络监控
-    alice: ^0.4.2  # HTTP 请求监控
+    dio  # HTTP 客户端库，用于拦截器实现
+    intl  # 时间格式化
 
     # 设备信息
-    device_info_plus: ^10.1.0
-    package_info_plus: ^5.0.1
+    device_info_plus  # 获取设备信息
+    package_info_plus  # 获取应用包信息
 
     # 性能监控
-    flutter_fps: ^2.0.0
+    # 需要寻找合适的FPS监控库或自行实现
 
     # 存储
-    shared_preferences: ^2.2.2
+    shared_preferences  # 本地存储
 
     # UI 组件
-    flutter_slidable: ^3.0.1
-    shimmer: ^3.0.0
+    flutter_slidable  # 滑动操作组件
+    shimmer  # 闪光加载效果
 
-    # 传感器（摇一摇）
-    sensors_plus: ^4.0.2
+    # 传感器
+    sensors_plus  # 传感器数据（摇一摇功能）
 
 #### 高级特性：
 
