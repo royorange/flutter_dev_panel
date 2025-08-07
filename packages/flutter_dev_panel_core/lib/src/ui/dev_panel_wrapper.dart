@@ -46,28 +46,31 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      enableDrag: true,
       isDismissible: true,
-      barrierColor: Colors.black54,
+      enableDrag: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
+      ),
       builder: (context) {
-        return GestureDetector(
-          onTap: () {}, // Prevent tap from closing when tapping on sheet
-          child: DraggableScrollableSheet(
-            initialChildSize: 0.9,
-            minChildSize: 0.5,
-            maxChildSize: 0.95,
-            builder: (context, scrollController) {
-              return ClipRRect(
+        return FractionallySizedBox(
+          heightFactor: 0.9,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(24),
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
                 borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
+                  top: Radius.circular(24),
                 ),
-                child: Container(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  child: const DevPanel(),
-                ),
-              );
-            },
+              ),
+              child: const DevPanel(),
+            ),
           ),
         );
       },
