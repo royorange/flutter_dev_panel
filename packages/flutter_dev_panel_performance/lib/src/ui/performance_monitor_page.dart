@@ -12,8 +12,8 @@ class PerformanceMonitorPage extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return ChangeNotifierProvider(
-      create: (_) => PerformanceMonitorController(),
+    return ChangeNotifierProvider.value(
+      value: PerformanceMonitorController.instance,
       child: Consumer<PerformanceMonitorController>(
         builder: (context, controller, _) {
           return Scaffold(
@@ -25,6 +25,7 @@ class PerformanceMonitorPage extends StatelessWidget {
                   snap: true,
                   backgroundColor: colorScheme.surface,
                   surfaceTintColor: Colors.transparent,
+                  automaticallyImplyLeading: false,
                   title: Text(
                     'Performance Monitor',
                     style: theme.textTheme.titleLarge?.copyWith(

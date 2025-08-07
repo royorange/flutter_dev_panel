@@ -5,6 +5,15 @@ import 'models/performance_data.dart';
 import 'fps_tracker.dart';
 
 class PerformanceMonitorController extends ChangeNotifier {
+  static PerformanceMonitorController? _instance;
+  
+  static PerformanceMonitorController get instance {
+    _instance ??= PerformanceMonitorController._();
+    return _instance!;
+  }
+  
+  PerformanceMonitorController._();
+  
   final FpsTracker _fpsTracker = FpsTracker();
   final PerformanceMetrics metrics = PerformanceMetrics();
   
@@ -78,6 +87,11 @@ class PerformanceMonitorController extends ChangeNotifier {
     _updateMetrics();
   }
 
+  static void reset() {
+    _instance?.dispose();
+    _instance = null;
+  }
+  
   @override
   void dispose() {
     stopMonitoring();

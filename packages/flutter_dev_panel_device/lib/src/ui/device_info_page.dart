@@ -30,6 +30,7 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Device Information'),
         actions: [
           IconButton(
@@ -39,19 +40,19 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
           ),
           IconButton(
             icon: const Icon(Icons.copy_all),
-            onPressed: _controller.hasData
-                ? () async {
-                    await _controller.copyAllToClipboard();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('All device info copied to clipboard'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  }
-                : null,
+            onPressed: () async {
+              if (_controller.hasData) {
+                await _controller.copyAllToClipboard();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('All device info copied to clipboard'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
+            },
             tooltip: 'Copy All',
           ),
         ],
