@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'fps_monitor.dart';
-import 'dart:math' as math;
 
 class PerformanceMonitorPage extends StatefulWidget {
   const PerformanceMonitorPage({super.key});

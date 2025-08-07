@@ -10,7 +10,8 @@
       "Bash(git push:*)",
       "Bash(git pull:*)",
       "Bash(git remote set-url:*)",
-      "Bash(flutter pub:*)"
+      "Bash(flutter pub:*)",
+      "Bash(flutter analyze:*)"
     ],
     "deny": []
   }

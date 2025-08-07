@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/dev_panel_config.dart';
-import '../models/environment.dart';
 import '../models/module.dart';
 import '../models/theme_config.dart';
 import 'storage.dart';

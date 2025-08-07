@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import '../../core/dev_panel_controller.dart';
 
 class DevPanelFloatingButton extends StatefulWidget {

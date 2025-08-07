@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
-import 'package:get/get.dart';
 import '../../core/dev_panel_controller.dart';
 
 class ShakeDetector extends StatefulWidget {
