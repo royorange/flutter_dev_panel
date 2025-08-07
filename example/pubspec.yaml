@@ -1,0 +1,25 @@
+name: flutter_dev_panel_example
+description: Example app for Flutter Dev Panel
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  flutter_dev_panel:
+    path: ../
+  
+  get: ^4.6.6
+  dio: ^5.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
