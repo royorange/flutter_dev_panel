@@ -1,42 +1,45 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:get/get.dart';
 
-class FPSMonitor extends GetxController {
-  static FPSMonitor get to => Get.find();
+class FPSMonitor extends ChangeNotifier {
+  static FPSMonitor? _instance;
+  static FPSMonitor get instance => _instance ??= FPSMonitor._();
   
-  final _fps = 0.0.obs;
-  final _maxFps = 0.0.obs;
-  final _minFps = 60.0.obs;
-  final _avgFps = 0.0.obs;
-  final _frameHistory = <double>[].obs;
-  final _isMonitoring = false.obs;
+  FPSMonitor._();
   
-  double get fps => _fps.value;
-  double get maxFps => _maxFps.value;
-  double get minFps => _minFps.value;
-  double get avgFps => _avgFps.value;
+  factory FPSMonitor() => instance;
+  
+  double _fps = 0.0;
+  double _maxFps = 0.0;
+  double _minFps = 60.0;
+  double _avgFps = 0.0;
+  final List<double> _frameHistory = [];
+  bool _isMonitoring = false;
+  
+  double get fps => _fps;
+  double get maxFps => _maxFps;
+  double get minFps => _minFps;
+  double get avgFps => _avgFps;
   List<double> get frameHistory => _frameHistory;
-  bool get isMonitoring => _isMonitoring.value;
+  bool get isMonitoring => _isMonitoring;
   
   Timer? _timer;
   DateTime? _lastFrameTime;
   final List<double> _recentFrameTimes = [];
   final int _maxHistoryLength = 60;
   
-  @override
-  void onInit() {
-    super.onInit();
-    if (Get.arguments?['autoStart'] == true) {
+  void init({bool autoStart = false}) {
+    if (autoStart) {
       startMonitoring();
     }
   }
   
   void startMonitoring() {
-    if (_isMonitoring.value) return;
+    if (_isMonitoring) return;
     
-    _isMonitoring.value = true;
+    _isMonitoring = true;
+    notifyListeners();
     _lastFrameTime = DateTime.now();
     _recentFrameTimes.clear();
     
@@ -49,13 +52,14 @@ class FPSMonitor extends GetxController {
   }
   
   void stopMonitoring() {
-    _isMonitoring.value = false;
+    _isMonitoring = false;
+    notifyListeners();
     _timer?.cancel();
     _timer = null;
   }
   
   void _onFrame(Duration timestamp) {
-    if (!_isMonitoring.value) return;
+    if (!_isMonitoring) return;
     
     final now = DateTime.now();
     if (_lastFrameTime != null) {
@@ -73,7 +77,7 @@ class FPSMonitor extends GetxController {
     _lastFrameTime = now;
     
     // Schedule next frame callback
-    if (_isMonitoring.value) {
+    if (_isMonitoring) {
       SchedulerBinding.instance.addPostFrameCallback(_onFrame);
     }
   }
@@ -83,8 +87,8 @@ class FPSMonitor extends GetxController {
     
     // Calculate average FPS
     final avg = _recentFrameTimes.reduce((a, b) => a + b) / _recentFrameTimes.length;
-    _fps.value = avg;
-    _avgFps.value = avg;
+    _fps = avg;
+    _avgFps = avg;
     
     // Update min/max
     final sorted = List<double>.from(_recentFrameTimes)..sort();
@@ -92,11 +96,11 @@ class FPSMonitor extends GetxController {
       final min = sorted.first;
       final max = sorted.last;
       
-      if (min < _minFps.value) {
-        _minFps.value = min;
+      if (min < _minFps) {
+        _minFps = min;
       }
-      if (max > _maxFps.value) {
-        _maxFps.value = max;
+      if (max > _maxFps) {
+        _maxFps = max;
       }
     }
     
@@ -105,34 +109,37 @@ class FPSMonitor extends GetxController {
     if (_frameHistory.length > _maxHistoryLength) {
       _frameHistory.removeAt(0);
     }
+    
+    notifyListeners();
   }
   
   void reset() {
-    _fps.value = 0.0;
-    _maxFps.value = 0.0;
-    _minFps.value = 60.0;
-    _avgFps.value = 0.0;
+    _fps = 0.0;
+    _maxFps = 0.0;
+    _minFps = 60.0;
+    _avgFps = 0.0;
     _frameHistory.clear();
     _recentFrameTimes.clear();
+    notifyListeners();
   }
   
   String getFPSStatus() {
-    if (_fps.value >= 55) return '流畅';
-    if (_fps.value >= 45) return '良好';
-    if (_fps.value >= 30) return '一般';
+    if (_fps >= 55) return '流畅';
+    if (_fps >= 45) return '良好';
+    if (_fps >= 30) return '一般';
     return '卡顿';
   }
   
   Color getFPSColor() {
-    if (_fps.value >= 55) return Colors.green;
-    if (_fps.value >= 45) return Colors.orange;
-    if (_fps.value >= 30) return Colors.deepOrange;
+    if (_fps >= 55) return Colors.green;
+    if (_fps >= 45) return Colors.orange;
+    if (_fps >= 30) return Colors.deepOrange;
     return Colors.red;
   }
   
   @override
-  void onClose() {
+  void dispose() {
     stopMonitoring();
-    super.onClose();
+    super.dispose();
   }
 }

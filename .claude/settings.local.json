@@ -11,7 +11,10 @@
       "Bash(git pull:*)",
       "Bash(git remote set-url:*)",
       "Bash(flutter pub:*)",
-      "Bash(flutter analyze:*)"
+      "Bash(flutter analyze:*)",
+      "Bash(flutter test:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

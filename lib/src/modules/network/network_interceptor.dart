@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:get/get.dart' hide Response;
 import '../../models/network_request.dart';
 import 'network_monitor_controller.dart';
 
@@ -15,7 +14,7 @@ class DevPanelNetworkInterceptor extends Interceptor {
   
   NetworkMonitorController? get _controller {
     try {
-      return Get.find<NetworkMonitorController>();
+      return NetworkMonitorController.instance;
     } catch (_) {
       return null;
     }

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:get/get.dart';
 
 class DeviceInfoPage extends StatefulWidget {
   const DeviceInfoPage({super.key});
@@ -141,7 +140,7 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
           ),
           IconButton(
             icon: const Icon(Icons.copy),
-            onPressed: _copyAllInfo,
+            onPressed: () => _copyAllInfo(context),
           ),
         ],
       ),
@@ -188,11 +187,11 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
             ),
             onTap: () {
               Clipboard.setData(ClipboardData(text: entry.value.toString()));
-              Get.snackbar(
-                '已复制',
-                '${entry.key}: ${entry.value}',
-                snackPosition: SnackPosition.BOTTOM,
-                duration: const Duration(seconds: 2),
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${entry.key}: ${entry.value}'),
+                  duration: const Duration(seconds: 2),
+                ),
               );
             },
           );
@@ -201,7 +200,7 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
     );
   }
 
-  void _copyAllInfo() {
+  void _copyAllInfo(BuildContext context) {
     final buffer = StringBuffer();
     
     buffer.writeln('=== 设备信息 ===');
@@ -221,11 +220,11 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
     
     Clipboard.setData(ClipboardData(text: buffer.toString()));
     
-    Get.snackbar(
-      '复制成功',
-      '所有设备信息已复制到剪贴板',
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 2),
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('所有设备信息已复制到剪贴板'),
+        duration: Duration(seconds: 2),
+      ),
     );
   }
 }

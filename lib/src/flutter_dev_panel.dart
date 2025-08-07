@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:dio/dio.dart';
 import 'core/dev_panel_controller.dart';
 import 'core/environment_manager.dart';
@@ -13,21 +12,14 @@ import 'modules/network/network_module.dart';
 import 'modules/environment/environment_module.dart';
 import 'modules/device_info/device_info_module.dart';
 import 'modules/performance/performance_module.dart';
+import 'modules/performance/fps_monitor.dart';
 import 'ui/widgets/floating_button.dart';
 import 'ui/widgets/shake_detector.dart';
 import 'dev_panel.dart';
 
 /// Flutter Dev Panel - 开发调试面板
 class FlutterDevPanel {
-  static FlutterDevPanel? _instance;
   static bool _initialized = false;
-  
-  FlutterDevPanel._();
-  
-  static FlutterDevPanel get instance {
-    _instance ??= FlutterDevPanel._();
-    return _instance!;
-  }
   
   /// 初始化开发面板
   static Future<void> init({
@@ -42,15 +34,8 @@ class FlutterDevPanel {
       return;
     }
     
-    // 初始化 GetX 控制器
-    Get.lazyPut(() => DevPanelController());
-    Get.lazyPut(() => EnvironmentManager());
-    Get.lazyPut(() => ModuleManager());
-    Get.lazyPut(() => NetworkMonitorController());
-    Get.lazyPut(() => DevPanelEnvironmentChangeNotifier());
-    
-    // 获取控制器实例
-    final controller = DevPanelController.to;
+    // 获取控制器实例（会自动初始化）
+    final controller = DevPanelController.instance;
     
     // 创建默认配置
     final defaultModules = <DevModule>[
@@ -74,6 +59,10 @@ class FlutterDevPanel {
     );
     
     await controller.initialize(finalConfig);
+    
+    // 初始化其他单例
+    NetworkMonitorController.instance;
+    FPSMonitor.instance;
     
     _initialized = true;
   }
@@ -105,9 +94,10 @@ class FlutterDevPanel {
       return child;
     }
     
-    return GetBuilder<DevPanelController>(
-      init: DevPanelController.to,
-      builder: (controller) {
+    return ListenableBuilder(
+      listenable: DevPanelController.instance,
+      builder: (context, _) {
+        final controller = DevPanelController.instance;
         Widget result = child;
         
         // 检查触发模式
@@ -132,12 +122,8 @@ class FlutterDevPanel {
         result = Stack(
           children: [
             result,
-            Obx(() {
-              if (!controller.isVisible) {
-                return const SizedBox.shrink();
-              }
-              
-              return GestureDetector(
+            if (controller.isVisible)
+              GestureDetector(
                 onTap: () => controller.hide(),
                 child: Container(
                   color: Colors.black.withValues(alpha: 0.5),
@@ -148,8 +134,7 @@ class FlutterDevPanel {
                     ),
                   ),
                 ),
-              );
-            }),
+              ),
           ],
         );
         
@@ -165,14 +150,14 @@ class FlutterDevPanel {
       return;
     }
     
-    DevPanelController.to.show();
+    DevPanelController.instance.show();
   }
   
   /// 手动隐藏开发面板
   static void hide() {
     if (!_initialized) return;
     
-    DevPanelController.to.hide();
+    DevPanelController.instance.hide();
   }
   
   /// 切换开发面板显示状态
@@ -182,21 +167,21 @@ class FlutterDevPanel {
       return;
     }
     
-    DevPanelController.to.toggle();
+    DevPanelController.instance.toggle();
   }
   
   /// 获取当前环境配置
   static T? getEnvironmentConfig<T>(String key) {
     if (!_initialized) return null;
     
-    return DevPanelController.to.environmentManager.getConfig<T>(key);
+    return DevPanelController.instance.environmentManager.getConfig<T>(key);
   }
   
   /// 切换环境
   static void switchEnvironment(String name) {
     if (!_initialized) return;
     
-    DevPanelController.to.switchEnvironment(name);
+    DevPanelController.instance.switchEnvironment(name);
   }
   
   /// 注册自定义模块
@@ -206,6 +191,14 @@ class FlutterDevPanel {
       return;
     }
     
-    DevPanelController.to.moduleManager.registerModule(module);
+    DevPanelController.instance.moduleManager.registerModule(module);
+  }
+  
+  /// 重置所有单例（用于测试）
+  static void reset() {
+    DevPanelController.reset();
+    NetworkMonitorController.reset();
+    FPSMonitor.reset();
+    _initialized = false;
   }
 }

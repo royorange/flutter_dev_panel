@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'fps_monitor.dart';
 
 class PerformanceMonitorPage extends StatefulWidget {
@@ -15,10 +14,7 @@ class _PerformanceMonitorPageState extends State<PerformanceMonitorPage> {
   @override
   void initState() {
     super.initState();
-    if (!Get.isRegistered<FPSMonitor>()) {
-      Get.put(FPSMonitor());
-    }
-    _fpsMonitor = FPSMonitor.to;
+    _fpsMonitor = FPSMonitor.instance;
     _fpsMonitor.startMonitoring();
   }
   
@@ -28,7 +24,9 @@ class _PerformanceMonitorPageState extends State<PerformanceMonitorPage> {
       appBar: AppBar(
         title: const Text('性能监控'),
         actions: [
-          Obx(() => IconButton(
+          ListenableBuilder(
+            listenable: _fpsMonitor,
+            builder: (context, child) => IconButton(
             icon: Icon(_fpsMonitor.isMonitoring ? Icons.pause : Icons.play_arrow),
             onPressed: () {
               if (_fpsMonitor.isMonitoring) {
@@ -49,7 +47,9 @@ class _PerformanceMonitorPageState extends State<PerformanceMonitorPage> {
           ),
         ],
       ),
-      body: Obx(() => ListView(
+      body: ListenableBuilder(
+        listenable: _fpsMonitor,
+        builder: (context, child) => ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _buildFPSCard(),
@@ -247,10 +247,11 @@ class _PerformanceMonitorPageState extends State<PerformanceMonitorPage> {
               onPressed: () {
                 // Trigger garbage collection (for demonstration)
                 // In production, this would need proper implementation
-                Get.snackbar(
-                  '提示',
-                  '内存监控功能需要额外配置',
-                  snackPosition: SnackPosition.BOTTOM,
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('内存监控功能需要额外配置'),
+                    duration: Duration(seconds: 2),
+                  ),
                 );
               },
               child: const Text('查看内存详情'),
@@ -293,7 +294,7 @@ class FPSChartPainter extends CustomPainter {
     
     // Draw FPS line
     final path = Path();
-    final maxFps = 60.0;
+    const maxFps = 60.0;
     final xStep = size.width / (data.length - 1);
     
     for (int i = 0; i < data.length; i++) {

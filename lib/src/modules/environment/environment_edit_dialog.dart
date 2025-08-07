@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import '../../core/environment_manager.dart';
 import '../../models/environment.dart';
 
@@ -89,7 +88,7 @@ class _EnvironmentEditDialogState extends State<EnvironmentEditDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Get.back(),
+          onPressed: () => Navigator.of(context).pop(),
           child: const Text('取消'),
         ),
         ElevatedButton(
@@ -194,21 +193,21 @@ class _EnvironmentEditDialogState extends State<EnvironmentEditDialog> {
     final value = _newValueController.text.trim();
     
     if (key.isEmpty || value.isEmpty) {
-      Get.snackbar(
-        '提示',
-        '请输入键和值',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 2),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('请输入键和值'),
+          duration: Duration(seconds: 2),
+        ),
       );
       return;
     }
     
     if (_configControllers.containsKey(key)) {
-      Get.snackbar(
-        '提示',
-        '参数 "$key" 已存在',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 2),
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('参数 "$key" 已存在'),
+          duration: const Duration(seconds: 2),
+        ),
       );
       return;
     }
@@ -225,11 +224,11 @@ class _EnvironmentEditDialogState extends State<EnvironmentEditDialog> {
     final name = _nameController.text.trim();
     
     if (name.isEmpty) {
-      Get.snackbar(
-        '错误',
-        '请输入环境名称',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 2),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('请输入环境名称'),
+          duration: Duration(seconds: 2),
+        ),
       );
       return;
     }
@@ -252,7 +251,7 @@ class _EnvironmentEditDialogState extends State<EnvironmentEditDialog> {
       }
     });
     
-    final controller = Get.find<EnvironmentManager>();
+    final controller = EnvironmentManager.instance;
     
     if (widget.environment == null) {
       // Add new environment
@@ -261,22 +260,22 @@ class _EnvironmentEditDialogState extends State<EnvironmentEditDialog> {
         config: updatedConfig,
       );
       controller.addEnvironment(env);
-      Get.back();
-      Get.snackbar(
-        '添加成功',
-        '环境 "$name" 已添加',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 2),
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('环境 "$name" 已添加'),
+          duration: const Duration(seconds: 2),
+        ),
       );
     } else {
       // Update existing environment
       controller.updateEnvironment(widget.environment!.name, updatedConfig);
-      Get.back();
-      Get.snackbar(
-        '保存成功',
-        '环境 "$name" 已更新',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 2),
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('环境 "$name" 已更新'),
+          duration: const Duration(seconds: 2),
+        ),
       );
     }
   }

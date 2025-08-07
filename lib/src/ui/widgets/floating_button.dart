@@ -50,7 +50,7 @@ class _DevPanelFloatingButtonState extends State<DevPanelFloatingButton> {
               });
             },
             onTap: _isDragging ? null : () {
-              DevPanelController.to.toggle();
+              DevPanelController.instance.toggle();
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import '../../core/environment_manager.dart';
 import '../../models/environment.dart';
 import 'environment_edit_dialog.dart';
@@ -9,7 +8,7 @@ class EnvironmentSwitchPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<EnvironmentManager>();
+    final controller = EnvironmentManager.instance;
     
     return Scaffold(
       appBar: AppBar(
@@ -21,7 +20,9 @@ class EnvironmentSwitchPage extends StatelessWidget {
           ),
         ],
       ),
-      body: Obx(() {
+      body: ListenableBuilder(
+        listenable: controller,
+        builder: (context, child) {
         final environments = controller.environments;
         final currentEnv = controller.currentEnvironment;
         
@@ -118,11 +119,11 @@ class EnvironmentSwitchPage extends StatelessWidget {
                         switch (value) {
                           case 'activate':
                             controller.switchEnvironment(env.name);
-                            Get.snackbar(
-                              '环境已切换',
-                              '已切换到 ${env.name}',
-                              snackPosition: SnackPosition.BOTTOM,
-                              duration: const Duration(seconds: 2),
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('已切换到 ${env.name}'),
+                                duration: const Duration(seconds: 2),
+                              ),
                             );
                             break;
                           case 'edit':
@@ -154,11 +155,11 @@ class EnvironmentSwitchPage extends StatelessWidget {
                 onTap: () {
                   if (!isActive) {
                     controller.switchEnvironment(env.name);
-                    Get.snackbar(
-                      '环境已切换',
-                      '已切换到 ${env.name}',
-                      snackPosition: SnackPosition.BOTTOM,
-                      duration: const Duration(seconds: 2),
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('已切换到 ${env.name}'),
+                        duration: const Duration(seconds: 2),
+                      ),
                     );
                   }
                 },
@@ -166,7 +167,8 @@ class EnvironmentSwitchPage extends StatelessWidget {
             );
           },
         );
-      }),
+      },
+    ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _loadDefaultEnvironments(context),
         icon: const Icon(Icons.restore),
@@ -191,32 +193,39 @@ class EnvironmentSwitchPage extends StatelessWidget {
   }
 
   void _showAddEnvironmentDialog(BuildContext context) {
-    Get.dialog(const EnvironmentEditDialog());
+    showDialog(
+      context: context,
+      builder: (context) => const EnvironmentEditDialog(),
+    );
   }
 
   void _showEditEnvironmentDialog(BuildContext context, Environment env) {
-    Get.dialog(EnvironmentEditDialog(environment: env));
+    showDialog(
+      context: context,
+      builder: (context) => EnvironmentEditDialog(environment: env),
+    );
   }
 
   void _confirmDelete(BuildContext context, EnvironmentManager controller, Environment env) {
-    Get.dialog(
-      AlertDialog(
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
         title: const Text('删除环境'),
         content: Text('确定要删除环境 "${env.name}" 吗？'),
         actions: [
           TextButton(
-            onPressed: () => Get.back(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('取消'),
           ),
           TextButton(
             onPressed: () {
               controller.removeEnvironment(env.name);
-              Get.back();
-              Get.snackbar(
-                '已删除',
-                '环境 "${env.name}" 已删除',
-                snackPosition: SnackPosition.BOTTOM,
-                duration: const Duration(seconds: 2),
+              Navigator.of(dialogContext).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('环境 "${env.name}" 已删除'),
+                  duration: const Duration(seconds: 2),
+                ),
               );
             },
             child: const Text('删除', style: TextStyle(color: Colors.red)),
@@ -227,7 +236,7 @@ class EnvironmentSwitchPage extends StatelessWidget {
   }
 
   void _loadDefaultEnvironments(BuildContext context) {
-    final controller = Get.find<EnvironmentManager>();
+    final controller = EnvironmentManager.instance;
     final defaults = Environment.defaultEnvironments();
     
     for (final env in defaults) {
@@ -236,11 +245,11 @@ class EnvironmentSwitchPage extends StatelessWidget {
       }
     }
     
-    Get.snackbar(
-      '默认环境已加载',
-      '已添加 ${defaults.length} 个默认环境',
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 2),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('已添加 ${defaults.length} 个默认环境'),
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import '../../models/network_request.dart';
@@ -298,11 +297,11 @@ class NetworkRequestDetailPage extends StatelessWidget {
     
     Clipboard.setData(ClipboardData(text: buffer.toString()));
     
-    Get.snackbar(
-      '复制成功',
-      '请求详情已复制到剪贴板',
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 2),
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('请求详情已复制到剪贴板'),
+        duration: Duration(seconds: 2),
+      ),
     );
   }
 }

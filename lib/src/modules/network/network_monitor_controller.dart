@@ -1,28 +1,37 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
-import 'package:get/get.dart' hide Response;
 import '../../models/network_request.dart';
 
-class NetworkMonitorController extends GetxController {
-  final _requests = <NetworkRequest>[].obs;
-  final _maxRequests = 100;
-  final _searchQuery = ''.obs;
-  final _selectedStatusFilter = Rxn<NetworkRequestStatus>();
+class NetworkMonitorController extends ChangeNotifier {
+  static NetworkMonitorController? _instance;
+  
+  static NetworkMonitorController get instance {
+    _instance ??= NetworkMonitorController._();
+    return _instance!;
+  }
+  
+  NetworkMonitorController._();
+  
+  final List<NetworkRequest> _requests = [];
+  final int _maxRequests = 100;
+  String _searchQuery = '';
+  NetworkRequestStatus? _selectedStatusFilter;
   
   List<NetworkRequest> get requests => _filteredRequests;
-  String get searchQuery => _searchQuery.value;
-  NetworkRequestStatus? get selectedStatusFilter => _selectedStatusFilter.value;
+  String get searchQuery => _searchQuery;
+  NetworkRequestStatus? get selectedStatusFilter => _selectedStatusFilter;
   
   List<NetworkRequest> get _filteredRequests {
     var filtered = _requests.toList();
     
     // Apply search filter
-    if (_searchQuery.value.isNotEmpty) {
-      filtered = filtered.where((r) => r.matchesSearch(_searchQuery.value)).toList();
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((r) => r.matchesSearch(_searchQuery)).toList();
     }
     
     // Apply status filter
-    if (_selectedStatusFilter.value != null) {
-      filtered = filtered.where((r) => r.status == _selectedStatusFilter.value).toList();
+    if (_selectedStatusFilter != null) {
+      filtered = filtered.where((r) => r.status == _selectedStatusFilter).toList();
     }
     
     return filtered.reversed.toList(); // Show newest first
@@ -35,13 +44,15 @@ class NetworkMonitorController extends GetxController {
     if (_requests.length > _maxRequests) {
       _requests.removeAt(0);
     }
+    
+    notifyListeners();
   }
   
   void updateRequestWithResponse(String requestId, Response response) {
     final index = _requests.indexWhere((r) => r.id == requestId);
     if (index != -1) {
       _requests[index].updateFromResponse(response);
-      _requests.refresh();
+      notifyListeners();
     }
   }
   
@@ -49,28 +60,36 @@ class NetworkMonitorController extends GetxController {
     final index = _requests.indexWhere((r) => r.id == requestId);
     if (index != -1) {
       _requests[index].updateFromError(error);
-      _requests.refresh();
+      notifyListeners();
     }
   }
   
   void setSearchQuery(String query) {
-    _searchQuery.value = query;
+    _searchQuery = query;
+    notifyListeners();
   }
   
   void setStatusFilter(NetworkRequestStatus? status) {
-    _selectedStatusFilter.value = status;
+    _selectedStatusFilter = status;
+    notifyListeners();
   }
   
   void clearRequests() {
     _requests.clear();
+    notifyListeners();
   }
   
   void removeRequest(String requestId) {
     _requests.removeWhere((r) => r.id == requestId);
+    notifyListeners();
   }
   
   NetworkRequest? getRequest(String requestId) {
-    return _requests.firstWhereOrNull((r) => r.id == requestId);
+    try {
+      return _requests.firstWhere((r) => r.id == requestId);
+    } catch (_) {
+      return null;
+    }
   }
   
   Map<String, int> getStatistics() {
@@ -100,5 +119,9 @@ class NetworkMonitorController extends GetxController {
     }
     
     return stats;
+  }
+  
+  static void reset() {
+    _instance = null;
   }
 }

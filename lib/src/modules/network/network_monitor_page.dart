@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../models/network_request.dart';
 import 'network_monitor_controller.dart';
@@ -10,7 +9,7 @@ class NetworkMonitorPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<NetworkMonitorController>();
+    final controller = NetworkMonitorController.instance;
     
     return Scaffold(
       appBar: AppBar(
@@ -19,19 +18,20 @@ class NetworkMonitorPage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.clear_all),
             onPressed: () {
-              Get.dialog(
-                AlertDialog(
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
                   title: const Text('清空请求记录'),
                   content: const Text('确定要清空所有网络请求记录吗？'),
                   actions: [
                     TextButton(
-                      onPressed: () => Get.back(),
+                      onPressed: () => Navigator.of(context).pop(),
                       child: const Text('取消'),
                     ),
                     TextButton(
                       onPressed: () {
                         controller.clearRequests();
-                        Get.back();
+                        Navigator.of(context).pop();
                       },
                       child: const Text('确定'),
                     ),
@@ -76,7 +76,9 @@ class NetworkMonitorPage extends StatelessWidget {
     return Container(
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Obx(() => ListView(
+      child: ListenableBuilder(
+        listenable: controller,
+        builder: (context, child) => ListView(
         scrollDirection: Axis.horizontal,
         children: [
           _buildFilterChip(
@@ -106,8 +108,8 @@ class NetworkMonitorPage extends StatelessWidget {
             color: Colors.orange,
           ),
         ],
-      )),
-    );
+      ),
+    ));
   }
 
   Widget _buildFilterChip({
@@ -126,9 +128,11 @@ class NetworkMonitorPage extends StatelessWidget {
   }
 
   Widget _buildStatistics(NetworkMonitorController controller) {
-    return Obx(() {
-      final stats = controller.getStatistics();
-      return Container(
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, child) {
+        final stats = controller.getStatistics();
+        return Container(
         padding: const EdgeInsets.all(8),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -140,7 +144,8 @@ class NetworkMonitorPage extends StatelessWidget {
           ],
         ),
       );
-    });
+      },
+    );
   }
 
   Widget _buildStatItem(String label, int count, Color color) {
@@ -166,8 +171,10 @@ class NetworkMonitorPage extends StatelessWidget {
   }
 
   Widget _buildRequestList(NetworkMonitorController controller) {
-    return Obx(() {
-      final requests = controller.requests;
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, child) {
+        final requests = controller.requests;
       
       if (requests.isEmpty) {
         return const Center(
@@ -185,7 +192,8 @@ class NetworkMonitorPage extends StatelessWidget {
           return _buildRequestItem(context, request);
         },
       );
-    });
+      },
+    );
   }
 
   Widget _buildRequestItem(BuildContext context, NetworkRequest request) {
@@ -195,7 +203,12 @@ class NetworkMonitorPage extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: InkWell(
         onTap: () {
-          Get.to(() => NetworkRequestDetailPage(request: request));
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => NetworkRequestDetailPage(request: request),
+            ),
+          );
         },
         child: Padding(
           padding: const EdgeInsets.all(12),

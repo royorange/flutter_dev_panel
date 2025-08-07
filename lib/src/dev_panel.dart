@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'core/dev_panel_controller.dart';
 import 'core/module_manager.dart';
 import 'models/module.dart';
@@ -9,12 +8,12 @@ class DevPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = DevPanelController.to;
+    final controller = DevPanelController.instance;
     final moduleManager = controller.moduleManager;
     
-    return GetX<ModuleManager>(
-      init: moduleManager,
-      builder: (_) {
+    return ListenableBuilder(
+      listenable: moduleManager,
+      builder: (context, child) {
         final modules = moduleManager.getEnabledModules();
         
         return Container(
@@ -166,13 +165,14 @@ class DevPanel extends StatelessWidget {
   }
   
   void _showSettings(BuildContext context) {
-    Get.dialog(
-      AlertDialog(
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
         title: const Text('设置'),
         content: const Text('设置功能开发中...'),
         actions: [
           TextButton(
-            onPressed: () => Get.back(),
+            onPressed: () => Navigator.of(context).pop(),
             child: const Text('确定'),
           ),
         ],

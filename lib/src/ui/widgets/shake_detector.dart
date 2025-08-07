@@ -62,7 +62,7 @@ class _ShakeDetectorState extends State<ShakeDetector> {
     if (widget.onShake != null) {
       widget.onShake!();
     } else {
-      DevPanelController.to.show();
+      DevPanelController.instance.show();
     }
   }
 

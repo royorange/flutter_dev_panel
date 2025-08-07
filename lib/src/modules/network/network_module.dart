@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import '../../models/module.dart';
 import 'network_monitor_controller.dart';
 import 'network_monitor_page.dart';
@@ -18,18 +17,16 @@ class NetworkModule extends DevModule {
 
   @override
   Widget buildPage(BuildContext context) {
-    // Ensure controller is initialized
-    if (!Get.isRegistered<NetworkMonitorController>()) {
-      Get.put(NetworkMonitorController());
-    }
+    // Controller is initialized as singleton
     return const NetworkMonitorPage();
   }
 
   @override
   Widget? buildQuickAction(BuildContext context) {
-    return GetX<NetworkMonitorController>(
-      init: Get.find<NetworkMonitorController>(),
-      builder: (controller) {
+    final controller = NetworkMonitorController.instance;
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, child) {
         final stats = controller.getStatistics();
         final errorCount = stats['error'] ?? 0;
         

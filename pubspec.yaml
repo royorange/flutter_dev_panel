@@ -12,7 +12,6 @@ dependencies:
     sdk: flutter
   
   # 核心依赖
-  get: ^4.6.6
   logger: ^2.6.0
   
   # 网络监控

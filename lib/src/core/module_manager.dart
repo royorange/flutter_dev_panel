@@ -1,17 +1,18 @@
-import 'package:get/get.dart';
+import 'package:flutter/foundation.dart';
 import '../models/module.dart';
 
-class ModuleManager extends GetxController {
-  final _modules = <DevModule>[].obs;
-  final _enabledModuleIds = <String>{}.obs;
+class ModuleManager extends ChangeNotifier {
+  List<DevModule> _modules = [];
+  Set<String> _enabledModuleIds = {};
 
   List<DevModule> get modules => _modules;
   Set<String> get enabledModuleIds => _enabledModuleIds;
 
   void initialize(List<DevModule> modules) {
-    _modules.value = modules;
+    _modules = modules;
     // Enable all modules by default
-    _enabledModuleIds.value = modules.where((m) => m.enabled).map((m) => m.id).toSet();
+    _enabledModuleIds = modules.where((m) => m.enabled).map((m) => m.id).toSet();
+    notifyListeners();
   }
 
   void registerModule(DevModule module) {
@@ -20,20 +21,24 @@ class ModuleManager extends GetxController {
       if (module.enabled) {
         _enabledModuleIds.add(module.id);
       }
+      notifyListeners();
     }
   }
 
   void unregisterModule(String moduleId) {
     _modules.removeWhere((m) => m.id == moduleId);
     _enabledModuleIds.remove(moduleId);
+    notifyListeners();
   }
 
   void enableModule(String moduleId) {
     _enabledModuleIds.add(moduleId);
+    notifyListeners();
   }
 
   void disableModule(String moduleId) {
     _enabledModuleIds.remove(moduleId);
+    notifyListeners();
   }
 
   bool isModuleEnabled(String moduleId) {
@@ -48,7 +53,11 @@ class ModuleManager extends GetxController {
   }
 
   DevModule? getModule(String moduleId) {
-    return _modules.firstWhereOrNull((m) => m.id == moduleId);
+    try {
+      return _modules.firstWhere((m) => m.id == moduleId);
+    } catch (_) {
+      return null;
+    }
   }
 
   void reorderModules(List<String> moduleIds) {
@@ -59,6 +68,7 @@ class ModuleManager extends GetxController {
         reorderedModules.add(module);
       }
     }
-    _modules.value = reorderedModules;
+    _modules = reorderedModules;
+    notifyListeners();
   }
 }
