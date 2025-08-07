@@ -45,6 +45,8 @@ class FlutterDevPanelCore {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
+      enableDrag: true,
+      isDismissible: true,
       builder: (context) {
         return DraggableScrollableSheet(
           initialChildSize: 0.9,
