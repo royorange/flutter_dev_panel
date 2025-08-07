@@ -141,12 +141,12 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Center(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
+              const SizedBox(height: 20),
               const Text(
                 'Flutter Dev Panel 模块化示例',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -214,11 +214,16 @@ class _MyHomePageState extends State<MyHomePage> {
               const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.all(16),
+                constraints: BoxConstraints(
+                  maxHeight: 200,
+                  maxWidth: MediaQuery.of(context).size.width - 32,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.grey[200],
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
                       '响应:',
@@ -228,18 +233,24 @@ class _MyHomePageState extends State<MyHomePage> {
                     if (_isLoading)
                       const CircularProgressIndicator()
                     else
-                      Text(
-                        _responseText,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: _responseText.startsWith('Error') 
-                              ? Colors.red 
-                              : Colors.green,
+                      Flexible(
+                        child: SingleChildScrollView(
+                          child: Text(
+                            _responseText,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: _responseText.startsWith('Error') 
+                                  ? Colors.red 
+                                  : Colors.green,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                       ),
                   ],
                 ),
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),

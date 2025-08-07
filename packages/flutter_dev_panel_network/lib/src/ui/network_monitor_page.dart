@@ -63,36 +63,42 @@ class _NetworkMonitorPageState extends State<NetworkMonitorPage> {
           bottom: BorderSide(color: theme.colorScheme.outlineVariant),
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: SizedBox(
-              height: 40,
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search by URL, method or status',
-                  prefixIcon: const Icon(Icons.search, size: 20),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, size: 20),
-                          onPressed: () {
-                            _searchController.clear();
-                          },
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 40,
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search URL, method or status',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 20),
+                              onPressed: () {
+                                _searchController.clear();
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                      isDense: true,
+                    ),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              _buildActionButtons(),
+            ],
           ),
-          const SizedBox(width: 8),
+          const SizedBox(height: 8),
           _buildFilterButtons(),
-          const SizedBox(width: 8),
-          _buildActionButtons(),
         ],
       ),
     );
@@ -102,7 +108,9 @@ class _NetworkMonitorPageState extends State<NetworkMonitorPage> {
     return ListenableBuilder(
       listenable: widget.controller,
       builder: (context, _) {
-        return Row(
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
             FilterChip(
               label: const Text('Errors Only'),
@@ -111,17 +119,19 @@ class _NetworkMonitorPageState extends State<NetworkMonitorPage> {
                 widget.controller.setShowOnlyErrors(selected);
               },
               avatar: widget.controller.filter.showOnlyErrors
-                  ? const Icon(Icons.check, size: 18)
+                  ? const Icon(Icons.check, size: 16)
                   : null,
+              visualDensity: VisualDensity.compact,
             ),
-            const SizedBox(width: 8),
             PopupMenuButton<RequestMethod?>(
               tooltip: 'Filter by method',
               child: Chip(
                 label: Text(
                   widget.controller.filter.method?.name.toUpperCase() ?? 'All Methods',
+                  style: const TextStyle(fontSize: 13),
                 ),
-                avatar: const Icon(Icons.filter_list, size: 18),
+                avatar: const Icon(Icons.filter_list, size: 16),
+                visualDensity: VisualDensity.compact,
               ),
               itemBuilder: (context) => [
                 const PopupMenuItem(
@@ -271,7 +281,7 @@ class _NetworkMonitorPageState extends State<NetworkMonitorPage> {
                 Icon(
                   Icons.cloud_off,
                   size: 64,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                 ),
                 const SizedBox(height: 16),
                 Text(

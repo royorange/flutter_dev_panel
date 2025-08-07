@@ -21,7 +21,8 @@
       "Bash(pkill:*)",
       "Bash(true)",
       "Bash(ls:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(flutter:*)"
     ],
     "deny": []
   }
