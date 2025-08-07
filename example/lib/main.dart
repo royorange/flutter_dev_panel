@@ -1,53 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 import 'package:dio/dio.dart';
-import 'package:get/get.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 初始化Flutter Dev Panel
-  await FlutterDevPanel.init(
-    config: DevPanelConfig(
+  final dio = Dio();
+  
+  // 附加网络监控到Dio
+  NetworkModule.attachToDio(dio);
+  
+  FlutterDevPanelCore.instance.initialize(
+    config: const DevPanelConfig(
       enabled: true,
       triggerModes: {TriggerMode.fab, TriggerMode.shake},
-      environments: Environment.defaultEnvironments(),
       showInProduction: false,
     ),
+    modules: [
+      NetworkModule(),
+      const DeviceModule(),
+      const PerformanceModule(),
+    ],
   );
   
-  // 配置Dio网络监控
-  final dio = Dio();
-  FlutterDevPanel.addDioInterceptor(dio);
-  
-  // 将dio实例注册到GetX
-  Get.put(dio);
-  
-  runApp(const MyApp());
+  runApp(MyApp(dio: dio));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final Dio dio;
+  
+  const MyApp({super.key, required this.dio});
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
+    return MaterialApp(
       title: 'Flutter Dev Panel Example',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: FlutterDevPanel.wrap(
-        child: const MyHomePage(),
-        enableFloatingButton: true,
-        enableShakeDetection: true,
+      home: DevPanelWrapper(
+        child: MyHomePage(dio: dio),
       ),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+  final Dio dio;
+  
+  const MyHomePage({super.key, required this.dio});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -63,14 +65,8 @@ class _MyHomePageState extends State<MyHomePage> {
       _responseText = '请求中...';
     });
     
-    final dio = Get.find<Dio>();
-    
     try {
-      // 使用当前环境的API URL
-      final apiUrl = FlutterDevPanel.getEnvironmentConfig<String>('api_url') 
-                    ?? 'https://jsonplaceholder.typicode.com';
-      
-      final response = await dio.get('$apiUrl/posts/1');
+      final response = await widget.dio.get('https://jsonplaceholder.typicode.com/posts/1');
       
       setState(() {
         _responseText = 'Success: ${response.data['title']}';
@@ -85,10 +81,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _sendMultipleRequests() async {
-    final dio = Get.find<Dio>();
-    final apiUrl = FlutterDevPanel.getEnvironmentConfig<String>('api_url') 
-                  ?? 'https://jsonplaceholder.typicode.com';
-    
     setState(() {
       _isLoading = true;
       _responseText = '发送多个请求...';
@@ -96,11 +88,11 @@ class _MyHomePageState extends State<MyHomePage> {
     
     try {
       await Future.wait([
-        dio.get('$apiUrl/posts/1'),
-        dio.get('$apiUrl/posts/2'),
-        dio.get('$apiUrl/posts/3'),
-        dio.get('$apiUrl/users/1'),
-        dio.get('$apiUrl/comments/1'),
+        widget.dio.get('https://jsonplaceholder.typicode.com/posts/1'),
+        widget.dio.get('https://jsonplaceholder.typicode.com/posts/2'),
+        widget.dio.get('https://jsonplaceholder.typicode.com/posts/3'),
+        widget.dio.get('https://jsonplaceholder.typicode.com/users/1'),
+        widget.dio.get('https://jsonplaceholder.typicode.com/comments/1'),
       ]);
       
       setState(() {
@@ -116,15 +108,13 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _sendErrorRequest() async {
-    final dio = Get.find<Dio>();
-    
     setState(() {
       _isLoading = true;
       _responseText = '发送错误请求...';
     });
     
     try {
-      await dio.get('https://httpstat.us/500');
+      await widget.dio.get('https://httpstat.us/500');
       setState(() {
         _responseText = '请求成功';
         _isLoading = false;
@@ -146,7 +136,7 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.bug_report),
-            onPressed: () => FlutterDevPanel.show(),
+            onPressed: () => FlutterDevPanelCore.instance.open(context),
             tooltip: '手动打开调试面板',
           ),
         ],
@@ -158,8 +148,26 @@ class _MyHomePageState extends State<MyHomePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               const Text(
-                'Flutter Dev Panel 示例应用',
+                'Flutter Dev Panel 模块化示例',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      const Text(
+                        '已加载的模块:',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text('✅ 网络监控模块'),
+                      const Text('✅ 设备信息模块'),
+                      const Text('✅ 性能监控模块'),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
               Card(
@@ -175,7 +183,6 @@ class _MyHomePageState extends State<MyHomePage> {
                       const Text('1. 点击右下角悬浮按钮'),
                       const Text('2. 摇一摇设备'),
                       const Text('3. 点击右上角调试图标'),
-                      const Text('4. 调用 FlutterDevPanel.show()'),
                     ],
                   ),
                 ),
@@ -232,11 +239,6 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                '提示: 打开调试面板查看更多功能',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ],
           ),

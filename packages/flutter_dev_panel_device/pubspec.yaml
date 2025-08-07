@@ -1,0 +1,23 @@
+name: flutter_dev_panel_device
+description: Device information module for Flutter Dev Panel
+version: 0.0.1
+homepage: https://github.com/royorange/flutter-dev-panel
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_dev_panel_core:
+    path: ../flutter_dev_panel_core
+  device_info_plus: ^10.1.0
+  package_info_plus: ^8.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:

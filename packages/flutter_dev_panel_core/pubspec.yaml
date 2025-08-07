@@ -1,0 +1,19 @@
+name: flutter_dev_panel_core
+description: Core framework for Flutter Dev Panel - modular debug panel
+version: 0.0.1
+homepage: https://github.com/royorange/flutter-dev-panel
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:

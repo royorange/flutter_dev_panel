@@ -13,7 +13,6 @@ dependencies:
   flutter_dev_panel:
     path: ../
   
-  get: ^4.6.6
   dio: ^5.4.0
 
 dev_dependencies:

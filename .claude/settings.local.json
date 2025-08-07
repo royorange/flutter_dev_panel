@@ -14,7 +14,9 @@
       "Bash(flutter analyze:*)",
       "Bash(flutter test:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(flutter create:*)",
+      "Bash(flutter run:*)"
     ],
     "deny": []
   }
