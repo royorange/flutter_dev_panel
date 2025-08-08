@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dev_panel_core/src/core/monitoring_data_provider.dart';
 import 'models/network_request.dart';
 import 'models/network_filter.dart';
 
@@ -41,6 +42,9 @@ class NetworkMonitorController extends ChangeNotifier {
       _requests.removeLast();
     }
     
+    // 更新全局监控数据
+    MonitoringDataProvider.instance.onRequestStart();
+    
     notifyListeners();
   }
 
@@ -69,6 +73,19 @@ class NetworkMonitorController extends ChangeNotifier {
         responseHeaders: responseHeaders,
         responseSize: responseSize,
       );
+      
+      // 更新全局监控数据
+      if (status == RequestStatus.success || status == RequestStatus.error) {
+        MonitoringDataProvider.instance.onRequestComplete(status == RequestStatus.error || error != null);
+      }
+      
+      // 更新统计
+      MonitoringDataProvider.instance.updateNetworkData(
+        totalRequests: totalRequests,
+        errorRequests: errorCount,
+        pendingRequests: pendingCount,
+      );
+      
       notifyListeners();
     }
   }

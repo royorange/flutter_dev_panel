@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/dev_panel_controller.dart';
 import '../models/dev_panel_config.dart';
-import 'widgets/floating_button.dart';
+import 'widgets/monitoring_fab.dart';
 import 'widgets/shake_detector.dart';
 import 'dev_panel.dart';
 
@@ -112,7 +112,7 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
           result = Stack(
             children: [
               result,
-              FloatingButton(
+              MonitoringFab(
                 onTap: _openPanel,
               ),
             ],

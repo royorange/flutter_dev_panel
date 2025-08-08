@@ -10,7 +10,7 @@ void main() async {
   // 附加网络监控到Dio
   NetworkModule.attachToDio(dio);
   
-  FlutterDevPanelCore.instance.initialize(
+  FlutterDevPanel.initialize(
     config: const DevPanelConfig(
       enabled: true,
       triggerModes: {TriggerMode.fab, TriggerMode.shake},
@@ -136,7 +136,7 @@ class _MyHomePageState extends State<MyHomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.bug_report),
-            onPressed: () => FlutterDevPanelCore.instance.open(context),
+            onPressed: () => FlutterDevPanel.open(context),
             tooltip: '手动打开调试面板',
           ),
         ],

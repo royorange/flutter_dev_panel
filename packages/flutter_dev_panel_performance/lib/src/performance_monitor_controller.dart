@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dev_panel_core/src/core/monitoring_data_provider.dart';
 import 'models/performance_data.dart';
 import 'fps_tracker.dart';
 
@@ -74,7 +75,22 @@ class PerformanceMonitorController extends ChangeNotifier {
       memoryUsage: _currentMemory,
     );
     metrics.addDataPoint(data);
+    
+    // 更新到全局监控数据提供者
+    _updateGlobalMonitoringData();
+    
     notifyListeners();
+  }
+  
+  void _updateGlobalMonitoringData() {
+    try {
+      MonitoringDataProvider.instance.updatePerformanceData(
+        fps: _currentFps,
+        memory: _currentMemory,
+      );
+    } catch (_) {
+      // 忽略错误，避免影响主功能
+    }
   }
 
   void _updateMemoryUsage() {
