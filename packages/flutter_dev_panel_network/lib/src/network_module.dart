@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dev_panel_core/flutter_dev_panel_core.dart';
 import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 import 'network_monitor_controller.dart';
 import 'network_interceptor.dart';
+import 'interceptors/http_client_interceptor.dart';
+import 'interceptors/base_interceptor.dart';
 import 'ui/network_monitor_page.dart';
 
 class NetworkModule extends DevModule {
@@ -27,6 +30,7 @@ class NetworkModule extends DevModule {
     return _controller!;
   }
 
+  // ============ Dio 集成 ============
   static Interceptor createInterceptor() {
     return NetworkInterceptor(controller);
   }
@@ -40,6 +44,24 @@ class NetworkModule extends DevModule {
     for (final dio in dioInstances) {
       dio.interceptors.add(interceptor);
     }
+  }
+  
+  // ============ http 包集成 ============
+  static http.Client createHttpClient({http.Client? innerClient}) {
+    return MonitoredHttpClient(
+      client: innerClient,
+      controller: controller,
+    );
+  }
+  
+  static http.Client wrapHttpClient(http.Client client) {
+    return createHttpClient(innerClient: client);
+  }
+  
+  // ============ 通用集成 ============
+  /// 获取基础拦截器，用于自定义集成
+  static BaseNetworkInterceptor getBaseInterceptor() {
+    return _NetworkInterceptorImpl(controller);
   }
 
   @override
@@ -99,8 +121,9 @@ class NetworkModule extends DevModule {
   
   @override
   Widget? buildFabContent(BuildContext context) {
-    // 只有有请求或正在进行的请求时才显示FAB内容
-    if (controller.totalRequests > 0 || controller.pendingCount > 0) {
+    // 只有当前会话有活动时才显示FAB内容
+    // 历史记录不应该触发FAB显示
+    if (controller.hasSessionActivity) {
       return _NetworkFabContent(controller: controller);
     }
     return null;
@@ -196,10 +219,11 @@ class _NetworkFabContentState extends State<_NetworkFabContent> with SingleTicke
     return ListenableBuilder(
       listenable: widget.controller,
       builder: (context, _) {
-        final pendingCount = widget.controller.pendingCount;
-        final errorCount = widget.controller.errorCount;
-        final successCount = widget.controller.successCount;
-        final totalCount = widget.controller.totalRequests;
+        // 使用会话统计而不是总统计
+        final pendingCount = widget.controller.sessionPendingCount;
+        final errorCount = widget.controller.sessionErrorCount;
+        final successCount = widget.controller.sessionSuccessCount;
+        final totalCount = widget.controller.sessionRequestCount;
         
         // 如果没有任何请求，不显示
         if (totalCount == 0 && pendingCount == 0) {
@@ -334,4 +358,9 @@ class _NetworkFabContentState extends State<_NetworkFabContent> with SingleTicke
       },
     );
   }
+}
+
+/// BaseNetworkInterceptor的简单实现
+class _NetworkInterceptorImpl extends BaseNetworkInterceptor {
+  _NetworkInterceptorImpl(NetworkMonitorController controller) : super(controller);
 }

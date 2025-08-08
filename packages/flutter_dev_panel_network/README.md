@@ -1,39 +1,50 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# Flutter Dev Panel - Network Module
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+网络监控模块，支持多种HTTP客户端库的集成。
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
+## 特性
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+- ✅ 支持Dio、http包等多种HTTP库
+- ✅ 请求历史持久化存储
+- ✅ 实时监控请求状态
+- ✅ 详细的请求/响应信息查看
+- ✅ 请求过滤和搜索
+- ✅ FAB实时显示网络状态
 
-## Features
+## 使用方法
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
-
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
-
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
+### 1. Dio 集成
 
 ```dart
-const like = 'sample';
+import 'package:dio/dio.dart';
+import 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
+
+// 方式1：单个Dio实例
+final dio = Dio();
+NetworkModule.attachToDio(dio);
+
+// 方式2：多个Dio实例
+NetworkModule.attachToMultipleDio([dio1, dio2, dio3]);
 ```
 
-## Additional information
+### 2. http 包集成
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+```dart
+import 'package:http/http.dart' as http;
+import 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
+
+// 方式1：创建新的客户端
+final client = NetworkModule.createHttpClient();
+
+// 方式2：包装现有客户端
+final existingClient = http.Client();
+final monitoredClient = NetworkModule.wrapHttpClient(existingClient);
+```
+
+### 3. 自定义HTTP库集成
+
+对于其他HTTP库，可以使用基础拦截器手动集成。
+
+## 数据持久化
+
+网络请求会自动保存到本地存储，应用重启后可以查看历史记录。

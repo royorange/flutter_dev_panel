@@ -2,14 +2,50 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dev_panel_core/src/core/monitoring_data_provider.dart';
 import 'models/network_request.dart';
 import 'models/network_filter.dart';
+import 'storage/network_storage.dart';
 
 class NetworkMonitorController extends ChangeNotifier {
   final List<NetworkRequest> _requests = [];
   NetworkFilter _filter = const NetworkFilter();
   int _maxRequests;
   bool _isPaused = false;
+  bool _isInitialized = false;
+  
+  // 当前会话的统计（不包括历史记录）
+  int _sessionRequestCount = 0;
+  int _sessionSuccessCount = 0;
+  int _sessionErrorCount = 0;
+  int _sessionPendingCount = 0;
 
-  NetworkMonitorController({int maxRequests = 100}) : _maxRequests = maxRequests;
+  NetworkMonitorController({int maxRequests = 100}) : _maxRequests = maxRequests {
+    _initialize();
+  }
+  
+  /// 初始化，加载历史记录
+  Future<void> _initialize() async {
+    if (_isInitialized) return;
+    _isInitialized = true;
+    
+    // 加载保存的最大请求数
+    _maxRequests = await NetworkStorage.loadMaxRequests();
+    
+    // 加载历史请求记录
+    final savedRequests = await NetworkStorage.loadRequests();
+    if (savedRequests.isNotEmpty) {
+      // 过滤掉pending状态的请求（这些是异常中断的）
+      final completedRequests = savedRequests
+          .where((r) => r.status != RequestStatus.pending)
+          .take(_maxRequests)
+          .toList();
+      
+      if (completedRequests.isNotEmpty) {
+        _requests.addAll(completedRequests);
+        notifyListeners();
+      }
+    }
+    
+    // 初始化时不更新MonitoringDataProvider，因为这些都是历史数据
+  }
 
   List<NetworkRequest> get requests => _filteredRequests;
   
@@ -32,6 +68,13 @@ class NetworkMonitorController extends ChangeNotifier {
   int get errorCount => _requests.where((r) => r.isError).length;
 
   int get pendingCount => _requests.where((r) => r.status == RequestStatus.pending).length;
+  
+  // 当前会话的统计（用于FAB显示）
+  int get sessionRequestCount => _sessionRequestCount;
+  int get sessionSuccessCount => _sessionSuccessCount;
+  int get sessionErrorCount => _sessionErrorCount;
+  int get sessionPendingCount => _sessionPendingCount;
+  bool get hasSessionActivity => _sessionRequestCount > 0 || _sessionPendingCount > 0;
 
   void addRequest(NetworkRequest request) {
     if (_isPaused) return;
@@ -42,10 +85,26 @@ class NetworkMonitorController extends ChangeNotifier {
       _requests.removeLast();
     }
     
+    // 更新会话统计
+    _sessionRequestCount++;
+    _sessionPendingCount++;
+    
+    // 保存到本地存储
+    _saveRequests();
+    
     // 更新全局监控数据
     MonitoringDataProvider.instance.onRequestStart();
     
     notifyListeners();
+  }
+  
+  /// 保存请求到本地存储
+  Future<void> _saveRequests() async {
+    try {
+      await NetworkStorage.saveRequests(_requests);
+    } catch (e) {
+      // 忽略存储错误
+    }
   }
 
   void updateRequest(
@@ -74,16 +133,28 @@ class NetworkMonitorController extends ChangeNotifier {
         responseSize: responseSize,
       );
       
+      // 更新会话统计
+      if (status == RequestStatus.success) {
+        if (_sessionPendingCount > 0) _sessionPendingCount--;
+        _sessionSuccessCount++;
+      } else if (status == RequestStatus.error) {
+        if (_sessionPendingCount > 0) _sessionPendingCount--;
+        _sessionErrorCount++;
+      }
+      
+      // 保存到本地存储
+      _saveRequests();
+      
       // 更新全局监控数据
       if (status == RequestStatus.success || status == RequestStatus.error) {
         MonitoringDataProvider.instance.onRequestComplete(status == RequestStatus.error || error != null);
       }
       
-      // 更新统计
+      // 更新统计 - 使用会话统计
       MonitoringDataProvider.instance.updateNetworkData(
-        totalRequests: totalRequests,
-        errorRequests: errorCount,
-        pendingRequests: pendingCount,
+        totalRequests: _sessionRequestCount,
+        errorRequests: _sessionErrorCount,
+        pendingRequests: _sessionPendingCount,
       );
       
       notifyListeners();
@@ -92,6 +163,7 @@ class NetworkMonitorController extends ChangeNotifier {
 
   void clearRequests() {
     _requests.clear();
+    NetworkStorage.clearRequests(); // 清除本地存储
     notifyListeners();
   }
 
@@ -145,6 +217,8 @@ class NetworkMonitorController extends ChangeNotifier {
     while (_requests.length > _maxRequests) {
       _requests.removeLast();
     }
+    NetworkStorage.saveMaxRequests(max); // 保存设置
+    _saveRequests(); // 保存调整后的请求列表
     notifyListeners();
   }
 
