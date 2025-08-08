@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:gql/ast.dart' show OperationDefinitionNode, OperationType;
 import '../models/network_request.dart';
 import '../network_monitor_controller.dart';
 import 'base_interceptor.dart';
@@ -8,10 +9,13 @@ import 'base_interceptor.dart';
 class GraphQLInterceptor extends Link {
   final NetworkMonitorController controller;
   final BaseNetworkInterceptor _interceptor;
+  String? _endpoint; // 存储endpoint
+  static final Map<int, String> _linkEndpoints = {}; // 存储Link和endpoint的映射
   
-  GraphQLInterceptor({NetworkMonitorController? controller}) 
+  GraphQLInterceptor({NetworkMonitorController? controller, String? endpoint}) 
     : controller = controller ?? NetworkMonitorController(),
-      _interceptor = _GraphQLInterceptorImpl(controller ?? NetworkMonitorController());
+      _interceptor = _GraphQLInterceptorImpl(controller ?? NetworkMonitorController()),
+      _endpoint = endpoint;
 
   @override
   Stream<Response> request(Request request, [NextLink? forward]) async* {
@@ -24,16 +28,17 @@ class GraphQLInterceptor extends Link {
     final variables = request.variables;
     final context = request.context;
     
-    // 构建请求URL（从context中获取endpoint）
-    String endpoint = 'GraphQL';
-    try {
-      // 尝试从context获取URI
-      final httpLink = context.entry<HttpLinkHeaders>();
-      if (httpLink != null) {
-        endpoint = 'GraphQL Request'; // HttpLinkHeaders不直接包含URI
-      }
-    } catch (_) {
-      // 忽略错误，使用默认值
+    // 尝试从context动态获取endpoint
+    String endpoint = _endpoint ?? _extractEndpoint(context, forward) ?? 'GraphQL';
+    
+    // 构建请求URL（包含操作名称）
+    String url = endpoint;
+    if (operation.operationName != null && operation.operationName!.isNotEmpty) {
+      url = '$endpoint#${operation.operationName}';
+    } else {
+      // 尝试从查询中提取操作名
+      final operationType = _getOperationType(operation);
+      url = '$endpoint#$operationType';
     }
     
     // 获取请求体
@@ -48,7 +53,7 @@ class GraphQLInterceptor extends Link {
     
     // 记录请求开始
     final requestId = _interceptor.recordRequest(
-      url: endpoint,
+      url: url,
       method: _getOperationType(operation),
       headers: _extractHeaders(context),
       body: requestBody,
@@ -96,6 +101,38 @@ class GraphQLInterceptor extends Link {
     }
   }
   
+  /// 尝试从链路中提取endpoint
+  String? _extractEndpoint(Context context, NextLink? forward) {
+    try {
+      // 检查是否已经缓存了这个Link的endpoint
+      if (forward != null) {
+        final cachedEndpoint = _linkEndpoints[forward.hashCode];
+        if (cachedEndpoint != null) {
+          return cachedEndpoint;
+        }
+      }
+      
+      // 尝试从forward链路获取
+      if (forward is HttpLink) {
+        // 不能直接访问 uri，需要其他方法
+        // HttpLink 的 toString 可能包含 URI 信息
+        final linkStr = forward.toString();
+        final match = RegExp(r'https?://[^\s\)]+').firstMatch(linkStr);
+        if (match != null) {
+          final endpoint = match.group(0);
+          if (forward != null && endpoint != null) {
+            _linkEndpoints[forward.hashCode] = endpoint;
+          }
+          return endpoint;
+        }
+      }
+      
+    } catch (_) {
+      // 忽略错误，返回null
+    }
+    return null;
+  }
+  
   /// 获取操作类型
   String _getOperationType(Operation operation) {
     final type = operation.document.definitions.first;
@@ -118,8 +155,8 @@ class GraphQLInterceptor extends Link {
     
     // 尝试从HttpLinkHeaders提取
     final httpHeaders = context.entry<HttpLinkHeaders>();
-    if (httpHeaders != null && httpHeaders.headers != null) {
-      headers.addAll(httpHeaders.headers!);
+    if (httpHeaders != null) {
+      headers.addAll(httpHeaders.headers ?? {});
     }
     
     return headers;
@@ -131,11 +168,9 @@ class GraphQLInterceptor extends Link {
     
     // 从context中提取响应信息
     final context = response.context;
-    if (context != null) {
-      final httpResponse = context.entry<HttpLinkResponseContext>();
-      if (httpResponse != null && httpResponse.headers != null) {
-        headers.addAll(httpResponse.headers!);
-      }
+    final httpResponse = context.entry<HttpLinkResponseContext>();
+    if (httpResponse != null) {
+      headers.addAll(httpResponse.headers ?? {});
     }
     
     return headers;
@@ -155,15 +190,18 @@ class MonitoredGraphQLClient {
     NetworkMonitorController? controller,
     String? subscriptionEndpoint,
     Map<String, String>? defaultHeaders,
-    Cache? cache,
+    GraphQLCache? cache,
   }) {
     final httpLink = HttpLink(
       endpoint,
-      defaultHeaders: defaultHeaders,
+      defaultHeaders: defaultHeaders ?? {},
     );
     
-    // 添加监控拦截器
-    final interceptorLink = GraphQLInterceptor(controller: controller);
+    // 添加监控拦截器，传入endpoint
+    final interceptorLink = GraphQLInterceptor(
+      controller: controller,
+      endpoint: endpoint,
+    );
     
     Link link = Link.from([interceptorLink, httpLink]);
     
@@ -208,7 +246,6 @@ class MonitoredGraphQLClient {
       link: wrappedLink,
       cache: client.cache,
       defaultPolicies: client.defaultPolicies,
-      queryRequestTimeout: client.queryRequestTimeout,
     );
   }
 }

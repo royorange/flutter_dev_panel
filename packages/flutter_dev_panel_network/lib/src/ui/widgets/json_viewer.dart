@@ -91,59 +91,105 @@ class _JsonViewerState extends State<JsonViewer> {
   
   Widget _buildStringValue(String value, String path) {
     final theme = Theme.of(context);
-    final needsExpansion = value.length > 100 || value.contains('\n');
+    final needsExpansion = value.length > 50 || value.contains('\n'); // 降低阈值
     final isExpanded = _expandedKeys.contains(path);
     
     if (!needsExpansion) {
       return _buildValue('"$value"', path, Colors.green);
     }
     
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: SelectableText(
-                isExpanded ? '"$value"' : '"${_truncateString(value)}"',
-                style: widget.style?.copyWith(color: Colors.green) ?? 
-                       const TextStyle(
-                         fontFamily: 'monospace',
-                         fontSize: 12,
-                         color: Colors.green,
-                       ),
+    // 对于长字符串，提供展开/收起功能
+    if (!isExpanded) {
+      // 收起状态：显示截断的文本 + 展开按钮
+      return Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 4,
+        children: [
+          SelectableText(
+            '"${_truncateString(value)}"',
+            style: widget.style?.copyWith(color: Colors.green) ?? 
+                   const TextStyle(
+                     fontFamily: 'monospace',
+                     fontSize: 12,
+                     color: Colors.green,
+                   ),
+          ),
+          InkWell(
+            onTap: () {
+              setState(() {
+                _expandedKeys.add(path);
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(4),
               ),
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (isExpanded) {
-                    _expandedKeys.remove(path);
-                  } else {
-                    _expandedKeys.add(path);
-                  }
-                });
-              },
               child: Text(
-                isExpanded ? 'collapse' : 'expand',
+                'show all',
                 style: TextStyle(
                   color: theme.colorScheme.primary,
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
-          ],
+          ),
+        ],
+      );
+    }
+    
+    // 展开状态：显示完整文本 + 收起按钮
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SelectableText(
+          '"$value"',
+          style: widget.style?.copyWith(color: Colors.green) ?? 
+                 const TextStyle(
+                   fontFamily: 'monospace',
+                   fontSize: 12,
+                   color: Colors.green,
+                 ),
+        ),
+        const SizedBox(height: 4),
+        InkWell(
+          onTap: () {
+            setState(() {
+              _expandedKeys.remove(path);
+            });
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              'hide',
+              style: TextStyle(
+                color: theme.colorScheme.secondary,
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
         ),
       ],
     );
   }
   
   String _truncateString(String value) {
-    const maxLength = 80;
+    const maxLength = 40; // 减少长度避免溢出
     if (value.length <= maxLength) return value;
+    
+    // 如果有换行符，在第一个换行符处截断
+    final newlineIndex = value.indexOf('\n');
+    if (newlineIndex > 0 && newlineIndex < maxLength) {
+      return '${value.substring(0, newlineIndex)}...';
+    }
+    
     return '${value.substring(0, maxLength)}...';
   }
   
@@ -168,8 +214,11 @@ class _JsonViewerState extends State<JsonViewer> {
       return _buildValue('[]', path, null);
     }
     
-    // 非顶层且未展开时显示折叠状态
-    if (!isRoot && !isExpanded && list.length > 3) {
+    // 决定是否需要折叠功能
+    final needsCollapse = !isRoot && list.length > 3;
+    
+    // 未展开时显示折叠状态
+    if (needsCollapse && !isExpanded) {
       return Row(
         children: [
           _buildValue('[...', path, null),
@@ -208,8 +257,8 @@ class _JsonViewerState extends State<JsonViewer> {
         Row(
           children: [
             _buildValue('[', path, null),
-            // 非顶层且展开时显示collapse按钮
-            if (!isRoot && isExpanded && list.length > 3) ...[
+            // 需要折叠功能且已展开时显示collapse按钮
+            if (needsCollapse && isExpanded) ...[
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () {
@@ -263,8 +312,11 @@ class _JsonViewerState extends State<JsonViewer> {
       return _buildValue('{}', path, null);
     }
     
-    // 非顶层且未展开时显示折叠状态
-    if (!isRoot && !isExpanded && map.length > 3) {
+    // 决定是否需要折叠功能
+    final needsCollapse = !isRoot && map.length > 3;
+    
+    // 未展开时显示折叠状态
+    if (needsCollapse && !isExpanded) {
       return Row(
         children: [
           _buildValue('{...', path, null),
@@ -303,8 +355,8 @@ class _JsonViewerState extends State<JsonViewer> {
         Row(
           children: [
             _buildValue('{', path, null),
-            // 非顶层且展开时显示collapse按钮
-            if (!isRoot && isExpanded && map.length > 3) ...[
+            // 需要折叠功能且已展开时显示collapse按钮
+            if (needsCollapse && isExpanded) ...[
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () {
@@ -334,16 +386,59 @@ class _JsonViewerState extends State<JsonViewer> {
               final isLast = entry.key == map.keys.last;
               final fieldPath = path.isEmpty ? key.toString() : '$path.$key';
               
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildValue('"$key": ', fieldPath, Colors.blue),
-                  Expanded(
-                    child: _buildJsonTree(value, fieldPath),
+              // 对于简单值和短字符串，保持在同一行
+              final isSimpleValue = value == null || 
+                  value is bool || 
+                  value is num || 
+                  (value is String && value.length < 50 && !value.contains('\n'));
+              
+              if (isSimpleValue) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildValue('"$key": ', fieldPath, Colors.blue),
+                      _buildJsonTree(value, fieldPath),
+                      if (!isLast)
+                        _buildValue(',', '', null),
+                    ],
                   ),
-                  if (!isLast)
-                    _buildValue(',', '', null),
-                ],
+                );
+              }
+              
+              // 对于长字符串，使用 Wrap 允许换行
+              if (value is String) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.start,
+                    children: [
+                      _buildValue('"$key": ', fieldPath, Colors.blue),
+                      _buildJsonTree(value, fieldPath),
+                      if (!isLast)
+                        _buildValue(',', '', null),
+                    ],
+                  ),
+                );
+              }
+              
+              // 对于复杂对象（数组、嵌套对象），使用垂直布局
+              return Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _buildValue('"$key": ', fieldPath, Colors.blue),
+                        _buildJsonTree(value, fieldPath),
+                        if (!isLast)
+                          _buildValue(',', '', null),
+                      ],
+                    ),
+                  ],
+                ),
               );
             }).toList(),
           ),

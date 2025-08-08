@@ -62,8 +62,12 @@ class NetworkModule extends DevModule {
   
   // ============ GraphQL 集成 ============
   /// 附加到现有的GraphQL客户端（最简单的方式）
-  static gql.GraphQLClient attachToGraphQL(gql.GraphQLClient client) {
-    final interceptor = GraphQLInterceptor(controller: controller);
+  /// endpoint 参数可选，用于在监控面板中显示请求地址
+  static gql.GraphQLClient attachToGraphQL(gql.GraphQLClient client, {String? endpoint}) {
+    final interceptor = GraphQLInterceptor(
+      controller: controller,
+      endpoint: endpoint,
+    );
     final wrappedLink = gql.Link.from([interceptor, client.link]);
     
     // 返回新的客户端，保留原有配置
@@ -79,7 +83,7 @@ class NetworkModule extends DevModule {
     required String endpoint,
     String? subscriptionEndpoint,
     Map<String, String>? defaultHeaders,
-    gql.Cache? cache,
+    gql.GraphQLCache? cache,
   }) {
     return MonitoredGraphQLClient.create(
       endpoint: endpoint,
@@ -96,8 +100,8 @@ class NetworkModule extends DevModule {
   }
   
   /// 获取GraphQL拦截器Link（用于自定义集成）
-  static gql.Link createGraphQLInterceptor() {
-    return GraphQLInterceptor(controller: controller);
+  static gql.Link createGraphQLInterceptor({String? endpoint}) {
+    return GraphQLInterceptor(controller: controller, endpoint: endpoint);
   }
   
   // ============ 通用集成 ============
