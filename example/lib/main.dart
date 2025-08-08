@@ -214,9 +214,8 @@ class _MyHomePageState extends State<MyHomePage> {
               const SizedBox(height: 20),
               Container(
                 padding: const EdgeInsets.all(16),
-                constraints: BoxConstraints(
+                constraints: const BoxConstraints(
                   maxHeight: 200,
-                  maxWidth: MediaQuery.of(context).size.width - 32,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.grey[200],

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/network_request.dart';
+import 'expandable_item.dart';
+import 'json_viewer.dart';
 
 class RequestDetailDialog extends StatefulWidget {
   final NetworkRequest request;
@@ -205,7 +207,6 @@ class _RequestDetailDialogState extends State<RequestDetailDialog> with SingleTi
   }
 
   Widget _buildOverviewTab() {
-    final theme = Theme.of(context);
     final items = <_InfoItem>[
       _InfoItem('URL', widget.request.url),
       _InfoItem('Method', widget.request.method.name.toUpperCase()),
@@ -315,7 +316,7 @@ class _RequestDetailDialogState extends State<RequestDetailDialog> with SingleTi
             child: TabBarView(
               children: [
                 _buildHeadersList(widget.request.headers),
-                _buildHeadersList(widget.request.responseHeaders ?? {}),
+                _buildHeadersList(widget.request.responseHeaders),
               ],
             ),
           ),
@@ -348,71 +349,46 @@ class _RequestDetailDialogState extends State<RequestDetailDialog> with SingleTi
     }
 
     final sortedKeys = headers.keys.toList()..sort();
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
     
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: sortedKeys.length,
       itemBuilder: (context, index) {
         final key = sortedKeys[index];
-        final value = headers[key];
-        return _buildInfoRow(_InfoItem(key, value.toString()));
+        final value = headers[key]?.toString() ?? '';
+        
+        return ExpandableItem(
+          label: key,
+          value: value,
+          labelWidth: isSmallScreen ? 100 : 150,
+          labelStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.primary,
+            fontSize: isSmallScreen ? 11 : 12,
+          ),
+          valueStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
+            fontSize: isSmallScreen ? 11 : 12,
+          ),
+        );
       },
     );
   }
 
   Widget _buildInfoRow(_InfoItem item) {
-    final theme = Theme.of(context);
     final isSmallScreen = MediaQuery.of(context).size.width < 600;
     
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-            width: 0.5,
-          ),
-        ),
+    return ExpandableItem(
+      label: item.label,
+      value: item.value,
+      labelWidth: isSmallScreen ? 100 : 150,
+      labelStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
+        fontWeight: FontWeight.w600,
+        color: Theme.of(context).colorScheme.primary,
+        fontSize: isSmallScreen ? 11 : 12,
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: isSmallScreen ? 100 : 150,
-            child: Text(
-              item.label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.primary,
-                fontSize: isSmallScreen ? 11 : 12,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: SelectableText(
-              item.value,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontSize: isSmallScreen ? 11 : 12,
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.copy, size: 16),
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: item.value));
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Copied ${item.label}'),
-                  duration: const Duration(seconds: 1),
-                ),
-              );
-            },
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            iconSize: 16,
-          ),
-        ],
+      valueStyle: Theme.of(context).textTheme.bodySmall?.copyWith(
+        fontSize: isSmallScreen ? 11 : 12,
       ),
     );
   }
@@ -426,15 +402,12 @@ class _RequestDetailDialogState extends State<RequestDetailDialog> with SingleTi
         children: [
           SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SelectableText(
-                code,
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  color: theme.colorScheme.onSurface,
-                ),
+            child: JsonViewer(
+              jsonString: code,
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12,
+                color: theme.colorScheme.onSurface,
               ),
             ),
           ),

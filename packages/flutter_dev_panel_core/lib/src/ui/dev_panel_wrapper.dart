@@ -22,6 +22,7 @@ class DevPanelWrapper extends StatefulWidget {
 
 class _DevPanelWrapperState extends State<DevPanelWrapper> {
   final controller = DevPanelController.instance;
+  bool _isPanelOpen = false;
 
   @override
   void initState() {
@@ -38,9 +39,13 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
   }
 
   void _openPanel() {
-    if (!controller.shouldShowInProduction()) {
+    if (!controller.shouldShowInProduction() || _isPanelOpen) {
       return;
     }
+
+    setState(() {
+      _isPanelOpen = true;
+    });
 
     showModalBottomSheet(
       context: context,
@@ -74,7 +79,11 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
           ),
         );
       },
-    );
+    ).whenComplete(() {
+      setState(() {
+        _isPanelOpen = false;
+      });
+    });
   }
 
   @override
