@@ -30,14 +30,17 @@ class MonitoringDataProvider extends ChangeNotifier {
   // 更新性能数据
   void updatePerformanceData({double? fps, double? memory}) {
     bool changed = false;
-    if (fps != null && fps != _fps) {
+    
+    // 允许设置为null以清除数据
+    if (fps != _fps) {
       _fps = fps;
       changed = true;
     }
-    if (memory != null && memory != _memory) {
+    if (memory != _memory) {
       _memory = memory;
       changed = true;
     }
+    
     if (changed) {
       notifyListeners();
     }

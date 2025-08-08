@@ -1,21 +1,21 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../core/monitoring_data_provider.dart';
+import '../../core/module_registry.dart';
 
-/// 带监控信息的悬浮按钮
-class MonitoringFab extends StatefulWidget {
+/// 模块化的监控悬浮按钮
+class ModularMonitoringFab extends StatefulWidget {
   final VoidCallback onTap;
   
-  const MonitoringFab({
+  const ModularMonitoringFab({
     super.key,
     required this.onTap,
   });
 
   @override
-  State<MonitoringFab> createState() => _MonitoringFabState();
+  State<ModularMonitoringFab> createState() => _ModularMonitoringFabState();
 }
 
-class _MonitoringFabState extends State<MonitoringFab> with SingleTickerProviderStateMixin {
+class _ModularMonitoringFabState extends State<ModularMonitoringFab> with SingleTickerProviderStateMixin {
   Offset _position = const Offset(20, 100);
   bool _isDragging = false;
   bool _isExpanded = false;
@@ -24,7 +24,9 @@ class _MonitoringFabState extends State<MonitoringFab> with SingleTickerProvider
   late Animation<double> _expandAnimation;
   
   Timer? _collapseTimer;
-  final _dataProvider = MonitoringDataProvider.instance;
+  Timer? _refreshTimer;
+  List<Widget> _fabContents = [];
+  bool _hasAutoExpanded = false; // 记录是否已经自动展开过
   
   @override
   void initState() {
@@ -38,25 +40,55 @@ class _MonitoringFabState extends State<MonitoringFab> with SingleTickerProvider
       curve: Curves.easeInOut,
     );
     
-    // 监听监控数据
-    _dataProvider.addListener(_onDataChanged);
+    // 延迟初始化，避免启动时立即展开
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        _buildFabContents();
+        
+        // 定期刷新FAB内容
+        _refreshTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+          if (mounted) {
+            _buildFabContents();
+          }
+        });
+      }
+    });
   }
   
-  void _onDataChanged() {
-    if (mounted) {
-      setState(() {});
-      
-      // 有性能数据时自动展开并保持展开
-      if (_dataProvider.fps != null || _dataProvider.memory != null) {
-        if (!_isExpanded && !_isDragging) {
-          _expandWithoutAutoCollapse();
-        }
-      } else if (_dataProvider.totalRequests == 0 && _dataProvider.errorRequests == 0) {
-        // 没有任何数据时收起
-        if (_isExpanded && !_isDragging) {
-          _collapse();
-        }
+  void _buildFabContents() {
+    final modules = ModuleRegistry.instance.getEnabledModules();
+    
+    // 按优先级排序
+    final sortedModules = List.from(modules)
+      ..sort((a, b) => a.fabPriority.compareTo(b.fabPriority));
+    
+    final newContents = <Widget>[];
+    for (final module in sortedModules) {
+      final content = module.buildFabContent(context);
+      // 只添加非null的内容
+      if (content != null) {
+        newContents.add(content);
       }
+    }
+    
+    // 检查内容变化
+    final hadContent = _fabContents.isNotEmpty;
+    final hasContent = newContents.isNotEmpty;
+    
+    setState(() {
+      _fabContents = newContents;
+    });
+    
+    // 只在内容从无到有且之前没有自动展开过时才自动展开
+    if (!hadContent && hasContent && !_isExpanded && !_isDragging && !_hasAutoExpanded) {
+      _expandWithoutAutoCollapse();
+      _hasAutoExpanded = true;
+    }
+    // 如果没有内容且已展开，收起
+    else if (!hasContent && _isExpanded && !_isDragging) {
+      _collapse();
+      // 重置自动展开标志，下次有内容时可以再次自动展开
+      _hasAutoExpanded = false;
     }
   }
   
@@ -93,9 +125,9 @@ class _MonitoringFabState extends State<MonitoringFab> with SingleTickerProvider
   
   @override
   void dispose() {
-    _dataProvider.removeListener(_onDataChanged);
     _animationController.dispose();
     _collapseTimer?.cancel();
+    _refreshTimer?.cancel();
     super.dispose();
   }
 
@@ -194,22 +226,21 @@ class _MonitoringFabState extends State<MonitoringFab> with SingleTickerProvider
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(28),
                     child: Container(
-                      alignment: _expandAnimation.value > 0.1 
-                          ? Alignment.centerLeft 
-                          : Alignment.center,
-                      padding: _expandAnimation.value > 0.1
-                          ? const EdgeInsets.symmetric(horizontal: 12)
-                          : EdgeInsets.zero,
-                      child: _expandAnimation.value > 0.5
+                      padding: EdgeInsets.symmetric(
+                        horizontal: _expandAnimation.value > 0.7 ? 12 : 0,
+                      ),
+                      child: _expandAnimation.value > 0.7
                           ? Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 _buildIcon(),
                                 const SizedBox(width: 8),
-                                Flexible(
+                                Expanded(
                                   child: FadeTransition(
                                     opacity: _expandAnimation,
-                                    child: _buildInfo(),
+                                    child: ClipRect(
+                                      child: _buildInfo(),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -227,122 +258,37 @@ class _MonitoringFabState extends State<MonitoringFab> with SingleTickerProvider
   }
   
   Widget _buildIcon() {
-    final hasIssues = (_dataProvider.fps ?? 60) < 30 || _dataProvider.errorRequests > 0;
-    
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        const Icon(
-          Icons.bug_report,
-          color: Colors.white,
-          size: 24,
-        ),
-        if (hasIssues)
-          Positioned(
-            right: -2,
-            top: -2,
-            child: Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 1.5),
-              ),
-            ),
-          ),
-      ],
+    return const Icon(
+      Icons.bug_report,
+      color: Colors.white,
+      size: 24,
     );
   }
   
   Widget _buildInfo() {
-    final fps = _dataProvider.fps;
-    final memory = _dataProvider.memory;
-    final totalRequests = _dataProvider.totalRequests;
-    final errorRequests = _dataProvider.errorRequests;
+    // 即使有内容也先返回空，避免显示空白
+    if (_fabContents.isEmpty) {
+      return const Text(
+        'Dev Panel',
+        style: TextStyle(
+          fontSize: 12,
+          color: Colors.white70,
+          fontWeight: FontWeight.w500,
+        ),
+      );
+    }
     
+    // 显示所有模块的FAB内容
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // FPS和内存放在一行
-        if (fps != null || memory != null) 
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (fps != null) ...[
-                Text(
-                  '${fps.toStringAsFixed(0)}FPS',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: _getFpsColor(fps),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (memory != null) const SizedBox(width: 6),
-              ],
-              if (memory != null)
-                Text(
-                  '${memory.toStringAsFixed(0)}MB',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: _getMemoryColor(memory),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-            ],
-          )
-        else
-          const Text(
-            'Monitoring...',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.white70,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        // 网络请求信息
-        if (totalRequests > 0 || errorRequests > 0) ...[
-          const SizedBox(height: 2),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.swap_vert,
-                size: 12,
-                color: errorRequests > 0 ? Colors.orange[300] : Colors.white70,
-              ),
-              const SizedBox(width: 2),
-              Text(
-                errorRequests > 0 
-                    ? '$totalRequests/$errorRequests'
-                    : '$totalRequests',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: errorRequests > 0 ? Colors.orange[300] : Colors.white70,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+        for (int i = 0; i < _fabContents.length; i++) ...[
+          _fabContents[i],
+          if (i < _fabContents.length - 1) const SizedBox(height: 2),
         ],
       ],
     );
-  }
-  
-  
-  Color _getFpsColor(double? fps) {
-    if (fps == null) return Colors.white70;
-    if (fps >= 55) return Colors.green[300]!;
-    if (fps >= 30) return Colors.yellow[300]!;
-    return Colors.red[300]!;
-  }
-  
-  Color _getMemoryColor(double? memory) {
-    if (memory == null) return Colors.white70;
-    if (memory <= 300) return Colors.green[300]!;
-    if (memory <= 500) return Colors.yellow[300]!;
-    return Colors.red[300]!;
   }
 }

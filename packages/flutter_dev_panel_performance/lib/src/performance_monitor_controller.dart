@@ -58,6 +58,16 @@ class PerformanceMonitorController extends ChangeNotifier {
     _memoryTimer?.cancel();
     _memoryTimer = null;
     
+    // 清除全局监控数据
+    try {
+      MonitoringDataProvider.instance.updatePerformanceData(
+        fps: null,
+        memory: null,
+      );
+    } catch (_) {
+      // 忽略错误
+    }
+    
     notifyListeners();
   }
 

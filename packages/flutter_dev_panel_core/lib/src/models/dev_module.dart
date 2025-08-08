@@ -24,6 +24,13 @@ abstract class DevModule {
   /// 构建快速操作组件（可选）
   Widget? buildQuickAction(BuildContext context) => null;
   
+  /// 构建FAB显示内容（可选）
+  /// 返回要在FAB中显示的widget，返回null表示不显示
+  Widget? buildFabContent(BuildContext context) => null;
+  
+  /// FAB内容的优先级（数字越小优先级越高）
+  int get fabPriority => 100;
+  
   /// 初始化模块（可选）
   Future<void> initialize() async {}
   

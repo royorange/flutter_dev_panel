@@ -96,6 +96,18 @@ class NetworkModule extends DevModule {
       },
     );
   }
+  
+  @override
+  Widget? buildFabContent(BuildContext context) {
+    // 只有有请求时才显示FAB内容
+    if (controller.totalRequests > 0) {
+      return _NetworkFabContent(controller: controller);
+    }
+    return null;
+  }
+  
+  @override
+  int get fabPriority => 20; // 中等优先级
 
   @override
   Future<void> initialize() async {
@@ -107,5 +119,48 @@ class NetworkModule extends DevModule {
     _controller?.dispose();
     _controller = null;
     _instance = null;
+  }
+}
+
+/// Network模块在FAB中的显示内容
+class _NetworkFabContent extends StatelessWidget {
+  final NetworkMonitorController controller;
+  
+  const _NetworkFabContent({required this.controller});
+  
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        final totalRequests = controller.totalRequests;
+        final errorRequests = controller.errorCount;
+        
+        if (totalRequests == 0) {
+          return const SizedBox.shrink();
+        }
+        
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.swap_vert,
+              size: 12,
+              color: errorRequests > 0 ? Colors.orange[300] : Colors.white70,
+            ),
+            const SizedBox(width: 2),
+            Text(
+              errorRequests > 0 
+                  ? '$totalRequests/$errorRequests'
+                  : '$totalRequests',
+              style: TextStyle(
+                fontSize: 10,
+                color: errorRequests > 0 ? Colors.orange[300] : Colors.white70,
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
