@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dev_panel_core/flutter_dev_panel_core.dart';
 import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
+import 'package:graphql_flutter/graphql_flutter.dart' as gql;
 import 'network_monitor_controller.dart';
 import 'network_interceptor.dart';
 import 'interceptors/http_client_interceptor.dart';
 import 'interceptors/base_interceptor.dart';
+import 'interceptors/graphql_interceptor.dart';
 import 'ui/network_monitor_page.dart';
 
 class NetworkModule extends DevModule {
@@ -56,6 +58,46 @@ class NetworkModule extends DevModule {
   
   static http.Client wrapHttpClient(http.Client client) {
     return createHttpClient(innerClient: client);
+  }
+  
+  // ============ GraphQL 集成 ============
+  /// 附加到现有的GraphQL客户端（最简单的方式）
+  static gql.GraphQLClient attachToGraphQL(gql.GraphQLClient client) {
+    final interceptor = GraphQLInterceptor(controller: controller);
+    final wrappedLink = gql.Link.from([interceptor, client.link]);
+    
+    // 返回新的客户端，保留原有配置
+    return gql.GraphQLClient(
+      link: wrappedLink,
+      cache: client.cache,
+      defaultPolicies: client.defaultPolicies,
+    );
+  }
+  
+  /// 创建带监控的GraphQL客户端
+  static gql.GraphQLClient createGraphQLClient({
+    required String endpoint,
+    String? subscriptionEndpoint,
+    Map<String, String>? defaultHeaders,
+    gql.Cache? cache,
+  }) {
+    return MonitoredGraphQLClient.create(
+      endpoint: endpoint,
+      controller: controller,
+      subscriptionEndpoint: subscriptionEndpoint,
+      defaultHeaders: defaultHeaders,
+      cache: cache,
+    );
+  }
+  
+  /// 包装现有的GraphQL Link
+  static gql.Link wrapGraphQLLink(gql.Link link) {
+    return MonitoredGraphQLClient.wrapLink(link, controller: controller);
+  }
+  
+  /// 获取GraphQL拦截器Link（用于自定义集成）
+  static gql.Link createGraphQLInterceptor() {
+    return GraphQLInterceptor(controller: controller);
   }
   
   // ============ 通用集成 ============
