@@ -12,7 +12,6 @@ export 'src/models/dev_panel_config.dart';
 // UI exports
 export 'src/ui/dev_panel.dart';
 export 'src/ui/dev_panel_wrapper.dart';
-export 'src/ui/widgets/floating_button.dart';
 export 'src/ui/widgets/shake_detector.dart';
 export 'src/ui/widgets/modular_monitoring_fab.dart';
 

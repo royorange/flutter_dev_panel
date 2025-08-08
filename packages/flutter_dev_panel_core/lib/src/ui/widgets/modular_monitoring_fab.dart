@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/module_registry.dart';
+import '../../core/monitoring_data_provider.dart';
 
-/// 模块化的监控悬浮按钮
+/// 模块化的监控悬浮按钮，从各模块获取FAB内容显示
 class ModularMonitoringFab extends StatefulWidget {
   final VoidCallback onTap;
   
@@ -19,14 +20,14 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
   Offset _position = const Offset(20, 100);
   bool _isDragging = false;
   bool _isExpanded = false;
+  bool _isManuallyCollapsed = false; // 用户手动收起的标志
   
   late AnimationController _animationController;
   late Animation<double> _expandAnimation;
   
-  Timer? _collapseTimer;
   Timer? _refreshTimer;
   List<Widget> _fabContents = [];
-  bool _hasAutoExpanded = false; // 记录是否已经自动展开过
+  final _dataProvider = MonitoringDataProvider.instance;
   
   @override
   void initState() {
@@ -40,22 +41,25 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
       curve: Curves.easeInOut,
     );
     
-    // 延迟初始化，避免启动时立即展开
+    // 监听数据变化，触发内容更新
+    _dataProvider.addListener(_updateFabContents);
+    
+    // 延迟初始检查
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
-        _buildFabContents();
+        _updateFabContents();
         
-        // 定期刷新FAB内容
-        _refreshTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+        // 定期检查更新（作为备用机制）
+        _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
           if (mounted) {
-            _buildFabContents();
+            _updateFabContents();
           }
         });
       }
     });
   }
   
-  void _buildFabContents() {
+  void _updateFabContents() {
     final modules = ModuleRegistry.instance.getEnabledModules();
     
     // 按优先级排序
@@ -63,15 +67,15 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
       ..sort((a, b) => a.fabPriority.compareTo(b.fabPriority));
     
     final newContents = <Widget>[];
+    
+    // 获取每个模块的FAB内容
     for (final module in sortedModules) {
       final content = module.buildFabContent(context);
-      // 只添加非null的内容
       if (content != null) {
         newContents.add(content);
       }
     }
     
-    // 检查内容变化
     final hadContent = _fabContents.isNotEmpty;
     final hasContent = newContents.isNotEmpty;
     
@@ -79,16 +83,20 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
       _fabContents = newContents;
     });
     
-    // 只在内容从无到有且之前没有自动展开过时才自动展开
-    if (!hadContent && hasContent && !_isExpanded && !_isDragging && !_hasAutoExpanded) {
-      _expandWithoutAutoCollapse();
-      _hasAutoExpanded = true;
+    // 自动展开/收起逻辑
+    if (!_isDragging && !_isManuallyCollapsed) {
+      if (hasContent && !_isExpanded) {
+        // 有内容时自动展开
+        _expand();
+      } else if (!hasContent && _isExpanded) {
+        // 无内容时自动收起
+        _collapse();
+      }
     }
-    // 如果没有内容且已展开，收起
-    else if (!hasContent && _isExpanded && !_isDragging) {
-      _collapse();
-      // 重置自动展开标志，下次有内容时可以再次自动展开
-      _hasAutoExpanded = false;
+    
+    // 如果从无内容变为有内容，清除手动收起标志
+    if (!hadContent && hasContent) {
+      _isManuallyCollapsed = false;
     }
   }
   
@@ -97,22 +105,6 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
       _isExpanded = true;
     });
     _animationController.forward();
-    
-    // 3秒后自动收起
-    _collapseTimer?.cancel();
-    _collapseTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted && !_isDragging) {
-        _collapse();
-      }
-    });
-  }
-  
-  void _expandWithoutAutoCollapse() {
-    setState(() {
-      _isExpanded = true;
-    });
-    _animationController.forward();
-    _collapseTimer?.cancel(); // 不设置自动收起
   }
   
   void _collapse() {
@@ -120,13 +112,24 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
       _isExpanded = false;
     });
     _animationController.reverse();
-    _collapseTimer?.cancel();
+  }
+  
+  void _toggleManually() {
+    if (_fabContents.isEmpty) return;
+    
+    if (_isExpanded) {
+      _collapse();
+      _isManuallyCollapsed = true;
+    } else {
+      _expand();
+      _isManuallyCollapsed = false;
+    }
   }
   
   @override
   void dispose() {
+    _dataProvider.removeListener(_updateFabContents);
     _animationController.dispose();
-    _collapseTimer?.cancel();
     _refreshTimer?.cancel();
     super.dispose();
   }
@@ -146,25 +149,12 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
       left: _position.dx,
       top: _position.dy,
       child: GestureDetector(
-        onTap: () {
-          widget.onTap();
-          // 打开面板后收起FAB（如果已展开）
-          if (_isExpanded) {
-            _collapse();
-          }
-        },
-        onLongPress: () {
-          if (_isExpanded) {
-            _collapse();
-          } else {
-            _expand();
-          }
-        },
+        onTap: widget.onTap,
+        onLongPress: _toggleManually,
         onPanStart: (_) {
           setState(() {
             _isDragging = true;
           });
-          _collapseTimer?.cancel();
         },
         onPanUpdate: (details) {
           setState(() {
@@ -191,6 +181,8 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
               _position.dy,
             );
           });
+          // 拖动结束后更新一次内容
+          _updateFabContents();
         },
         child: AnimatedBuilder(
           animation: _expandAnimation,
@@ -258,15 +250,16 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
   }
   
   Widget _buildIcon() {
-    return const Icon(
+    // 根据是否有内容显示不同的图标状态
+    final hasContent = _fabContents.isNotEmpty;
+    return Icon(
       Icons.bug_report,
-      color: Colors.white,
+      color: Colors.white.withValues(alpha: hasContent ? 1.0 : 0.7),
       size: 24,
     );
   }
   
   Widget _buildInfo() {
-    // 即使有内容也先返回空，避免显示空白
     if (_fabContents.isEmpty) {
       return const Text(
         'Dev Panel',

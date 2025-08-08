@@ -44,6 +44,8 @@ class PerformanceMonitorController extends ChangeNotifier {
       _updateMemoryUsage();
     });
     
+    // 数据已通过MonitoringDataProvider自动通知
+    
     notifyListeners();
   }
 
@@ -67,6 +69,8 @@ class PerformanceMonitorController extends ChangeNotifier {
     } catch (_) {
       // 忽略错误
     }
+    
+    // 数据已通过MonitoringDataProvider自动通知
     
     notifyListeners();
   }
