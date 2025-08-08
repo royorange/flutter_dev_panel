@@ -24,6 +24,8 @@ class _JsonViewerState extends State<JsonViewer> {
   void initState() {
     super.initState();
     _parseJson();
+    // 默认展开顶层
+    _expandedKeys.add('');
   }
   
   @override
@@ -159,13 +161,15 @@ class _JsonViewerState extends State<JsonViewer> {
   
   Widget _buildList(List list, String path) {
     final theme = Theme.of(context);
+    final isRoot = path.isEmpty; // 判断是否是顶层
     final isExpanded = _expandedKeys.contains(path);
     
     if (list.isEmpty) {
       return _buildValue('[]', path, null);
     }
     
-    if (!isExpanded && list.length > 3) {
+    // 非顶层且未展开时显示折叠状态
+    if (!isRoot && !isExpanded && list.length > 3) {
       return Row(
         children: [
           _buildValue('[...', path, null),
@@ -204,7 +208,8 @@ class _JsonViewerState extends State<JsonViewer> {
         Row(
           children: [
             _buildValue('[', path, null),
-            if (isExpanded && list.length > 3) ...[
+            // 非顶层且展开时显示collapse按钮
+            if (!isRoot && isExpanded && list.length > 3) ...[
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () {
@@ -251,13 +256,15 @@ class _JsonViewerState extends State<JsonViewer> {
   
   Widget _buildMap(Map map, String path) {
     final theme = Theme.of(context);
+    final isRoot = path.isEmpty; // 判断是否是顶层
     final isExpanded = _expandedKeys.contains(path);
     
     if (map.isEmpty) {
       return _buildValue('{}', path, null);
     }
     
-    if (!isExpanded && map.length > 3) {
+    // 非顶层且未展开时显示折叠状态
+    if (!isRoot && !isExpanded && map.length > 3) {
       return Row(
         children: [
           _buildValue('{...', path, null),
@@ -296,7 +303,8 @@ class _JsonViewerState extends State<JsonViewer> {
         Row(
           children: [
             _buildValue('{', path, null),
-            if (isExpanded && map.length > 3) ...[
+            // 非顶层且展开时显示collapse按钮
+            if (!isRoot && isExpanded && map.length > 3) ...[
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: () {
