@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/module_registry.dart';
 import '../../core/monitoring_data_provider.dart';
@@ -25,7 +24,6 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
   late AnimationController _animationController;
   late Animation<double> _expandAnimation;
   
-  Timer? _refreshTimer;
   List<Widget> _fabContents = [];
   final _dataProvider = MonitoringDataProvider.instance;
   
@@ -48,13 +46,6 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
         _updateFabContents();
-        
-        // 定期检查更新（作为备用机制）
-        _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-          if (mounted) {
-            _updateFabContents();
-          }
-        });
       }
     });
   }
@@ -130,7 +121,6 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
   void dispose() {
     _dataProvider.removeListener(_updateFabContents);
     _animationController.dispose();
-    _refreshTimer?.cancel();
     super.dispose();
   }
 

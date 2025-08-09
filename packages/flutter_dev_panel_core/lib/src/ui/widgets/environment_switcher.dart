@@ -21,7 +21,7 @@ class EnvironmentSwitcher extends StatelessWidget {
         }
         
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             children: [
               Icon(
@@ -39,7 +39,7 @@ class EnvironmentSwitcher extends StatelessWidget {
               // Environment selector
               Expanded(
                 child: Container(
-                  height: 36,
+                  height: 32,
                   decoration: BoxDecoration(
                     border: Border.all(
                       color: theme.colorScheme.outline.withValues(alpha: 0.3),

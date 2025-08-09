@@ -97,4 +97,9 @@ class MonitoringDataProvider extends ChangeNotifier {
     _pendingRequests = 0;
     notifyListeners();
   }
+  
+  // 手动触发更新通知（供其他模块使用）
+  void triggerUpdate() {
+    notifyListeners();
+  }
 }

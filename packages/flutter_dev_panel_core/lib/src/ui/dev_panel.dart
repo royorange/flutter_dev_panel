@@ -24,7 +24,7 @@ class _DevPanelState extends State<DevPanel> {
       listenable: moduleRegistry,
       builder: (context, _) {
         final modules = moduleRegistry.getEnabledModules();
-        
+
         if (modules.isEmpty) {
           return Scaffold(
             appBar: AppBar(
@@ -66,46 +66,47 @@ class _DevPanelState extends State<DevPanel> {
               listenable: PanelSettings.instance,
               builder: (context, _) {
                 final settings = PanelSettings.instance;
-                
+
                 return Column(
                   children: [
                     // Environment switcher (if enabled)
                     if (settings.showEnvironmentSwitcher)
                       const EnvironmentSwitcher(),
-                    
+
                     // Theme switcher (if enabled)
-                    if (settings.showThemeSwitcher)
-                      const ThemeSwitcher(),
-                    
+                    if (settings.showThemeSwitcher) const ThemeSwitcher(),
+
                     // Only show divider if any switcher is visible
-                    if (settings.showEnvironmentSwitcher || settings.showThemeSwitcher)
+                    if (settings.showEnvironmentSwitcher ||
+                        settings.showThemeSwitcher)
                       const Divider(height: 1),
-                
-                // Module tabs
-                Material(
-                  color: Theme.of(context).colorScheme.surface,
-                  child: TabBar(
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.start,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    indicatorPadding: const EdgeInsets.symmetric(horizontal: 16),
-                    tabs: modules.map((module) {
-                      return Tab(
-                        icon: Icon(module.icon),
-                        text: module.name,
-                      );
-                    }).toList(),
-                  ),
-                ),
-                
-                // Module content
-                Expanded(
-                  child: TabBarView(
-                    children: modules.map((module) {
-                      return module.buildPage(context);
-                    }).toList(),
-                  ),
-                ),
+
+                    // Module tabs
+                    Material(
+                      color: Theme.of(context).colorScheme.surface,
+                      child: TabBar(
+                        isScrollable: true,
+                        tabAlignment: TabAlignment.start,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        indicatorPadding:
+                            const EdgeInsets.symmetric(horizontal: 16),
+                        tabs: modules.map((module) {
+                          return Tab(
+                            icon: Icon(module.icon),
+                            text: module.name,
+                          );
+                        }).toList(),
+                      ),
+                    ),
+
+                    // Module content
+                    Expanded(
+                      child: TabBarView(
+                        children: modules.map((module) {
+                          return module.buildPage(context);
+                        }).toList(),
+                      ),
+                    ),
                   ],
                 );
               },
@@ -115,7 +116,7 @@ class _DevPanelState extends State<DevPanel> {
       },
     );
   }
-  
+
   void _showSettingsDialog(BuildContext context) {
     showDialog(
       context: context,

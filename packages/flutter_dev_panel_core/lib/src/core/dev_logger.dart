@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'monitoring_data_provider.dart';
 
 /// 日志级别
 enum LogLevel {
@@ -154,7 +155,7 @@ class DevLogger {
         FlutterError.presentError(details);
         error(
           'Flutter Error: ${details.exceptionAsString()}',
-          error: details.exception?.toString(),
+          error: details.exception.toString(),
           stackTrace: details.stack.toString(),
         );
       };
@@ -293,6 +294,10 @@ class DevLogger {
     }
     
     _logController.add(entry);
+    
+    // Notify MonitoringDataProvider when logs change
+    // This will trigger FAB update
+    MonitoringDataProvider.instance.triggerUpdate();
     
     // Don't print to console to avoid infinite loop when intercepting print
     // The original print will still be called through the Zone
