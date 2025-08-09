@@ -80,6 +80,11 @@ class DevLogger {
   bool _isPaused = false;
   bool get isPaused => _isPaused;
   
+  // Logger package buffer for combining multi-line output
+  final List<String> _loggerBuffer = [];
+  DateTime? _loggerBufferStartTime;
+  Timer? _loggerBufferTimer;
+  
   DevLogger._internal() {
     _setupErrorHandlers();
     _interceptPrint();
@@ -179,7 +184,7 @@ class DevLogger {
       // Capture debugPrint output more reliably
       debugPrint = (String? message, {int? wrapWidth}) {
         if (message != null) {
-          _addLog(LogLevel.debug, '[Debug] $message');
+          _addLog(LogLevel.debug, message);
         }
         // Still print to console
         debugPrintSynchronously(message, wrapWidth: wrapWidth);
@@ -195,7 +200,7 @@ class DevLogger {
         specification: ZoneSpecification(
           print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
             // Capture print statement
-            instance._addLog(LogLevel.info, '[Print] $line');
+            instance._addLog(LogLevel.info, line);
             // Still print to console
             parent.print(zone, line);
           },
@@ -225,6 +230,12 @@ class DevLogger {
       return;
     }
     
+    // Check if this is a Logger package output and we should combine it
+    if (_config.combineLoggerOutput && _isLoggerPackageOutput(message)) {
+      _handleLoggerPackageOutput(level, message, error: error, stackTrace: stackTrace);
+      return;
+    }
+    
     // Parse and detect log source
     final parsedLog = _parseLogMessage(message);
     
@@ -247,6 +258,113 @@ class DevLogger {
     // The original print will still be called through the Zone
   }
   
+  /// Check if message is from Logger package
+  bool _isLoggerPackageOutput(String message) {
+    return message.contains('┌') || 
+           message.contains('├') || 
+           message.contains('│') || 
+           message.contains('└') ||
+           message.contains('┄');
+  }
+  
+  /// Handle Logger package multi-line output
+  void _handleLoggerPackageOutput(LogLevel level, String message, {String? error, String? stackTrace}) {
+    // Start or continue buffering
+    _loggerBufferStartTime ??= DateTime.now();
+    _loggerBuffer.add(message);
+    
+    // Cancel previous timer
+    _loggerBufferTimer?.cancel();
+    
+    // Check if this is the end of a Logger block
+    if (message.contains('└')) {
+      // This is the end, flush the buffer
+      _flushLoggerBuffer();
+    } else {
+      // Wait a bit for more lines
+      _loggerBufferTimer = Timer(const Duration(milliseconds: 50), () {
+        _flushLoggerBuffer();
+      });
+    }
+  }
+  
+  /// Flush the Logger buffer as a single log entry
+  void _flushLoggerBuffer() {
+    if (_loggerBuffer.isEmpty) return;
+    
+    // Combine all lines
+    final combinedMessage = _loggerBuffer.join('\n');
+    
+    // Detect log level from the combined message
+    LogLevel detectedLevel = LogLevel.info;
+    if (combinedMessage.contains('⛔') || combinedMessage.contains('Error')) {
+      detectedLevel = LogLevel.error;
+    } else if (combinedMessage.contains('⚠️') || combinedMessage.contains('Warning')) {
+      detectedLevel = LogLevel.warning;
+    } else if (combinedMessage.contains('🐛') || combinedMessage.contains('Debug')) {
+      detectedLevel = LogLevel.debug;
+    } else if (combinedMessage.contains('💡') || combinedMessage.contains('Info')) {
+      detectedLevel = LogLevel.info;
+    }
+    
+    // Clean up the message for display
+    String cleanMessage = combinedMessage
+        // Remove box drawing characters but keep emojis
+        .replaceAll(RegExp(r'[┌─├│└╟╚╔╗╝═║╠┄]'), '')
+        // Remove ANSI escape sequences (color codes) but preserve the content
+        .replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '')
+        .replaceAll(RegExp(r'\[38;5;\d+m'), '')
+        .replaceAll(RegExp(r'\[\d+m'), '')
+        .replaceAll('[0m', '')
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .join('\n');
+    
+    // Extract main message and stack trace if present
+    String? mainMessage;
+    String? stackTrace;
+    
+    final lines = cleanMessage.split('\n');
+    if (lines.isNotEmpty) {
+      // First line is usually the main message
+      mainMessage = lines[0];
+      
+      // If there are more lines and they look like stack trace, treat them as such
+      if (lines.length > 1) {
+        final stackLines = lines.sublist(1);
+        if (stackLines.any((line) => line.contains('#') || line.contains('package:'))) {
+          stackTrace = stackLines.join('\n');
+        } else {
+          // Not a stack trace, include in main message
+          mainMessage = cleanMessage;
+        }
+      }
+    }
+    
+    // Create a single log entry
+    final entry = LogEntry(
+      timestamp: _loggerBufferStartTime ?? DateTime.now(),
+      level: detectedLevel,
+      message: mainMessage ?? cleanMessage,
+      error: null,
+      stackTrace: stackTrace,
+    );
+    
+    _logs.addLast(entry);
+    if (_logs.length > _config.maxLogs) {
+      _logs.removeFirst();
+    }
+    
+    _logController.add(entry);
+    
+    // Clear buffer
+    _loggerBuffer.clear();
+    _loggerBufferStartTime = null;
+    _loggerBufferTimer?.cancel();
+    _loggerBufferTimer = null;
+  }
+  
   /// Check if a log should be captured based on config
   bool _shouldCaptureLog(LogLevel level, String message) {
     // Always capture all logs that come through print/Zone
@@ -258,28 +376,40 @@ class DevLogger {
   // Parse log messages to detect source and level
   _ParsedLog _parseLogMessage(String message) {
     // Check for Logger package format (e.g., "│ ⛔ Error message")
-    if (message.contains('│')) {
+    if (message.contains('│') || message.contains('┌') || message.contains('└') || message.contains('├')) {
       // Logger package format detected
       LogLevel? level;
       String cleanMessage = message;
       
-      // Remove Logger package decorations
-      cleanMessage = cleanMessage.replaceAll(RegExp(r'[┌─├│└╟╚╔╗╝═║╠]'), '').trim();
+      // Remove Logger package decorations but keep the content
+      cleanMessage = cleanMessage.replaceAll(RegExp(r'[┌─├│└╟╚╔╗╝═║╠┄]'), '').trim();
       
       // Detect level from Logger emoji/symbols
-      if (message.contains('⛔') || message.contains('ERROR') || message.contains('👾')) {
+      if (message.contains('⛔') || cleanMessage.contains('Error') || message.contains('👾')) {
         level = LogLevel.error;
-      } else if (message.contains('⚠️') || message.contains('WARNING')) {
+      } else if (message.contains('⚠️') || cleanMessage.contains('Warning')) {
         level = LogLevel.warning;  
-      } else if (message.contains('💡') || message.contains('INFO')) {
+      } else if (message.contains('💡') || cleanMessage.contains('Info')) {
         level = LogLevel.info;
-      } else if (message.contains('🐛') || message.contains('DEBUG')) {
+      } else if (message.contains('🐛') || cleanMessage.contains('Debug')) {
         level = LogLevel.debug;
-      } else if (message.contains('VERBOSE') || message.contains('TRACE')) {
+      } else if (cleanMessage.contains('Verbose') || cleanMessage.contains('Trace')) {
         level = LogLevel.verbose;
       }
       
-      return _ParsedLog(level: level, message: '[Logger] $cleanMessage');
+      // For Logger package, return cleaned message
+      if (cleanMessage.isNotEmpty) {
+        // Remove ANSI escape sequences from the cleaned message
+        cleanMessage = cleanMessage
+            .replaceAll(RegExp(r'\x1B\[[0-9;]*m'), '')
+            .replaceAll(RegExp(r'\[38;5;\d+m'), '')
+            .replaceAll(RegExp(r'\[\d+m'), '')
+            .replaceAll('[0m', '');
+        return _ParsedLog(level: level, message: cleanMessage);
+      } else {
+        // Empty decoration lines, skip them
+        return _ParsedLog(level: level, message: message);
+      }
     }
     
     // Check for common log patterns
@@ -296,11 +426,7 @@ class DevLogger {
       return _ParsedLog(level: LogLevel.verbose, message: message);
     }
     
-    // Check if it's already marked as print
-    if (!message.startsWith('[Print]')) {
-      return _ParsedLog(level: null, message: '[Print] $message');
-    }
-    
+    // Return the message as is, without adding [Print] prefix
     return _ParsedLog(level: null, message: message);
   }
   
@@ -377,33 +503,42 @@ class LogCaptureConfig {
   /// Auto scroll to bottom when new logs arrive
   final bool autoScroll;
   
+  /// Combine Logger package multi-line output
+  final bool combineLoggerOutput;
+  
   const LogCaptureConfig({
     this.maxLogs = 1000,
     this.autoScroll = true,
+    this.combineLoggerOutput = true,
   });
   
   /// Create a minimal config
   const LogCaptureConfig.minimal()
     : maxLogs = 500,
-      autoScroll = true;
+      autoScroll = true,
+      combineLoggerOutput = true;
   
   /// Create a full config
   const LogCaptureConfig.full()
     : maxLogs = 5000,
-      autoScroll = true;
+      autoScroll = true,
+      combineLoggerOutput = true;
   
   /// Create a balanced config for development
   const LogCaptureConfig.development()
     : maxLogs = 1000,
-      autoScroll = true;
+      autoScroll = true,
+      combineLoggerOutput = true;
   
   LogCaptureConfig copyWith({
     int? maxLogs,
     bool? autoScroll,
+    bool? combineLoggerOutput,
   }) {
     return LogCaptureConfig(
       maxLogs: maxLogs ?? this.maxLogs,
       autoScroll: autoScroll ?? this.autoScroll,
+      combineLoggerOutput: combineLoggerOutput ?? this.combineLoggerOutput,
     );
   }
 }

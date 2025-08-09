@@ -416,6 +416,19 @@ class _ConsolePageState extends State<ConsolePage> {
                                 },
                               ),
                               
+                              // Combine Logger output
+                              _buildConfigSwitch(
+                                title: 'Optimize Logger Display',
+                                subtitle: 'Combine multi-line Logger package output',
+                                value: currentConfig.combineLoggerOutput,
+                                onChanged: (value) {
+                                  DevLogger.instance.updateConfig(
+                                    currentConfig.copyWith(combineLoggerOutput: value),
+                                  );
+                                  setDialogState(() {});
+                                },
+                              ),
+                              
                               const Divider(height: 24),
                               
                               // Max logs setting

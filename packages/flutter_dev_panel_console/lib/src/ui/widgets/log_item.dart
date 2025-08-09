@@ -17,6 +17,18 @@ class LogItem extends StatelessWidget {
     this.onTap,
   });
 
+  /// Get message text color based on log level
+  Color? _getMessageColor(LogLevel level, ThemeData theme) {
+    switch (level) {
+      case LogLevel.error:
+        return Colors.red;
+      case LogLevel.warning:
+        return Colors.orange;
+      default:
+        return null; // Use default text color
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -86,6 +98,7 @@ class LogItem extends StatelessWidget {
                     log.message,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: 14,
+                      color: _getMessageColor(log.level, theme),
                     ),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,

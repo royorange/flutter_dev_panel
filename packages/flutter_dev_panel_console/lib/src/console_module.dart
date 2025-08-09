@@ -34,38 +34,46 @@ class ConsoleModule extends DevModule {
         allLogs.where((log) => log.level == LogLevel.warning).length;
 
     if (errorCount > 0 || warningCount > 0) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (errorCount > 0) ...[
-            Text(
-              '$errorCount ${errorCount == 1 ? 'error' : 'errors'}',
-              style: const TextStyle(
-                color: Colors.red,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
+      return Flexible(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (errorCount > 0) ...[
+              Flexible(
+                child: Text(
+                  '$errorCount ${errorCount == 1 ? 'error' : 'errors'}',
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
+            ],
+            if (errorCount > 0 && warningCount > 0)
+              const Text(
+                ', ',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11,
+                ),
+              ),
+            if (warningCount > 0) ...[
+              Flexible(
+                child: Text(
+                  '$warningCount ${warningCount == 1 ? 'warning' : 'warnings'}',
+                  style: const TextStyle(
+                    color: Colors.orange,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ],
-          if (errorCount > 0 && warningCount > 0)
-            const Text(
-              ', ',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 11,
-              ),
-            ),
-          if (warningCount > 0) ...[
-            Text(
-              '$warningCount ${warningCount == 1 ? 'warning' : 'warnings'}',
-              style: const TextStyle(
-                color: Colors.orange,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ],
+        ),
       );
     }
     return null;

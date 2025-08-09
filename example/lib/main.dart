@@ -76,7 +76,7 @@ void main() async {
   }, zoneSpecification: ZoneSpecification(
     print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
       // Capture print statements
-      DevLogger.instance.info('[Print] $line');
+      DevLogger.instance.info(line);
       // Still print to console
       parent.print(zone, line);
     },
