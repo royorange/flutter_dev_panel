@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/dev_panel_controller.dart';
 import '../core/module_registry.dart';
 import 'widgets/environment_switcher.dart';
+import 'widgets/theme_switcher.dart';
 
 /// Dev Panel main interface
 class DevPanel extends StatefulWidget {
@@ -51,6 +52,10 @@ class _DevPanelState extends State<DevPanel> {
               children: [
                 // Environment switcher
                 const EnvironmentSwitcher(),
+                
+                // Theme switcher
+                const ThemeSwitcher(),
+                
                 const Divider(height: 1),
                 
                 // Module tabs

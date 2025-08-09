@@ -125,18 +125,41 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GraphQLProvider(
-      client: ValueNotifier(graphQLClient),
-      child: MaterialApp(
-        title: 'Flutter Dev Panel Example',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
-        ),
-        home: DevPanelWrapper(
-          child: MyHomePage(dio: dio),
-        ),
-      ),
+    // Listen to theme changes
+    return ListenableBuilder(
+      listenable: ThemeManager.instance,
+      builder: (context, _) {
+        final themeManager = ThemeManager.instance;
+        
+        return GraphQLProvider(
+          client: ValueNotifier(graphQLClient),
+          child: MaterialApp(
+            title: 'Flutter Dev Panel Example',
+            // Theme configuration from ThemeManager
+            themeMode: themeManager.currentTheme.mode,
+            theme: themeManager.getThemeData(
+              context,
+              baseTheme: ThemeData(
+                colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+                useMaterial3: true,
+              ),
+            ) ?? ThemeData(
+              colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+              useMaterial3: true,
+            ),
+            darkTheme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: Colors.deepPurple,
+                brightness: Brightness.dark,
+              ),
+              useMaterial3: true,
+            ),
+            home: DevPanelWrapper(
+              child: MyHomePage(dio: dio),
+            ),
+          ),
+        );
+      },
     );
   }
 }
