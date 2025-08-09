@@ -403,6 +403,10 @@ class DevLogger {
     
     _logController.add(entry);
     
+    // Notify MonitoringDataProvider when logs change
+    // This will trigger FAB update
+    MonitoringDataProvider.instance.triggerUpdate();
+    
     // Clear buffer
     _loggerBuffer.clear();
     _loggerBufferStartTime = null;
@@ -500,6 +504,8 @@ class DevLogger {
   
   void clear() {
     _logs.clear();
+    // Notify MonitoringDataProvider when logs are cleared
+    MonitoringDataProvider.instance.triggerUpdate();
   }
   
   void dispose() {

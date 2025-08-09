@@ -51,6 +51,8 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
   }
   
   void _updateFabContents() {
+    if (!mounted) return;
+    
     final modules = ModuleRegistry.instance.getEnabledModules();
     
     // 按优先级排序

@@ -588,7 +588,7 @@ class _MyHomePageState extends State<MyHomePage>
                         icon: const Icon(Icons.print, size: 16),
                         label: const Text('Test Print'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
+                          backgroundColor: Colors.blueGrey,
                           foregroundColor: Colors.white,
                         ),
                       ),
