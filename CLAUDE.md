@@ -2,338 +2,133 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# 项目介绍
-- 功能介绍：这是一个 flutter 的插件库，用于实现一个 flutter用的 dev 开发面板
-- 库名称： flutter_dev_panel
-- 主要功能：
-    - Console/日志监控
-        - 自动捕获print、debugPrint、Logger包输出、Flutter错误
-        - 支持日志级别过滤（Verbose、Debug、Info、Warning、Error）  
-        - 支持关键词搜索和实时过滤
-        - Logger包多行输出智能合并（可配置）
-        - 自动识别并显示不同级别的颜色（错误红色、警告橙色）
-        - 设置持久化：最大日志数、自动滚动、Logger优化显示
-        - FAB显示错误和警告计数（如 "2 errors, 3 warnings"）
-        - 暂停/继续日志捕获功能（不持久化）
-    - 网络监控
-        - 支持多种HTTP库：Dio、http包、GraphQL（graphql_flutter）
-        - 显示当前请求详细信息和状态，并可以点击请求查看详细信息
-        - 支持请求/响应数据查看、搜索、过滤功能
-        - 请求历史持久化存储，应用重启后可查看
-        - FAB实时显示：pending请求数、成功/错误统计、最慢响应时间、流量统计
-    - 动态切换
-        - 通过配置切换不同的环境，比如开发环境、测试环境、生产环境以及对应的参数（如 api_url 等，可以自定义）
-        - 切换主题：系统、暗色、亮色
-        - 切换语言：中文、英文等等
-    - 设备信息
-        - 显示当前设备信息，包括设备型号、屏幕尺寸、系统版本、内存使用情况等
-    - 性能监控
-        - 显示当前性能指标，包括帧率、内存使用情况、电池使用情况等
-        - 参考并使用 flutter_fps 库
-        - 显示当前性能指标，包括帧率、内存使用情况、电池使用情况等
-    - 上述各功能可配置以模块的方式配置，可以由使用者决定使用哪些模块
-    - 可以配置启动方式
-        - 调用方法弹出面板
-        - 摇一摇弹出面板
-        - 通过可以在顶层拖拽的 fab 按钮，点击弹出面板（默认选项）
+# Flutter Dev Panel - 模块化Flutter调试面板
 
-### pubspec核心依赖：
-    # 核心依赖
-    intl  # 时间和日期格式化
-    shared_preferences  # 本地存储
+## 项目概述
+一个零侵入、模块化的Flutter调试面板插件，开发者可按需加载功能模块。
 
-    # 网络监控
-    dio  # HTTP 客户端库，用于拦截器实现
-    intl  # 时间格式化
+## 核心功能模块
 
-    # 设备信息
-    device_info_plus  # 获取设备信息
-    package_info_plus  # 获取应用包信息
+### 1. Console/Logs 日志监控
+- 自动捕获：print、Logger包、Flutter错误
+- 日志级别过滤和搜索
+- Logger多行输出智能合并
+- 设置持久化（maxLogs、autoScroll等）
+- FAB显示错误/警告计数
 
-    # 性能监控
-    # 需要寻找合适的FPS监控库或自行实现
+### 2. Network 网络监控  
+- 支持Dio、http、GraphQL
+- 请求历史持久化
+- 会话统计（当前应用生命周期）
+- FAB显示pending/成功/错误统计
 
-    # 存储
-    shared_preferences  # 本地存储
+### 3. Environment 环境管理
+- Development/Production环境切换
+- 环境变量管理（api_url等）
+- 配置持久化到SharedPreferences
+- 支持监听环境变化（ChangeNotifier）
 
-    # UI 组件
-    flutter_slidable  # 滑动操作组件
-    shimmer  # 闪光加载效果
+### 4. Device Info 设备信息
+- 设备型号、屏幕尺寸、系统版本
+- PPI计算和显示
+- 内存使用情况
 
-    # 传感器
-    sensors_plus  # 传感器数据（摇一摇功能）
+### 5. Performance 性能监控
+- FPS监控（使用flutter_fps）
+- 内存和电池使用情况
+- 实时图表展示
 
-#### 高级特性：
-
-  1. 插件化架构 - 支持自定义模块
-  2. 主题定制 - 支持自定义颜色和样式
-  3. 数据持久化 - 记住用户的调试设置
-  4. 导出功能 - 导出日志和网络请求
-  5. 远程调试 - 通过 WebSocket 远程查看日志
-
-#### 要求：
-  1. 零侵入 - 不影响生产代码
-  2. 模块化 - 按需加载功能
-  3. 可扩展 - 轻松添加新功能
-  4. 可复用 - 多项目共享
-  5. 社区驱动 - 开源贡献
-  6. 使用 flutter 标准的代码风格和规范，命名准确，易于维护
+## 设计原则
+- **零侵入** - 不影响生产代码
+- **模块化** - 按需加载功能  
+- **高性能** - 调试面板不影响应用性能
+- **标准化** - Flutter标准代码风格
 
 ## 项目结构
-
 ```
 packages/
 ├── flutter_dev_panel_core/         # 核心包
-│   └── lib/
-│       ├── flutter_dev_panel_core.dart  # 主入口
-│       └── src/
-│           ├── core/                # 核心功能
-│           │   ├── dev_panel_controller.dart     # 面板控制器
-│           │   ├── module_registry.dart          # 模块注册中心
-│           │   ├── monitoring_data_provider.dart # 中央数据提供者
-│           │   └── dev_logger.dart               # 日志管理器
-│           ├── models/              # 数据模型
-│           │   ├── dev_module.dart  # 模块基类
-│           │   └── dev_panel_config.dart # 配置
-│           └── ui/                  # UI组件
-│               ├── dev_panel.dart   # 主面板
-│               ├── dev_panel_wrapper.dart # 包装器
-│               └── widgets/
-│                   ├── modular_monitoring_fab.dart # 模块化FAB
-│                   └── shake_detector.dart # 摇一摇检测
-│
-├── flutter_dev_panel_console/      # Console日志模块
-│   └── lib/src/
-│       ├── console_module.dart     # Console模块实现
-│       ├── providers/
-│       │   └── console_provider.dart # 状态管理
-│       └── ui/
-│           ├── pages/
-│           │   └── console_page.dart # 主页面
-│           └── widgets/
-│               ├── log_item.dart     # 日志项组件
-│               └── log_filter_bar.dart # 过滤栏
-│
-├── flutter_dev_panel_network/      # 网络监控模块
-│   └── lib/src/
-│       ├── network_module.dart     # 网络模块实现
-│       ├── network_monitor_controller.dart # 控制器（含会话统计）
-│       ├── storage/
-│       │   └── network_storage.dart # 持久化存储
-│       └── interceptors/           # 多库支持
-│           ├── base_interceptor.dart
-│           ├── network_interceptor.dart     # Dio
-│           ├── http_client_interceptor.dart # http包
-│           └── graphql_interceptor.dart     # GraphQL
-│
-├── flutter_dev_panel_performance/  # 性能监控模块
-│   └── lib/src/
-│       ├── performance_module.dart # 性能模块实现
-│       └── performance_monitor_controller.dart
-│
-└── flutter_dev_panel_device/       # 设备信息模块
-    └── lib/src/
-        └── device_module.dart      # 设备模块实现
+│   ├── dev_logger.dart            # 日志捕获管理
+│   ├── environment_manager.dart   # 环境管理
+│   └── module_registry.dart       # 模块注册
+├── flutter_dev_panel_console/     # 日志模块
+├── flutter_dev_panel_network/     # 网络模块  
+├── flutter_dev_panel_device/      # 设备模块
+└── flutter_dev_panel_performance/ # 性能模块
 ```
 
-## 核心架构机制
+## 核心机制
 
-### 1. 模块化插件机制
+### 1. 模块系统
+每个模块继承 `DevModule` 基类，提供：
+- `buildPage()` - 构建页面内容
+- `buildFabContent()` - FAB显示内容（可选）
+- `fabPriority` - 显示优先级
 
-每个功能模块继承自`DevModule`基类：
+### 2. 日志捕获（DevLogger）
+```dart
+// Zone拦截print
+runZonedGuarded(() => runApp(MyApp()), 
+  (error, stack) => DevLogger.instance.error(...),
+  zoneSpecification: ZoneSpecification(
+    print: (self, parent, zone, line) => DevLogger.instance.info(line)
+  )
+);
+```
+
+特性：
+- Logger包多行智能合并
+- ANSI转义序列清理
+- 配置持久化（maxLogs、autoScroll）
+- 暂停状态不持久化
+
+### 3. 环境管理（EnvironmentManager）
+```dart
+// 初始化
+EnvironmentManager.instance.initialize(
+  environments: [dev, prod],
+  defaultEnvironment: 'Development'
+);
+
+// 监听变化
+EnvironmentManager.instance.addListener(_updateConfig);
+
+// 获取变量
+final apiUrl = EnvironmentManager.instance.getVariable<String>('api_url');
+```
+
+### 4. 网络监控
+- 会话统计：当前应用生命周期的请求
+- 历史数据：持久化到SharedPreferences
+- 多库支持：Dio、http、GraphQL统一接口
+
+### 5. FAB机制
+- 监听 `MonitoringDataProvider` 变化
+- 查询各模块 `buildFabContent()`
+- 自动展开/收起（用户操作后保持状态）
+
+## 使用方式
 
 ```dart
-abstract class DevModule {
-  // 构建页面内容
-  Widget buildPage(BuildContext context);
-  
-  // 构建FAB内容（可选，返回null则不显示）
-  Widget? buildFabContent(BuildContext context) => null;
-  
-  // FAB显示优先级（数字越小优先级越高）
-  int get fabPriority => 50;
-}
+// 1. 初始化环境
+EnvironmentManager.instance.initialize(environments: [...]);
+
+// 2. 初始化面板
+FlutterDevPanel.initialize(
+  config: DevPanelConfig(...),
+  modules: [ConsoleModule(), NetworkModule(), ...],
+  enableLogCapture: true,
+);
+
+// 3. 包装应用
+runZonedGuarded(
+  () => runApp(DevPanelWrapper(child: MyApp())),
+  (error, stack) => DevLogger.instance.error(...)
+);
 ```
 
-### 2. 数据订阅更新机制
-
-#### MonitoringDataProvider（中央数据提供者）
-
-```dart
-class MonitoringDataProvider extends ChangeNotifier {
-  // 性能数据
-  double? fps;
-  double? memory;
-  
-  // 网络数据（会话统计）
-  int totalRequests;
-  int errorRequests;
-  int pendingRequests;
-  
-  // 更新并通知
-  void updatePerformanceData({...}) {
-    notifyListeners();
-  }
-}
-```
-
-#### 数据流向
-
-```
-模块Controller → MonitoringDataProvider → FAB/通知系统
-     ↓                    ↓                      ↓
-  产生数据            通知监听者            更新显示
-```
-
-### 3. FAB显示机制
-
-#### ModularMonitoringFab工作流程
-
-1. **监听MonitoringDataProvider变化**
-2. **数据变化时查询各模块的buildFabContent()**
-3. **自动展开/收起逻辑**
-   - 有内容自动展开
-   - 无内容自动收起
-   - 用户手动操作后保持状态（_isManuallyCollapsed标志）
-
-### 4. 网络监控特殊机制
-
-#### 会话统计与历史数据分离
-
-```dart
-class NetworkMonitorController {
-  // 所有请求（包含历史）
-  List<NetworkRequest> _requests;
-  
-  // 当前会话统计（用于FAB显示）
-  int _sessionRequestCount;    // 本次会话总请求
-  int _sessionPendingCount;    // 进行中
-  int _sessionSuccessCount;    // 成功
-  int _sessionErrorCount;      // 错误
-  
-  // FAB只在有会话活动时显示
-  bool get hasSessionActivity => _sessionRequestCount > 0;
-}
-```
-
-应用重启后：
-- 历史记录加载到_requests（可在列表查看）
-- 会话统计归零（FAB不显示历史数据）
-
-### 5. 多HTTP库支持
-
-```
-BaseNetworkInterceptor（统一接口）
-        ↓
-┌───────┼───────┬────────────┐
-Dio   HTTP   GraphQL    Custom
-
-使用方式：
-NetworkModule.attachToDio(dio);
-NetworkModule.createHttpClient();
-NetworkModule.createGraphQLClient(endpoint: '...');
-```
-
-### 6. Console日志捕获机制
-
-#### 日志捕获方式
-
-```dart
-// 在main.dart中使用Zone包装应用
-runZonedGuarded(() async {
-  // 应用初始化
-  runApp(MyApp());
-}, (error, stack) {
-  // 错误处理
-}, zoneSpecification: ZoneSpecification(
-  print: (self, parent, zone, line) {
-    DevLogger.instance.info(line);
-    parent.print(zone, line);
-  },
-));
-```
-
-#### DevLogger核心功能
-
-1. **自动捕获多种日志源**
-   - print() 语句通过Zone拦截
-   - debugPrint() 通过重写实现
-   - Logger包输出自动识别（通过特殊字符检测）
-   - Flutter错误通过FlutterError.onError
-   - 异步错误通过PlatformDispatcher.onError
-
-2. **Logger包多行输出智能合并**
-   - 检测Logger特殊字符（┌├│└┄）
-   - 缓冲多行输出直到检测到结束符
-   - 清理ANSI转义序列和装饰字符
-   - 智能识别主消息和堆栈跟踪
-
-3. **配置持久化（SharedPreferences）**
-   ```dart
-   class LogCaptureConfig {
-     final int maxLogs;              // 最大日志数量
-     final bool autoScroll;          // 自动滚动
-     final bool combineLoggerOutput; // 合并Logger输出
-   }
-   ```
-
-4. **日志级别与颜色**
-   - Error: 红色
-   - Warning: 橙色  
-   - Info: 绿色（默认）
-   - Debug: 蓝色
-   - Verbose: 灰色
-
-5. **暂停机制**
-   - 暂停状态只在内存中（不持久化）
-   - 暂停时不捕获新日志
-   - FAB不显示暂停时的统计
-
-## 开发命令
-
-```bash
-# 获取依赖
-flutter pub get
-
-# 运行测试
-flutter test
-
-# 分析代码
-flutter analyze
-
-# 格式化代码
-flutter format lib/
-
-# 构建示例应用
-cd example && flutter run
-```
-
-## 设计原则
-
-1. **Material Design 3** - 使用最新的Material Design规范，确保界面美观现代
-2. **性能优先** - 调试面板本身不应影响应用性能
-3. **易于集成** - 简单的API，最少的配置
-4. **可扩展性** - 支持自定义面板和功能扩展
-5. **生产安全** - 自动在生产环境禁用
-6. **模块化设计** - 每个功能独立成模块，可按需加载
-
-## 关键实现要点
-
-### FAB更新时机
-- 模块数据变化时通过MonitoringDataProvider通知
-- FAB监听到通知后调用各模块的buildFabContent()
-- 模块返回null表示不显示，返回Widget表示要显示的内容
-
-### 数据持久化
-- NetworkModule使用SharedPreferences保存请求历史
-- 应用重启后自动加载，但不触发FAB显示（会话统计归零）
-
-### 模块注册
-```dart
-// 在main.dart中注册模块
-FlutterDevPanel.registerModule(NetworkModule());
-FlutterDevPanel.registerModule(PerformanceModule());
-
-// 包装应用
-FlutterDevPanel.wrap(child: MyApp())
-```
+## 注意事项
+- 插件库不应包含mock数据或示例URL
+- 环境配置由使用者定义，不内置默认值
+- UI文案使用英文
+- 避免使用外部状态管理库（如GetX）以防冲突
