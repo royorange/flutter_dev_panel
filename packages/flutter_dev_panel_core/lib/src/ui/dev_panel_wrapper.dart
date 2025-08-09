@@ -5,7 +5,7 @@ import 'widgets/modular_monitoring_fab.dart';
 import 'widgets/shake_detector.dart';
 import 'dev_panel.dart';
 
-/// 开发面板包装器，提供触发入口
+/// Dev Panel wrapper that provides trigger entry
 class DevPanelWrapper extends StatefulWidget {
   final Widget child;
   final DevPanelConfig? config;

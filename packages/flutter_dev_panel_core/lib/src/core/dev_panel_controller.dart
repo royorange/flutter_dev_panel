@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../models/dev_panel_config.dart';
 import 'module_registry.dart';
 
-/// 开发面板核心控制器
+/// Dev Panel core controller
 class DevPanelController extends ChangeNotifier {
   static DevPanelController? _instance;
   
@@ -20,7 +20,7 @@ class DevPanelController extends ChangeNotifier {
   DevPanelConfig get config => _config;
   ModuleRegistry get moduleRegistry => ModuleRegistry.instance;
 
-  /// 初始化开发面板
+  /// Initialize dev panel
   void initialize({DevPanelConfig? config}) {
     if (config != null) {
       _config = config;

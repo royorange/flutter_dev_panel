@@ -183,23 +183,6 @@ class _ConsolePageState extends State<ConsolePage> {
             },
           ),
           
-          // Auto scroll button
-          ListenableBuilder(
-            listenable: provider,
-            builder: (context, _) {
-              return IconButton(
-                icon: Icon(
-                  provider.autoScroll 
-                    ? Icons.vertical_align_bottom 
-                    : Icons.vertical_align_center,
-                  size: 20,
-                ),
-                onPressed: provider.toggleAutoScroll,
-                tooltip: provider.autoScroll ? 'Disable auto scroll' : 'Enable auto scroll',
-              );
-            },
-          ),
-          
           // Settings button
           IconButton(
             icon: const Icon(Icons.settings, size: 20),

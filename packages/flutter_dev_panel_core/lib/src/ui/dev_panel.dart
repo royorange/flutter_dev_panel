@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/dev_panel_controller.dart';
 import '../core/module_registry.dart';
 
-/// 开发面板主界面
+/// Dev Panel main interface
 class DevPanel extends StatefulWidget {
   const DevPanel({super.key});
 
@@ -24,7 +24,7 @@ class _DevPanelState extends State<DevPanel> {
         if (modules.isEmpty) {
           return Scaffold(
             appBar: AppBar(
-              title: const Text('开发面板'),
+              title: const Text('Dev Panel'),
               leading: IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.of(context).pop(),
@@ -40,7 +40,7 @@ class _DevPanelState extends State<DevPanel> {
           length: modules.length,
           child: Scaffold(
             appBar: AppBar(
-              title: const Text('开发面板'),
+              title: const Text('Dev Panel'),
               leading: IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.of(context).pop(),
