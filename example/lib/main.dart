@@ -1,47 +1,85 @@
+import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
 import 'package:dio/dio.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
+import 'package:logger/logger.dart';
+
+// Create a global logger instance
+final logger = Logger(
+  printer: PrettyPrinter(
+    methodCount: 0,
+    errorMethodCount: 5,
+    lineLength: 50,
+    colors: true,
+    printEmojis: true,
+    dateTimeFormat: DateTimeFormat.none,
+  ),
+);
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // Run the entire app in a Zone that intercepts print
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // 初始化Dio
-  final dio = Dio();
-  NetworkModule.attachToDio(dio);
+    // 初始化Dio
+    final dio = Dio();
+    NetworkModule.attachToDio(dio);
 
-  // 初始化GraphQL客户端
-  const graphQLEndpoint = 'https://countries.trevorblades.com/';
-  final graphQLClient = GraphQLClient(
-    link: HttpLink(graphQLEndpoint),
-    cache: GraphQLCache(),
-  );
+    // 初始化GraphQL客户端
+    const graphQLEndpoint = 'https://countries.trevorblades.com/';
+    final graphQLClient = GraphQLClient(
+      link: HttpLink(graphQLEndpoint),
+      cache: GraphQLCache(),
+    );
 
-  // 添加GraphQL监控（会自动检测endpoint，也可以手动传入）
-  final monitoredGraphQLClient = NetworkModule.attachToGraphQL(
-    graphQLClient,
-    endpoint: graphQLEndpoint, // 可选：手动指定以确保显示正确
-  );
+    // 添加GraphQL监控（会自动检测endpoint，也可以手动传入）
+    final monitoredGraphQLClient = NetworkModule.attachToGraphQL(
+      graphQLClient,
+      endpoint: graphQLEndpoint, // 可选：手动指定以确保显示正确
+    );
 
-  // Initialize Flutter Dev Panel
-  FlutterDevPanel.initialize(
-    config: const DevPanelConfig(
-      enabled: true,
-      triggerModes: {TriggerMode.fab, TriggerMode.shake},
-      showInProduction: false,
-    ),
-    modules: [
-      NetworkModule(),
-      const DeviceModule(),
-      const PerformanceModule(),
-      const ConsoleModule(),
-    ],
-  );
+    // Initialize Flutter Dev Panel with log capture
+    FlutterDevPanel.initialize(
+      config: const DevPanelConfig(
+        enabled: true,
+        triggerModes: {TriggerMode.fab, TriggerMode.shake},
+        showInProduction: false,
+      ),
+      modules: [
+        const ConsoleModule(), // Console 第一个显示
+        NetworkModule(),
+        const DeviceModule(),
+        const PerformanceModule(),
+      ],
+      enableLogCapture: true,
+    );
+    
+    // 配置日志捕获（可选，默认使用 development 模式）
+    DevLogger.instance.updateConfig(
+      const LogCaptureConfig.development(), // 开发模式：捕获应用和库日志
+    );
 
-  runApp(MyApp(
-    dio: dio,
-    graphQLClient: monitoredGraphQLClient,
+    runApp(MyApp(
+      dio: dio,
+      graphQLClient: monitoredGraphQLClient,
+    ));
+  }, (error, stack) {
+    // Errors will be captured by DevLogger
+    DevLogger.instance.error(
+      'Uncaught Error in Zone',
+      error: error.toString(),
+      stackTrace: stack.toString(),
+    );
+  }, zoneSpecification: ZoneSpecification(
+    print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
+      // Capture print statements
+      DevLogger.instance.info('[Print] $line');
+      // Still print to console
+      parent.print(zone, line);
+    },
   ));
 }
 
@@ -459,6 +497,84 @@ class _MyHomePageState extends State<MyHomePage>
                         },
                         icon: const Icon(Icons.text_snippet, size: 16),
                         label: const Text('Add Test Logs'),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          // Test print interception
+                          print('This is a print statement');
+                          print('Debug: User clicked test button');
+                          print('Info: Testing print interception');
+                          debugPrint('This is a debugPrint statement');
+                          
+                          // Test developer.log
+                          developer.log('Developer log message', name: 'TestApp');
+                          developer.log('Complex object', error: {'key': 'value'});
+                          
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Print statements captured')),
+                          );
+                        },
+                        icon: const Icon(Icons.print, size: 16),
+                        label: const Text('Test Print'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          // Test Logger package
+                          logger.t('Trace log from Logger package');
+                          logger.d('Debug log from Logger package');
+                          logger.i('Info log from Logger package');
+                          logger.w('Warning log from Logger package');
+                          logger.e('Error log from Logger package', 
+                            error: Exception('Test exception'),
+                            stackTrace: StackTrace.current,
+                          );
+                          
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Logger package logs sent')),
+                          );
+                        },
+                        icon: const Icon(Icons.library_books, size: 16),
+                        label: const Text('Test Logger'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.indigo,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          // Test error throwing
+                          try {
+                            throw Exception('Test exception for console');
+                          } catch (e, stack) {
+                            DevLogger.instance.error(
+                              'Caught exception',
+                              error: e.toString(),
+                              stackTrace: stack.toString(),
+                            );
+                          }
+                          
+                          // Test async error
+                          Future.delayed(const Duration(milliseconds: 100), () {
+                            // This will be caught by the Zone error handler
+                            DevLogger.instance.warning('Simulating async error...');
+                            // Uncomment to test actual error catching:
+                            // throw StateError('Async error test');
+                          });
+                          
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Errors thrown and caught')),
+                          );
+                        },
+                        icon: const Icon(Icons.warning, size: 16),
+                        label: const Text('Test Errors'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepOrange,
+                          foregroundColor: Colors.white,
+                        ),
                       ),
                     ],
                   ),

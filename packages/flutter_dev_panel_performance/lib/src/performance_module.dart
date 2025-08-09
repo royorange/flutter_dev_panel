@@ -10,6 +10,7 @@ class PerformanceModule extends DevModule {
           name: 'Performance',
           description: 'Monitor app performance metrics including FPS and memory usage',
           icon: Icons.speed,
+          order: 30,
         );
 
   @override

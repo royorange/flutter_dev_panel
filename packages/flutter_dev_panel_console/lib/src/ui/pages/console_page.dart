@@ -1,60 +1,80 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:flutter_dev_panel_core/flutter_dev_panel_core.dart';
 import '../../providers/console_provider.dart';
 import '../widgets/log_item.dart';
 import '../widgets/log_filter_bar.dart';
 
-/// Console 日志页面
-class ConsolePage extends StatelessWidget {
+/// Console log page
+class ConsolePage extends StatefulWidget {
   const ConsolePage({super.key});
 
   @override
+  State<ConsolePage> createState() => _ConsolePageState();
+}
+
+class _ConsolePageState extends State<ConsolePage> {
+  late final ConsoleProvider provider;
+  
+  @override
+  void initState() {
+    super.initState();
+    provider = ConsoleProvider();
+  }
+  
+  @override
+  void dispose() {
+    provider.dispose();
+    super.dispose();
+  }
+  
+  @override
   Widget build(BuildContext context) {
-    final provider = Get.put(ConsoleProvider());
     final theme = Theme.of(context);
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: Column(
         children: [
-          // 顶部工具栏
-          _buildToolbar(context, provider),
+          // Top toolbar
+          _buildToolbar(context),
           
-          // 过滤栏
+          // Filter bar
           LogFilterBar(provider: provider),
           
-          // 日志列表
+          // Log list
           Expanded(
-            child: Obx(() {
-              if (provider.filteredLogs.isEmpty) {
-                return _buildEmptyState(context);
-              }
-              
-              return ListView.builder(
-                controller: provider.scrollController,
-                itemCount: provider.filteredLogs.length,
-                itemBuilder: (context, index) {
-                  final log = provider.filteredLogs[index];
-                  return LogItem(
-                    key: ValueKey('${log.timestamp.millisecondsSinceEpoch}_$index'),
-                    log: log,
-                    provider: provider,
-                  );
-                },
-              );
-            }),
+            child: ListenableBuilder(
+              listenable: provider,
+              builder: (context, _) {
+                if (provider.filteredLogs.isEmpty) {
+                  return _buildEmptyState(context);
+                }
+                
+                return ListView.builder(
+                  controller: provider.scrollController,
+                  itemCount: provider.filteredLogs.length,
+                  itemBuilder: (context, index) {
+                    final log = provider.filteredLogs[index];
+                    return LogItem(
+                      key: ValueKey('${log.timestamp.millisecondsSinceEpoch}_$index'),
+                      log: log,
+                      provider: provider,
+                    );
+                  },
+                );
+              },
+            ),
           ),
           
-          // 底部状态栏
-          _buildStatusBar(context, provider),
+          // Bottom status bar
+          _buildStatusBar(context),
         ],
       ),
     );
   }
   
-  /// 构建顶部工具栏
-  Widget _buildToolbar(BuildContext context, ConsoleProvider provider) {
+  /// Build top toolbar
+  Widget _buildToolbar(BuildContext context) {
     final theme = Theme.of(context);
     
     return Container(
@@ -69,7 +89,7 @@ class ConsolePage extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // 搜索框
+          // Search box
           Expanded(
             child: Container(
               height: 36,
@@ -88,9 +108,11 @@ class ConsolePage extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
-                      onChanged: (value) => provider.searchText.value = value,
+                      onChanged: (value) {
+                        provider.setSearchText(value);
+                      },
                       decoration: InputDecoration(
-                        hintText: '搜索日志...',
+                        hintText: 'Search logs...',
                         hintStyle: TextStyle(
                           color: theme.colorScheme.onSurface.withOpacity(0.3),
                         ),
@@ -101,21 +123,26 @@ class ConsolePage extends StatelessWidget {
                       style: theme.textTheme.bodyMedium,
                     ),
                   ),
-                  Obx(() {
-                    if (provider.searchText.value.isNotEmpty) {
-                      return IconButton(
-                        icon: Icon(
-                          Icons.clear,
-                          size: 18,
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
-                        ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: () => provider.searchText.value = '',
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  }),
+                  ListenableBuilder(
+                    listenable: provider,
+                    builder: (context, _) {
+                      if (provider.searchText.isNotEmpty) {
+                        return IconButton(
+                          icon: Icon(
+                            Icons.clear,
+                            size: 18,
+                            color: theme.colorScheme.onSurface.withOpacity(0.5),
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            provider.setSearchText('');
+                          },
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                 ],
               ),
             ),
@@ -123,40 +150,57 @@ class ConsolePage extends StatelessWidget {
           
           const SizedBox(width: 8),
           
-          // 暂停/继续按钮
-          Obx(() => IconButton(
-            icon: Icon(
-              provider.isPaused.value ? Icons.play_arrow : Icons.pause,
-              size: 20,
-            ),
-            onPressed: provider.togglePause,
-            tooltip: provider.isPaused.value ? '继续' : '暂停',
-          )),
+          // Pause/Resume button
+          ListenableBuilder(
+            listenable: provider,
+            builder: (context, _) {
+              return IconButton(
+                icon: Icon(
+                  provider.isPaused ? Icons.play_arrow : Icons.pause,
+                  size: 20,
+                ),
+                onPressed: provider.togglePause,
+                tooltip: provider.isPaused ? 'Resume' : 'Pause',
+              );
+            },
+          ),
           
-          // 自动滚动按钮
-          Obx(() => IconButton(
-            icon: Icon(
-              provider.autoScroll.value 
-                ? Icons.vertical_align_bottom 
-                : Icons.vertical_align_center,
-              size: 20,
-            ),
-            onPressed: provider.toggleAutoScroll,
-            tooltip: provider.autoScroll.value ? '关闭自动滚动' : '开启自动滚动',
-          )),
+          // Auto scroll button
+          ListenableBuilder(
+            listenable: provider,
+            builder: (context, _) {
+              return IconButton(
+                icon: Icon(
+                  provider.autoScroll 
+                    ? Icons.vertical_align_bottom 
+                    : Icons.vertical_align_center,
+                  size: 20,
+                ),
+                onPressed: provider.toggleAutoScroll,
+                tooltip: provider.autoScroll ? 'Disable auto scroll' : 'Enable auto scroll',
+              );
+            },
+          ),
           
-          // 清空按钮
+          // Settings button
+          IconButton(
+            icon: const Icon(Icons.settings, size: 20),
+            onPressed: () => _showLogConfigDialog(context),
+            tooltip: 'Log capture settings',
+          ),
+          
+          // Clear button
           IconButton(
             icon: const Icon(Icons.clear_all, size: 20),
-            onPressed: () => _showClearConfirmDialog(context, provider),
-            tooltip: '清空日志',
+            onPressed: () => _showClearConfirmDialog(context),
+            tooltip: 'Clear logs',
           ),
         ],
       ),
     );
   }
   
-  /// 构建空状态
+  /// Build empty state view
   Widget _buildEmptyState(BuildContext context) {
     final theme = Theme.of(context);
     
@@ -171,14 +215,14 @@ class ConsolePage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            '暂无日志',
+            'No logs yet',
             style: theme.textTheme.titleMedium?.copyWith(
               color: theme.colorScheme.onSurface.withOpacity(0.5),
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            '等待应用产生日志...',
+            'Waiting for logs...',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurface.withOpacity(0.3),
             ),
@@ -188,8 +232,8 @@ class ConsolePage extends StatelessWidget {
     );
   }
   
-  /// 构建底部状态栏
-  Widget _buildStatusBar(BuildContext context, ConsoleProvider provider) {
+  /// Build bottom status bar
+  Widget _buildStatusBar(BuildContext context) {
     final theme = Theme.of(context);
     
     return Container(
@@ -202,60 +246,61 @@ class ConsolePage extends StatelessWidget {
           ),
         ),
       ),
-      child: Row(
-        children: [
-          // 日志统计
-          Obx(() {
-            final stats = provider.getLogStatistics();
-            return Row(
-              children: [
-                _buildStatChip(
-                  context,
-                  count: stats[LogLevel.error] ?? 0,
-                  color: Colors.red,
-                  icon: Icons.error_outline,
+      child: ListenableBuilder(
+        listenable: provider,
+        builder: (context, _) {
+          final stats = provider.getLogStatistics();
+          return Row(
+            children: [
+              // Log statistics
+              Row(
+                children: [
+                  _buildStatChip(
+                    context,
+                    count: stats[LogLevel.error] ?? 0,
+                    color: Colors.red,
+                    icon: Icons.error_outline,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStatChip(
+                    context,
+                    count: stats[LogLevel.warning] ?? 0,
+                    color: Colors.orange,
+                    icon: Icons.warning_amber,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildStatChip(
+                    context,
+                    count: stats[LogLevel.info] ?? 0,
+                    color: Colors.green,
+                    icon: Icons.info_outline,
+                  ),
+                ],
+              ),
+              
+              const Spacer(),
+              
+              // Total log count
+              Text(
+                'Total: ${provider.filteredLogs.length} / ${provider.logs.length}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.5),
                 ),
-                const SizedBox(width: 8),
-                _buildStatChip(
-                  context,
-                  count: stats[LogLevel.warning] ?? 0,
-                  color: Colors.orange,
-                  icon: Icons.warning_amber,
-                ),
-                const SizedBox(width: 8),
-                _buildStatChip(
-                  context,
-                  count: stats[LogLevel.info] ?? 0,
-                  color: Colors.green,
-                  icon: Icons.info_outline,
-                ),
-              ],
-            );
-          }),
-          
-          const Spacer(),
-          
-          // 总日志数
-          Obx(() => Text(
-            '共 ${provider.filteredLogs.length} / ${provider.logs.length} 条',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
-            ),
-          )),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
   
-  /// 构建统计芯片
+  /// Build statistics chip
   Widget _buildStatChip(
     BuildContext context, {
     required int count,
     required Color color,
     required IconData icon,
   }) {
-    final theme = Theme.of(context);
-    
     if (count == 0) {
       return const SizedBox.shrink();
     }
@@ -284,17 +329,17 @@ class ConsolePage extends StatelessWidget {
     );
   }
   
-  /// 显示清空确认对话框
-  void _showClearConfirmDialog(BuildContext context, ConsoleProvider provider) {
+  /// Show clear confirmation dialog
+  void _showClearConfirmDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('清空日志'),
-        content: const Text('确定要清空所有日志吗？此操作不可恢复。'),
+        title: const Text('Clear Logs'),
+        content: const Text('Are you sure you want to clear all logs? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
@@ -302,18 +347,192 @@ class ConsolePage extends StatelessWidget {
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('日志已清空'),
+                  content: Text('Logs cleared'),
                   duration: Duration(seconds: 1),
                 ),
               );
             },
             child: const Text(
-              '清空',
+              'Clear',
               style: TextStyle(color: Colors.red),
             ),
           ),
         ],
       ),
+    );
+  }
+  
+  /// Show log configuration dialog
+  void _showLogConfigDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final currentConfig = DevLogger.instance.config;
+            
+            return AlertDialog(
+              title: Row(
+                children: [
+                  const Icon(Icons.settings, size: 24),
+                  const SizedBox(width: 8),
+                  const Text('Log Capture Settings'),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: SizedBox(
+                  width: double.maxFinite,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Log capture settings
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Log Capture Settings',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              
+                              // Note: Errors are always captured automatically
+                              
+                              // Auto scroll
+                              _buildConfigSwitch(
+                                title: 'Auto Scroll',
+                                subtitle: 'Automatically scroll to new logs',
+                                value: provider.autoScroll,
+                                onChanged: (value) {
+                                  provider.toggleAutoScroll();
+                                  setDialogState(() {});
+                                },
+                              ),
+                              
+                              const Divider(height: 24),
+                              
+                              // Max logs setting
+                              ListTile(
+                                title: const Text('Maximum Logs', style: TextStyle(fontSize: 14)),
+                                subtitle: Text(
+                                  'Current: ${currentConfig.maxLogs} logs',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                trailing: SizedBox(
+                                  width: 120,
+                                  child: DropdownButton<int>(
+                                    value: currentConfig.maxLogs,
+                                    isExpanded: true,
+                                    items: const [
+                                      DropdownMenuItem(value: 100, child: Text('100')),
+                                      DropdownMenuItem(value: 500, child: Text('500')),
+                                      DropdownMenuItem(value: 1000, child: Text('1000')),
+                                      DropdownMenuItem(value: 2000, child: Text('2000')),
+                                      DropdownMenuItem(value: 5000, child: Text('5000')),
+                                    ],
+                                    onChanged: (value) {
+                                      if (value != null) {
+                                        DevLogger.instance.updateConfig(
+                                          currentConfig.copyWith(maxLogs: value),
+                                        );
+                                        setDialogState(() {});
+                                      }
+                                    },
+                                  ),
+                                ),
+                                contentPadding: EdgeInsets.zero,
+                                dense: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 12),
+                      
+                      // Info about what gets captured
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  size: 16,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'What gets captured:',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '• print() and debugPrint() statements\n'
+                              '• Logger package output (automatic)\n'
+                              '• Flutter errors (RenderFlex overflow, etc.)\n'
+                              '• Uncaught async errors\n'
+                              '• Developer.log() calls\n\n'
+                              'Note: Flutter framework internal logs (like "Reloaded") '
+                              'are not captured as they don\'t go through print/Zone.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                height: 1.4,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+  
+  /// Build config switch item
+  Widget _buildConfigSwitch({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return SwitchListTile(
+      title: Text(title, style: const TextStyle(fontSize: 14)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      value: value,
+      onChanged: onChanged,
+      dense: true,
+      contentPadding: EdgeInsets.zero,
     );
   }
 }

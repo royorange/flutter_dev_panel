@@ -22,10 +22,12 @@ class FlutterDevPanel {
   static void initialize({
     core.DevPanelConfig config = const core.DevPanelConfig(),
     List<core.DevModule> modules = const [],
+    bool enableLogCapture = true,
   }) {
     core.FlutterDevPanelCore.instance.initialize(
       config: config,
       modules: modules,
+      enableLogCapture: enableLogCapture,
     );
   }
   

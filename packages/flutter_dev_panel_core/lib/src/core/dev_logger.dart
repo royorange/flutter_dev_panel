@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -60,8 +61,9 @@ class LogEntry {
 
   String get formattedTime {
     return '${timestamp.hour.toString().padLeft(2, '0')}:'
-           '${timestamp.minute.toString().padLeft(2, '0')}:'
-           '${timestamp.second.toString().padLeft(2, '0')}.${timestamp.millisecond.toString().padLeft(3, '0')}';
+        '${timestamp.minute.toString().padLeft(2, '0')}:'
+        '${timestamp.second.toString().padLeft(2, '0')}.'
+        '${timestamp.millisecond.toString().padLeft(3, '0')}';
   }
 }
 
@@ -70,17 +72,35 @@ class DevLogger {
   static final DevLogger _instance = DevLogger._internal();
   static DevLogger get instance => _instance;
   
+  // 日志捕获配置
+  LogCaptureConfig _config = const LogCaptureConfig();
+  LogCaptureConfig get config => _config;
+  
   DevLogger._internal() {
     _setupErrorHandlers();
+    _interceptPrint();
+    _interceptDeveloperLog();
+    _setupFrameworkLogging();
+  }
+  
+  /// 更新日志捕获配置
+  void updateConfig(LogCaptureConfig config) {
+    _config = config;
+    // Update max logs if changed
+    while (_logs.length > config.maxLogs) {
+      _logs.removeFirst();
+    }
   }
 
-  final int maxLogs = 1000;
-  final Queue<LogEntry> _logs = Queue<LogEntry>();
-  final StreamController<LogEntry> _logController = StreamController<LogEntry>.broadcast();
+  final _logs = ListQueue<LogEntry>();
+  final _logController = StreamController<LogEntry>.broadcast();
   
+  int get maxLogs => _config.maxLogs;
   Stream<LogEntry> get logStream => _logController.stream;
   List<LogEntry> get logs => _logs.toList();
   int get logCount => _logs.length;
+  
+  Zone? _printInterceptZone;
   
   // Setup Flutter error handlers to capture all errors
   void _setupErrorHandlers() {
@@ -91,7 +111,7 @@ class DevLogger {
         error(
           'Flutter Error: ${details.exceptionAsString()}',
           error: details.exception?.toString(),
-          stackTrace: details.stack?.toString(),
+          stackTrace: details.stack.toString(),
         );
       };
       
@@ -107,33 +127,172 @@ class DevLogger {
     }
   }
   
+  // Intercept print statements - this is actually handled by the main Zone
+  void _interceptPrint() {
+    // Print interception is handled by the Zone in main()
+    // This method is kept for compatibility
+  }
+  
+  // Intercept developer.log calls
+  void _interceptDeveloperLog() {
+    if (!kReleaseMode) {
+      // Override developer.log using Zone
+      developer.registerExtension('ext.flutter.dev_panel.log', (method, parameters) async {
+        final message = parameters['message'] ?? '';
+        final level = parameters['level'] ?? 'info';
+        
+        switch (level) {
+          case 'verbose':
+            verbose(message);
+            break;
+          case 'debug':
+            debug(message);
+            break;
+          case 'info':
+            info(message);
+            break;
+          case 'warning':
+            warning(message);
+            break;
+          case 'error':
+            error(message);
+            break;
+          default:
+            info(message);
+        }
+        
+        return developer.ServiceExtensionResponse.result('{}');
+      });
+    }
+  }
+  
+  // Setup framework logging capture
+  void _setupFrameworkLogging() {
+    if (!kReleaseMode) {
+      // Capture HTTP client logs
+      // Note: This requires HttpClient.enableTimelineLogging = true
+      
+      // Capture debugPrint output more reliably
+      debugPrint = (String? message, {int? wrapWidth}) {
+        if (message != null) {
+          _addLog(LogLevel.debug, '[Debug] $message');
+        }
+        // Still print to console
+        debugPrintSynchronously(message, wrapWidth: wrapWidth);
+      };
+    }
+  }
+  
+  // Enable print interception for the entire app
+  static void enablePrintInterception() {
+    if (!kReleaseMode) {
+      // Create a custom Zone that intercepts print
+      final printZone = Zone.current.fork(
+        specification: ZoneSpecification(
+          print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
+            // Capture print statement
+            instance._addLog(LogLevel.info, '[Print] $line');
+            // Still print to console
+            parent.print(zone, line);
+          },
+        ),
+      );
+      
+      instance._printInterceptZone = printZone;
+    }
+  }
+  
+  // Run callback with print interception
+  static T runWithPrintInterception<T>(T Function() callback) {
+    if (!kReleaseMode && instance._printInterceptZone != null) {
+      return instance._printInterceptZone!.run(callback);
+    }
+    return callback();
+  }
+  
   void _addLog(LogLevel level, String message, {String? error, String? stackTrace}) {
+    // Check if we should filter this log based on config
+    if (!_shouldCaptureLog(level, message)) {
+      return;
+    }
+    
+    // Parse and detect log source
+    final parsedLog = _parseLogMessage(message);
+    
     final entry = LogEntry(
       timestamp: DateTime.now(),
-      level: level,
-      message: message,
+      level: parsedLog.level ?? level,
+      message: parsedLog.message,
       error: error,
       stackTrace: stackTrace,
     );
     
     _logs.addLast(entry);
-    if (_logs.length > maxLogs) {
+    if (_logs.length > _config.maxLogs) {
       _logs.removeFirst();
     }
     
     _logController.add(entry);
     
-    // Also print to console in debug mode
-    if (kDebugMode) {
-      final prefix = '[${entry.levelText}] ${entry.formattedTime}';
-      debugPrint('$prefix: $message');
-      if (error != null) {
-        debugPrint('  Error: $error');
+    // Don't print to console to avoid infinite loop when intercepting print
+    // The original print will still be called through the Zone
+  }
+  
+  /// Check if a log should be captured based on config
+  bool _shouldCaptureLog(LogLevel level, String message) {
+    // Always capture all logs that come through print/Zone
+    // System logs (Logcat, NSLog) don't come through here anyway
+    // They are printed directly to the platform's logging system
+    return true;
+  }
+  
+  // Parse log messages to detect source and level
+  _ParsedLog _parseLogMessage(String message) {
+    // Check for Logger package format (e.g., "│ ⛔ Error message")
+    if (message.contains('│')) {
+      // Logger package format detected
+      LogLevel? level;
+      String cleanMessage = message;
+      
+      // Remove Logger package decorations
+      cleanMessage = cleanMessage.replaceAll(RegExp(r'[┌─├│└╟╚╔╗╝═║╠]'), '').trim();
+      
+      // Detect level from Logger emoji/symbols
+      if (message.contains('⛔') || message.contains('ERROR') || message.contains('👾')) {
+        level = LogLevel.error;
+      } else if (message.contains('⚠️') || message.contains('WARNING')) {
+        level = LogLevel.warning;  
+      } else if (message.contains('💡') || message.contains('INFO')) {
+        level = LogLevel.info;
+      } else if (message.contains('🐛') || message.contains('DEBUG')) {
+        level = LogLevel.debug;
+      } else if (message.contains('VERBOSE') || message.contains('TRACE')) {
+        level = LogLevel.verbose;
       }
-      if (stackTrace != null && level == LogLevel.error) {
-        debugPrint('  Stack: $stackTrace');
-      }
+      
+      return _ParsedLog(level: level, message: '[Logger] $cleanMessage');
     }
+    
+    // Check for common log patterns
+    final lowerMessage = message.toLowerCase();
+    if (lowerMessage.startsWith('error:') || lowerMessage.startsWith('[error]')) {
+      return _ParsedLog(level: LogLevel.error, message: message);
+    } else if (lowerMessage.startsWith('warning:') || lowerMessage.startsWith('[warning]') || lowerMessage.startsWith('warn:')) {
+      return _ParsedLog(level: LogLevel.warning, message: message);
+    } else if (lowerMessage.startsWith('info:') || lowerMessage.startsWith('[info]')) {
+      return _ParsedLog(level: LogLevel.info, message: message);
+    } else if (lowerMessage.startsWith('debug:') || lowerMessage.startsWith('[debug]')) {
+      return _ParsedLog(level: LogLevel.debug, message: message);
+    } else if (lowerMessage.startsWith('verbose:') || lowerMessage.startsWith('[verbose]')) {
+      return _ParsedLog(level: LogLevel.verbose, message: message);
+    }
+    
+    // Check if it's already marked as print
+    if (!message.startsWith('[Print]')) {
+      return _ParsedLog(level: null, message: '[Print] $message');
+    }
+    
+    return _ParsedLog(level: null, message: message);
   }
   
   // Public logging methods
@@ -180,5 +339,52 @@ class DevLogger {
   }
 }
 
+// Helper class for parsed log
+class _ParsedLog {
+  final LogLevel? level;
+  final String message;
+  
+  _ParsedLog({this.level, required this.message});
+}
+
 // Global convenience function to replace print in dev panel
 void devLog(String message) => DevLogger.log(message);
+
+/// Configuration for log capture
+class LogCaptureConfig {
+  /// Maximum number of logs to keep in memory
+  final int maxLogs;
+  
+  /// Auto scroll to bottom when new logs arrive
+  final bool autoScroll;
+  
+  const LogCaptureConfig({
+    this.maxLogs = 1000,
+    this.autoScroll = true,
+  });
+  
+  /// Create a minimal config
+  const LogCaptureConfig.minimal()
+    : maxLogs = 500,
+      autoScroll = true;
+  
+  /// Create a full config
+  const LogCaptureConfig.full()
+    : maxLogs = 5000,
+      autoScroll = true;
+  
+  /// Create a balanced config for development
+  const LogCaptureConfig.development()
+    : maxLogs = 1000,
+      autoScroll = true;
+  
+  LogCaptureConfig copyWith({
+    int? maxLogs,
+    bool? autoScroll,
+  }) {
+    return LogCaptureConfig(
+      maxLogs: maxLogs ?? this.maxLogs,
+      autoScroll: autoScroll ?? this.autoScroll,
+    );
+  }
+}

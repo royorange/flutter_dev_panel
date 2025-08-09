@@ -36,7 +36,7 @@ class LogItem extends StatelessWidget {
           ),
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // 日志级别标识
             Container(
@@ -66,7 +66,8 @@ class LogItem extends StatelessWidget {
                 children: [
                   // 时间戳和消息
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
                     children: [
                       Text(
                         timeFormat.format(log.timestamp),
@@ -149,7 +150,7 @@ class LogItem extends StatelessWidget {
     
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('日志已复制到剪贴板'),
+        content: Text('Log copied to clipboard'),
         duration: Duration(seconds: 1),
       ),
     );
@@ -226,7 +227,7 @@ class LogDetailSheet extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.copy),
                   onPressed: () => _copyToClipboard(context),
-                  tooltip: '复制',
+                  tooltip: 'Copy',
                 ),
                 IconButton(
                   icon: const Icon(Icons.close),
@@ -362,7 +363,7 @@ class LogDetailSheet extends StatelessWidget {
     
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('日志已复制到剪贴板'),
+        content: Text('Log copied to clipboard'),
         duration: Duration(seconds: 1),
       ),
     );

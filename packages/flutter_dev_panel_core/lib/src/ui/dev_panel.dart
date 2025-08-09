@@ -47,6 +47,9 @@ class _DevPanelState extends State<DevPanel> {
               ),
               bottom: TabBar(
                 isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                indicatorPadding: const EdgeInsets.symmetric(horizontal: 16),
                 tabs: modules.map((module) {
                   return Tab(
                     icon: Icon(module.icon),

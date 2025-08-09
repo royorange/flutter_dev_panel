@@ -19,7 +19,7 @@ class NetworkModule extends DevModule {
     name: 'Network',
     description: 'Monitor and debug network requests',
     icon: Icons.wifi,
-    order: 1,
+    order: 10,
   );
 
   factory NetworkModule() {

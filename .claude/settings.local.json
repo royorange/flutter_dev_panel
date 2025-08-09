@@ -22,7 +22,9 @@
       "Bash(true)",
       "Bash(ls:*)",
       "Bash(rm:*)",
-      "Bash(flutter:*)"
+      "Bash(flutter:*)",
+      "Bash(find:*)",
+      "Bash(dart:*)"
     ],
     "deny": []
   }

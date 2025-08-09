@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
+import 'package:flutter_dev_panel_core/flutter_dev_panel_core.dart';
 import 'package:dio/dio.dart';
 
 void main() {

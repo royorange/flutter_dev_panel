@@ -10,7 +10,7 @@ class DeviceModule extends DevModule {
           description: 'Display device and application information',
           icon: Icons.devices,
           enabled: true,
-          order: 1,
+          order: 20,
         );
   
   @override

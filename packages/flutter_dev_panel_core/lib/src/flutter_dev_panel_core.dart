@@ -20,9 +20,16 @@ class FlutterDevPanelCore {
   void initialize({
     DevPanelConfig config = const DevPanelConfig(),
     List<DevModule> modules = const [],
+    bool enableLogCapture = true,
   }) {
     controller.initialize(config: config);
     moduleRegistry.registerModules(modules);
+    
+    // Initialize DevLogger to capture logs
+    if (enableLogCapture) {
+      DevLogger.instance; // Initialize singleton
+      DevLogger.enablePrintInterception();
+    }
   }
 
   /// 注册模块
