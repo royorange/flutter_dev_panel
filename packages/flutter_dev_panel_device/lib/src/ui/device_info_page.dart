@@ -134,7 +134,7 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
     
     final deviceKeys = ['Platform', 'Device Model', 'Manufacturer', 'OS Version', 'Physical Device', 'Device ID'];
     final appKeys = ['App Name', 'Package Name', 'Version', 'Build Number', 'Installer Store'];
-    final screenKeys = ['Screen Width', 'Screen Height', 'Device Pixel Ratio', 'Text Scale Factor', 'Orientation'];
+    final screenKeys = ['Screen Width', 'Screen Height', 'Physical Resolution', 'Device Pixel Ratio', 'Screen PPI', 'Text Scale Factor', 'Orientation'];
     
     for (final entry in info.entries) {
       if (deviceKeys.contains(entry.key)) {

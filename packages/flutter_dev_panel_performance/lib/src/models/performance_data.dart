@@ -4,11 +4,15 @@ class PerformanceData {
   final DateTime timestamp;
   final double fps;
   final double memoryUsage;
+  final int? batteryLevel;  // Battery percentage (0-100)
+  final String? batteryState;  // charging, discharging, full, etc.
 
   PerformanceData({
     required this.timestamp,
     required this.fps,
     required this.memoryUsage,
+    this.batteryLevel,
+    this.batteryState,
   });
 }
 

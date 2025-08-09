@@ -40,13 +40,13 @@ class MemoryChart extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: colorScheme.secondary.withOpacity(0.2),
+                    color: _getMemoryColor(currentMemory).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '${currentMemory.toStringAsFixed(1)} MB',
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: colorScheme.secondary,
+                      color: _getMemoryColor(currentMemory),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -64,7 +64,7 @@ class MemoryChart extends StatelessWidget {
                     horizontalInterval: 50,
                     getDrawingHorizontalLine: (value) {
                       return FlLine(
-                        color: colorScheme.outline.withOpacity(0.1),
+                        color: colorScheme.outline.withValues(alpha: 0.1),
                         strokeWidth: 1,
                       );
                     },
@@ -108,7 +108,7 @@ class MemoryChart extends StatelessWidget {
                       dotData: const FlDotData(show: false),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: colorScheme.secondary.withOpacity(0.1),
+                        color: colorScheme.secondary.withValues(alpha: 0.1),
                       ),
                     ),
                   ],
@@ -178,5 +178,12 @@ class MemoryChart extends StatelessWidget {
         ),
       ],
     );
+  }
+  
+  Color _getMemoryColor(double memory) {
+    // Use the same color rules as in FAB
+    if (memory <= 300) return Colors.green;
+    if (memory <= 500) return Colors.orange;
+    return Colors.red;
   }
 }

@@ -5,25 +5,25 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // 初始化Dio
   final dio = Dio();
   NetworkModule.attachToDio(dio);
-  
+
   // 初始化GraphQL客户端
   const graphQLEndpoint = 'https://countries.trevorblades.com/';
   final graphQLClient = GraphQLClient(
     link: HttpLink(graphQLEndpoint),
     cache: GraphQLCache(),
   );
-  
+
   // 添加GraphQL监控（会自动检测endpoint，也可以手动传入）
   final monitoredGraphQLClient = NetworkModule.attachToGraphQL(
     graphQLClient,
     endpoint: graphQLEndpoint, // 可选：手动指定以确保显示正确
   );
-  
-  // 初始化开发面板
+
+  // Initialize Flutter Dev Panel
   FlutterDevPanel.initialize(
     config: const DevPanelConfig(
       enabled: true,
@@ -36,7 +36,7 @@ void main() async {
       const PerformanceModule(),
     ],
   );
-  
+
   runApp(MyApp(
     dio: dio,
     graphQLClient: monitoredGraphQLClient,
@@ -46,7 +46,7 @@ void main() async {
 class MyApp extends StatelessWidget {
   final Dio dio;
   final GraphQLClient graphQLClient;
-  
+
   const MyApp({
     super.key,
     required this.dio,
@@ -73,16 +73,17 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   final Dio dio;
-  
+
   const MyHomePage({super.key, required this.dio});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
+class _MyHomePageState extends State<MyHomePage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  String _responseText = '点击按钮发送请求';
+  String _responseText = 'Click button to send request';
   bool _isLoading = false;
 
   @override
@@ -101,14 +102,15 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   Future<void> _sendRequest() async {
     setState(() {
       _isLoading = true;
-      _responseText = '请求中...';
+      _responseText = 'Sending request...';
     });
-    
+
     try {
-      final response = await widget.dio.get('https://jsonplaceholder.typicode.com/posts/1');
-      
+      final response =
+          await widget.dio.get('https://jsonplaceholder.typicode.com/posts/1');
+
       setState(() {
-        _responseText = 'Success: ${response.data['title']}';
+        _responseText = 'Request successful!';
         _isLoading = false;
       });
     } catch (e) {
@@ -122,9 +124,9 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   Future<void> _sendMultipleRequests() async {
     setState(() {
       _isLoading = true;
-      _responseText = '发送多个请求...';
+      _responseText = 'Sending multiple requests...';
     });
-    
+
     try {
       await Future.wait([
         widget.dio.get('https://jsonplaceholder.typicode.com/posts/1'),
@@ -133,9 +135,9 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
         widget.dio.get('https://jsonplaceholder.typicode.com/users/1'),
         widget.dio.get('https://jsonplaceholder.typicode.com/comments/1'),
       ]);
-      
+
       setState(() {
-        _responseText = '成功发送5个请求！';
+        _responseText = 'Successfully sent 5 requests!';
         _isLoading = false;
       });
     } catch (e) {
@@ -149,13 +151,13 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   Future<void> _sendErrorRequest() async {
     setState(() {
       _isLoading = true;
-      _responseText = '发送错误请求...';
+      _responseText = 'Sending error request...';
     });
-    
+
     try {
       await widget.dio.get('https://httpstat.us/500');
       setState(() {
-        _responseText = '请求成功';
+        _responseText = 'Request successful';
         _isLoading = false;
       });
     } catch (e) {
@@ -176,30 +178,94 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
           IconButton(
             icon: const Icon(Icons.bug_report),
             onPressed: () => FlutterDevPanel.open(context),
-            tooltip: '手动打开调试面板',
+            tooltip: 'Open Dev Panel',
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(text: 'REST API', icon: Icon(Icons.api)),
-            Tab(text: 'GraphQL', icon: Icon(Icons.data_object)),
+            Tab(text: 'Network', icon: Icon(Icons.cloud)),
+            Tab(text: 'Modules', icon: Icon(Icons.dashboard)),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          // REST API 测试页面
-          _buildRestApiTab(),
-          // GraphQL 测试页面
-          _buildGraphQLTab(),
+          // Network testing page (includes REST API and GraphQL)
+          _buildNetworkTab(),
+          // Modules showcase page
+          _buildModulesTab(),
         ],
       ),
     );
   }
 
-  Widget _buildRestApiTab() {
+  Widget _buildNetworkTab() {
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          // Network module header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.network_check,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Network Monitor Module',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Test HTTP requests, GraphQL queries, and monitor network traffic',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: const TabBar(
+              tabs: [
+                Tab(text: 'REST API'),
+                Tab(text: 'GraphQL'),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _buildRestApiSection(),
+                const GraphQLTestPage(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRestApiSection() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Center(
@@ -207,8 +273,8 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
           children: <Widget>[
             const SizedBox(height: 20),
             const Text(
-              'REST API 测试',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              'REST API Testing',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             Wrap(
@@ -218,17 +284,17 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                 ElevatedButton.icon(
                   onPressed: _isLoading ? null : _sendRequest,
                   icon: const Icon(Icons.send),
-                  label: const Text('发送单个请求'),
+                  label: const Text('Send Single Request'),
                 ),
                 ElevatedButton.icon(
                   onPressed: _isLoading ? null : _sendMultipleRequests,
                   icon: const Icon(Icons.dynamic_feed),
-                  label: const Text('发送多个请求'),
+                  label: const Text('Send Multiple Requests'),
                 ),
                 ElevatedButton.icon(
                   onPressed: _isLoading ? null : _sendErrorRequest,
                   icon: const Icon(Icons.error),
-                  label: const Text('发送错误请求'),
+                  label: const Text('Send Error Request'),
                 ),
               ],
             ),
@@ -240,8 +306,231 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildGraphQLTab() {
-    return const GraphQLTestPage();
+  Widget _buildModulesTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 20),
+          const Center(
+            child: Text(
+              'Flutter Dev Panel Modules',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Center(
+            child: Text(
+              'Explore all available debugging modules',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ),
+          const SizedBox(height: 30),
+          
+          // Network Module Card
+          _buildModuleCard(
+            icon: Icons.network_check,
+            title: 'Network Monitor',
+            description: 'Track HTTP requests, GraphQL queries, and WebSocket connections',
+            features: [
+              'Real-time request tracking',
+              'Request/Response inspection',
+              'GraphQL support',
+              'Error monitoring',
+            ],
+            color: Colors.blue,
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Device Module Card
+          _buildModuleCard(
+            icon: Icons.phone_android,
+            title: 'Device Information',
+            description: 'View device specifications and system information',
+            features: [
+              'Device model & OS version',
+              'Screen dimensions & PPI',
+              'Platform information',
+              'App package details',
+            ],
+            color: Colors.green,
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Performance Module Card
+          _buildModuleCard(
+            icon: Icons.speed,
+            title: 'Performance Monitor',
+            description: 'Monitor app performance metrics in real-time',
+            features: [
+              'FPS monitoring',
+              'Memory usage tracking',
+              'Battery consumption',
+              'Frame rendering analysis',
+            ],
+            color: Colors.orange,
+          ),
+          
+          const SizedBox(height: 30),
+          
+          // How to use section
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.blue),
+                      SizedBox(width: 8),
+                      Text(
+                        'How to Access Dev Panel',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildAccessMethod(
+                    icon: Icons.touch_app,
+                    method: 'Floating Button',
+                    description: 'Tap the floating debug button',
+                  ),
+                  const SizedBox(height: 8),
+                  _buildAccessMethod(
+                    icon: Icons.vibration,
+                    method: 'Shake Device',
+                    description: 'Shake your device to open',
+                  ),
+                  const SizedBox(height: 8),
+                  _buildAccessMethod(
+                    icon: Icons.code,
+                    method: 'Programmatically',
+                    description: 'Call FlutterDevPanel.open(context)',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildModuleCard({
+    required IconData icon,
+    required String title,
+    required String description,
+    required List<String> features,
+    required Color color,
+  }) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: color, size: 32),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        description,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Features:',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...features.map((feature) => Padding(
+              padding: const EdgeInsets.only(left: 16, bottom: 4),
+              child: Row(
+                children: [
+                  Icon(Icons.check, size: 16, color: color),
+                  const SizedBox(width: 8),
+                  Text(
+                    feature,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ],
+              ),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildAccessMethod({
+    required IconData icon,
+    required String method,
+    required String description,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Colors.blue),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                method,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                description,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildResponseCard() {
@@ -258,7 +547,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
-            '响应:',
+            'Response:',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -271,8 +560,8 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
                   _responseText,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: _responseText.startsWith('Error') 
-                        ? Colors.red 
+                    color: _responseText.startsWith('Error')
+                        ? Colors.red
                         : Colors.green,
                     fontSize: 14,
                   ),
@@ -319,7 +608,7 @@ class _GraphQLTestPageState extends State<GraphQLTestPage> {
   ''';
 
   String _selectedQuery = 'countries';
-  
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -328,33 +617,35 @@ class _GraphQLTestPageState extends State<GraphQLTestPage> {
         children: [
           const SizedBox(height: 20),
           const Text(
-            'GraphQL 测试',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            'GraphQL Testing',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
           const Text(
-            '使用 countries.trevorblades.com API',
+            'Using countries.trevorblades.com API',
             style: TextStyle(fontSize: 14, color: Colors.grey),
           ),
           const SizedBox(height: 20),
-          
+
           // 查询选择器
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    '选择查询类型:',
+                    'Select Query Type:',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: RadioListTile<String>(
-                          title: const Text('国家'),
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          title: const Text('Countries', style: TextStyle(fontSize: 14)),
                           value: 'countries',
                           groupValue: _selectedQuery,
                           onChanged: (value) {
@@ -366,7 +657,9 @@ class _GraphQLTestPageState extends State<GraphQLTestPage> {
                       ),
                       Expanded(
                         child: RadioListTile<String>(
-                          title: const Text('大洲'),
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          title: const Text('Continents', style: TextStyle(fontSize: 14)),
                           value: 'continents',
                           groupValue: _selectedQuery,
                           onChanged: (value) {
@@ -382,9 +675,9 @@ class _GraphQLTestPageState extends State<GraphQLTestPage> {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // GraphQL 查询结果
           if (_selectedQuery == 'countries')
             _buildCountriesQuery()
@@ -406,7 +699,7 @@ class _GraphQLTestPageState extends State<GraphQLTestPage> {
             ElevatedButton.icon(
               onPressed: refetch,
               icon: const Icon(Icons.refresh),
-              label: const Text('执行国家查询'),
+              label: const Text('Execute Countries Query'),
             ),
             const SizedBox(height: 20),
             _buildQueryResult(result),
@@ -427,7 +720,7 @@ class _GraphQLTestPageState extends State<GraphQLTestPage> {
             ElevatedButton.icon(
               onPressed: refetch,
               icon: const Icon(Icons.refresh),
-              label: const Text('执行大洲查询'),
+              label: const Text('Execute Continents Query'),
             ),
             const SizedBox(height: 20),
             _buildQueryResult(result),
@@ -476,26 +769,26 @@ class _GraphQLTestPageState extends State<GraphQLTestPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '查询到 ${countries.length} 个国家:',
+                'Found ${countries.length} countries:',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
               ...countries.take(5).map((country) => ListTile(
-                leading: Text(
-                  country['emoji'] ?? '',
-                  style: const TextStyle(fontSize: 24),
-                ),
-                title: Text(country['name'] ?? 'Unknown'),
-                subtitle: Text(
-                  'Code: ${country['code']}, Capital: ${country['capital'] ?? 'N/A'}',
-                ),
-                dense: true,
-              )),
+                    leading: Text(
+                      country['emoji'] ?? '',
+                      style: const TextStyle(fontSize: 24),
+                    ),
+                    title: Text(country['name'] ?? 'Unknown'),
+                    subtitle: Text(
+                      'Code: ${country['code']}, Capital: ${country['capital'] ?? 'N/A'}',
+                    ),
+                    dense: true,
+                  )),
               if (countries.length > 5)
                 const Padding(
                   padding: EdgeInsets.all(8.0),
                   child: Text(
-                    '... 更多结果请查看网络监控面板',
+                    '... More results in Network Monitor panel',
                     style: TextStyle(fontStyle: FontStyle.italic),
                   ),
                 ),
@@ -512,17 +805,17 @@ class _GraphQLTestPageState extends State<GraphQLTestPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '查询到 ${continents.length} 个大洲:',
+                'Found ${continents.length} continents:',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
               ...continents.map((continent) => ListTile(
-                title: Text(continent['name'] ?? 'Unknown'),
-                subtitle: Text(
-                  'Code: ${continent['code']}, ${(continent['countries'] as List).length} 个国家',
-                ),
-                dense: true,
-              )),
+                    title: Text(continent['name'] ?? 'Unknown'),
+                    subtitle: Text(
+                      'Code: ${continent['code']}, ${(continent['countries'] as List).length} countries',
+                    ),
+                    dense: true,
+                  )),
             ],
           ),
         ),
@@ -558,7 +851,8 @@ class GraphQLMutationExample extends StatelessWidget {
         onError: (error) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Mutation error: ${error?.graphqlErrors.first.message}'),
+              content:
+                  Text('Mutation error: ${error?.graphqlErrors.first.message}'),
               backgroundColor: Colors.red,
             ),
           );
@@ -579,7 +873,7 @@ class GraphQLMutationExample extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.add),
-          label: const Text('执行 Mutation (模拟)'),
+          label: const Text('Execute Mutation (Mock)'),
         );
       },
     );

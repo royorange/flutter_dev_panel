@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dev_panel_core/src/core/monitoring_data_provider.dart';
+import 'package:battery_plus/battery_plus.dart';
 import 'models/performance_data.dart';
 import 'fps_tracker.dart';
 
@@ -17,8 +18,10 @@ class PerformanceMonitorController extends ChangeNotifier {
   
   final FpsTracker _fpsTracker = FpsTracker();
   final PerformanceMetrics metrics = PerformanceMetrics();
+  final Battery _battery = Battery();
   
   StreamSubscription<double>? _fpsSubscription;
+  StreamSubscription<BatteryState>? _batteryStateSubscription;
   Timer? _memoryTimer;
   
   bool _isMonitoring = false;
@@ -29,6 +32,12 @@ class PerformanceMonitorController extends ChangeNotifier {
   
   double _currentMemory = 0;
   double get currentMemory => _currentMemory;
+  
+  int _currentBatteryLevel = 0;
+  int get currentBatteryLevel => _currentBatteryLevel;
+  
+  BatteryState _currentBatteryState = BatteryState.unknown;
+  BatteryState get currentBatteryState => _currentBatteryState;
 
   void startMonitoring() {
     if (_isMonitoring) return;
@@ -40,9 +49,13 @@ class PerformanceMonitorController extends ChangeNotifier {
       _updateMetrics();
     });
     
-    _memoryTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    // Update memory usage less frequently to reduce performance impact
+    _memoryTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       _updateMemoryUsage();
     });
+    
+    // Start battery monitoring
+    _startBatteryMonitoring();
     
     // 数据已通过MonitoringDataProvider自动通知
     
@@ -59,6 +72,9 @@ class PerformanceMonitorController extends ChangeNotifier {
     
     _memoryTimer?.cancel();
     _memoryTimer = null;
+    
+    _batteryStateSubscription?.cancel();
+    _batteryStateSubscription = null;
     
     // 清除全局监控数据
     try {
@@ -87,6 +103,8 @@ class PerformanceMonitorController extends ChangeNotifier {
       timestamp: DateTime.now(),
       fps: _currentFps,
       memoryUsage: _currentMemory,
+      batteryLevel: _currentBatteryLevel,
+      batteryState: _getBatteryStateString(),
     );
     metrics.addDataPoint(data);
     
@@ -115,6 +133,58 @@ class PerformanceMonitorController extends ChangeNotifier {
       _currentMemory = ProcessInfo.currentRss / (1024 * 1024);
     }
     _updateMetrics();
+  }
+  
+  void _startBatteryMonitoring() async {
+    try {
+      // Get initial battery level only once at startup
+      final batteryLevel = await _battery.batteryLevel;
+      _currentBatteryLevel = batteryLevel;
+      
+      // Get initial battery state
+      final batteryState = await _battery.batteryState;
+      _currentBatteryState = batteryState;
+      
+      // Listen to battery state changes (system broadcast)
+      // This only triggers when battery state actually changes
+      _batteryStateSubscription = _battery.onBatteryStateChanged.listen((state) async {
+        _currentBatteryState = state;
+        
+        // When battery state changes, also update the battery level
+        // This happens when plugging/unplugging charger or battery level changes significantly
+        try {
+          final level = await _battery.batteryLevel;
+          if (level != _currentBatteryLevel) {
+            _currentBatteryLevel = level;
+            _updateMetrics();
+          }
+        } catch (_) {
+          // Ignore errors
+        }
+        
+        notifyListeners();
+      });
+      
+      // No periodic timer needed - we rely on system events only
+    } catch (_) {
+      // Battery monitoring not available on this platform
+      _currentBatteryLevel = -1;
+    }
+  }
+  
+  String _getBatteryStateString() {
+    switch (_currentBatteryState) {
+      case BatteryState.charging:
+        return 'Charging';
+      case BatteryState.discharging:
+        return 'Discharging';
+      case BatteryState.full:
+        return 'Full';
+      case BatteryState.connectedNotCharging:
+        return 'Connected (Not Charging)';
+      case BatteryState.unknown:
+        return 'Unknown';
+    }
   }
 
   static void reset() {

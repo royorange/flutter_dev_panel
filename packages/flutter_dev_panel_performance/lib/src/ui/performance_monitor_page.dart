@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../performance_monitor_controller.dart';
 import 'widgets/fps_chart.dart';
 import 'widgets/memory_chart.dart';
+import 'widgets/battery_indicator.dart';
 
 class PerformanceMonitorPage extends StatelessWidget {
   const PerformanceMonitorPage({Key? key}) : super(key: key);
@@ -76,6 +77,11 @@ class PerformanceMonitorPage extends StatelessWidget {
                         MemoryChart(
                           metrics: controller.metrics,
                           currentMemory: controller.currentMemory,
+                        ),
+                        const SizedBox(height: 16),
+                        BatteryIndicator(
+                          batteryLevel: controller.currentBatteryLevel,
+                          batteryState: controller.currentBatteryState.toString().split('.').last,
                         ),
                       ],
                     ),

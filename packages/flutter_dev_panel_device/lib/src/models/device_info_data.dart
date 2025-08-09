@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/foundation.dart';
@@ -158,6 +159,14 @@ class DeviceInfoData {
   }
   
   Map<String, String> toDisplayMap() {
+    // Calculate PPI (Pixels Per Inch)
+    // Using standard formula: PPI = sqrt(width^2 + height^2) / diagonal_inches
+    // Note: This is an approximation as we don't have the actual physical screen size
+    final double physicalWidth = screenWidth * devicePixelRatio;
+    final double physicalHeight = screenHeight * devicePixelRatio;
+    final double diagonal = _calculateDiagonal(physicalWidth, physicalHeight);
+    final double estimatedPPI = diagonal / _estimateScreenSizeInches();
+    
     return {
       'Platform': platform,
       'Device Model': deviceModel,
@@ -172,9 +181,44 @@ class DeviceInfoData {
       if (installerStore != null) 'Installer Store': installerStore!,
       'Screen Width': '${screenWidth.toStringAsFixed(0)} px',
       'Screen Height': '${screenHeight.toStringAsFixed(0)} px',
+      'Physical Resolution': '${physicalWidth.toStringAsFixed(0)} × ${physicalHeight.toStringAsFixed(0)}',
       'Device Pixel Ratio': devicePixelRatio.toStringAsFixed(2),
+      'Screen PPI': estimatedPPI.toStringAsFixed(0),
       'Text Scale Factor': textScaleFactor.toStringAsFixed(2),
       'Orientation': orientation,
     };
+  }
+  
+  double _calculateDiagonal(double width, double height) {
+    return math.sqrt(width * width + height * height);
+  }
+  
+  double _estimateScreenSizeInches() {
+    // Estimate screen size based on device type and resolution
+    // These are rough estimates for common device types
+    if (platform == 'iOS' || platform == 'Android') {
+      // Mobile devices typically range from 4.7" to 7"
+      if (screenWidth < 400) {
+        return 5.0; // Small phone
+      } else if (screenWidth < 500) {
+        return 6.0; // Regular phone
+      } else if (screenWidth < 700) {
+        return 7.0; // Large phone/small tablet
+      } else {
+        return 10.0; // Tablet
+      }
+    } else if (platform == 'macOS' || platform == 'Windows' || platform == 'Linux') {
+      // Desktop/laptop screens
+      if (screenWidth < 1400) {
+        return 13.0; // Small laptop
+      } else if (screenWidth < 1600) {
+        return 15.0; // Regular laptop
+      } else if (screenWidth < 2000) {
+        return 21.0; // Desktop monitor
+      } else {
+        return 27.0; // Large monitor
+      }
+    }
+    return 10.0; // Default fallback
   }
 }
