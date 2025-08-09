@@ -219,7 +219,9 @@ class _JsonViewerState extends State<JsonViewer> {
     
     // 未展开时显示折叠状态
     if (needsCollapse && !isExpanded) {
-      return Row(
+      return Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 4,
         children: [
           _buildValue('[...', path, null),
           Text(
@@ -231,7 +233,7 @@ class _JsonViewerState extends State<JsonViewer> {
             ),
           ),
           _buildValue('...]', path, null),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           GestureDetector(
             onTap: () {
               setState(() {
@@ -287,8 +289,8 @@ class _JsonViewerState extends State<JsonViewer> {
               final item = entry.value;
               final isLast = index == list.length - 1;
               
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              return Wrap(
+                crossAxisAlignment: WrapCrossAlignment.start,
                 children: [
                   _buildJsonTree(item, '$path[$index]'),
                   if (!isLast)
@@ -317,7 +319,9 @@ class _JsonViewerState extends State<JsonViewer> {
     
     // 未展开时显示折叠状态
     if (needsCollapse && !isExpanded) {
-      return Row(
+      return Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 4,
         children: [
           _buildValue('{...', path, null),
           Text(
@@ -329,7 +333,7 @@ class _JsonViewerState extends State<JsonViewer> {
             ),
           ),
           _buildValue('...}', path, null),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           GestureDetector(
             onTap: () {
               setState(() {
@@ -395,8 +399,8 @@ class _JsonViewerState extends State<JsonViewer> {
               if (isSimpleValue) {
                 return Padding(
                   padding: const EdgeInsets.only(top: 2),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.start,
                     children: [
                       _buildValue('"$key": ', fieldPath, Colors.blue),
                       _buildJsonTree(value, fieldPath),
@@ -429,14 +433,10 @@ class _JsonViewerState extends State<JsonViewer> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        _buildValue('"$key": ', fieldPath, Colors.blue),
-                        _buildJsonTree(value, fieldPath),
-                        if (!isLast)
-                          _buildValue(',', '', null),
-                      ],
-                    ),
+                    _buildValue('"$key": ', fieldPath, Colors.blue),
+                    _buildJsonTree(value, fieldPath),
+                    if (!isLast)
+                      _buildValue(',', '', null),
                   ],
                 ),
               );

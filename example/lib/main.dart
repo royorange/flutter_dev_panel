@@ -295,8 +295,8 @@ class GraphQLTestPage extends StatefulWidget {
 
 class _GraphQLTestPageState extends State<GraphQLTestPage> {
   final String _countriesQuery = r'''
-    query GetCountries($first: Int) {
-      countries(first: $first) {
+    query GetCountries {
+      countries {
         code
         name
         emoji
@@ -399,7 +399,6 @@ class _GraphQLTestPageState extends State<GraphQLTestPage> {
     return Query(
       options: QueryOptions(
         document: gql(_countriesQuery),
-        variables: const {'first': 10},
       ),
       builder: (QueryResult result, {fetchMore, refetch}) {
         return Column(

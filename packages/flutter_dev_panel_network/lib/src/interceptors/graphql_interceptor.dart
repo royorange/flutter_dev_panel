@@ -65,37 +65,75 @@ class GraphQLInterceptor extends Link {
       // 执行请求
       await for (final response in forward(request)) {
         
+        // 安全地构建可序列化的响应体
+        Map<String, dynamic> responseBody;
+        try {
+          // 尝试构建响应体
+          final errors = response.errors?.map((e) {
+            // 安全地提取错误信息
+            try {
+              return {
+                'message': e.message,
+                'path': e.path?.toString(),
+                'extensions': e.extensions is Map ? Map<String, dynamic>.from(e.extensions as Map) : null,
+              };
+            } catch (_) {
+              return {'message': e.toString()};
+            }
+          }).toList();
+          
+          responseBody = {
+            'data': response.data,
+            'errors': errors,
+          };
+        } catch (e) {
+          // 如果构建失败，使用简化的响应
+          responseBody = {
+            'data': response.data,
+            'error': 'Failed to parse GraphQL errors: ${e.toString()}',
+          };
+        }
+        
         // 计算响应大小
-        final responseBody = response.data ?? response.errors;
-        final responseSize = utf8.encode(json.encode(responseBody)).length;
+        int responseSize = 0;
+        try {
+          responseSize = utf8.encode(json.encode(responseBody)).length;
+        } catch (_) {
+          // 如果序列化失败，使用估算值
+          responseSize = responseBody.toString().length;
+        }
         
         // 判断是否有错误
         final hasErrors = response.errors != null && response.errors!.isNotEmpty;
         
-        // 记录响应
+        // 记录响应（使用已经构建好的 responseBody）
         _interceptor.recordResponse(
           requestId: requestId,
           statusCode: hasErrors ? 400 : 200, // GraphQL错误通常返回200，这里用400标识
           statusMessage: hasErrors ? 'GraphQL Error' : 'OK',
           headers: _extractResponseHeaders(response),
-          body: {
-            'data': response.data,
-            'errors': response.errors?.map((e) => {
-              'message': e.message,
-              'path': e.path,
-              'extensions': e.extensions,
-            }).toList(),
-          },
+          body: responseBody,
           responseSize: responseSize,
         );
         
         yield response;
       }
     } catch (error) {
-      // 记录错误
+      // 记录错误，处理可能的 LinkException
+      String errorMessage = error.toString();
+      
+      // 特殊处理 LinkException，它可能包含不可序列化的内容
+      if (error.runtimeType.toString().contains('Exception')) {
+        try {
+          errorMessage = error.toString();
+        } catch (_) {
+          errorMessage = 'GraphQL Link Error';
+        }
+      }
+      
       _interceptor.recordError(
         requestId: requestId,
-        error: error.toString(),
+        error: errorMessage,
       );
       rethrow;
     }
