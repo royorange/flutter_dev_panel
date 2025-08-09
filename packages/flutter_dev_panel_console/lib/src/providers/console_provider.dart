@@ -24,9 +24,8 @@ class ConsoleProvider extends ChangeNotifier {
   bool _autoScroll = true;
   bool get autoScroll => _autoScroll;
   
-  /// 是否暂停接收新日志
-  bool _isPaused = false;
-  bool get isPaused => _isPaused;
+  /// 是否暂停接收新日志 - 从 DevLogger 获取状态
+  bool get isPaused => DevLogger.instance.isPaused;
   
   /// 日志流订阅
   StreamSubscription<LogEntry>? _logSubscription;
@@ -81,9 +80,8 @@ class ConsoleProvider extends ChangeNotifier {
   /// 开始监听新日志
   void _startListening() {
     _logSubscription = DevLogger.instance.logStream.listen((log) {
-      if (!_isPaused) {
-        _addLogWithBatch(log);
-      }
+      // 日志已经在 DevLogger 中被过滤了，这里直接添加
+      _addLogWithBatch(log);
     });
   }
   
@@ -185,7 +183,7 @@ class ConsoleProvider extends ChangeNotifier {
   
   /// 切换暂停状态
   void togglePause() {
-    _isPaused = !_isPaused;
+    DevLogger.instance.togglePause();
     notifyListeners();
   }
   

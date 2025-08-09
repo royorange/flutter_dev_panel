@@ -76,6 +76,10 @@ class DevLogger {
   LogCaptureConfig _config = const LogCaptureConfig();
   LogCaptureConfig get config => _config;
   
+  // 暂停状态
+  bool _isPaused = false;
+  bool get isPaused => _isPaused;
+  
   DevLogger._internal() {
     _setupErrorHandlers();
     _interceptPrint();
@@ -211,6 +215,11 @@ class DevLogger {
   }
   
   void _addLog(LogLevel level, String message, {String? error, String? stackTrace}) {
+    // Don't capture logs when paused
+    if (_isPaused) {
+      return;
+    }
+    
     // Check if we should filter this log based on config
     if (!_shouldCaptureLog(level, message)) {
       return;
@@ -317,6 +326,16 @@ class DevLogger {
   
   void dispose() {
     _logController.close();
+  }
+  
+  /// Toggle pause state
+  void togglePause() {
+    _isPaused = !_isPaused;
+  }
+  
+  /// Set pause state
+  void setPaused(bool paused) {
+    _isPaused = paused;
   }
   
   // Filter logs by level

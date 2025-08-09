@@ -21,6 +21,11 @@ class ConsoleModule extends DevModule {
 
   @override
   Widget? buildFabContent(BuildContext context) {
+    // 如果暂停了，不显示FAB内容
+    if (DevLogger.instance.isPaused) {
+      return null;
+    }
+    
     // 使用文字显示，更直观
     final allLogs = DevLogger.instance.logs;
     final errorCount =
