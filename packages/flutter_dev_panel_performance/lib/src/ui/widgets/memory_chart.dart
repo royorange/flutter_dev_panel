@@ -40,13 +40,13 @@ class MemoryChart extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: _getMemoryColor(currentMemory).withValues(alpha: 0.2),
+                    color: (currentMemory == 0 ? colorScheme.primary : _getMemoryColor(currentMemory)).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '${currentMemory.toStringAsFixed(1)} MB',
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: _getMemoryColor(currentMemory),
+                      color: currentMemory == 0 ? colorScheme.primary : _getMemoryColor(currentMemory),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -102,13 +102,13 @@ class MemoryChart extends StatelessWidget {
                     LineChartBarData(
                       spots: _getSpots(),
                       isCurved: true,
-                      color: colorScheme.secondary,
+                      color: Colors.purple,
                       barWidth: 2,
                       isStrokeCapRound: true,
                       dotData: const FlDotData(show: false),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: colorScheme.secondary.withValues(alpha: 0.1),
+                        color: Colors.purple.withValues(alpha: 0.1),
                       ),
                     ),
                   ],

@@ -65,9 +65,10 @@ class _PerformanceFabContentState extends State<_PerformanceFabContent> {
     // 通过检查是否有数据来判断监控状态
     final fps = _dataProvider.fps;
     final memory = _dataProvider.memory;
+    final batteryLevel = PerformanceMonitorController.instance.currentBatteryLevel;
     
     // 如果没有数据（监控未开启），返回空widget
-    if (fps == null && memory == null) {
+    if (fps == null && memory == null && batteryLevel <= 0) {
       return const SizedBox.shrink();
     }
     
@@ -86,11 +87,18 @@ class _PerformanceFabContentState extends State<_PerformanceFabContent> {
             style: TextStyle(color: _getFpsColor(fps)),
           ),
           if (fps != null && memory != null) const TextSpan(
-            text: '     ',  // 使用5个空格
+            text: '  ',  // 2个空格
           ),
           if (memory != null) TextSpan(
             text: '${memory.toStringAsFixed(0)}MB',
             style: TextStyle(color: _getMemoryColor(memory)),
+          ),
+          if ((fps != null || memory != null) && batteryLevel > 0) const TextSpan(
+            text: '  ',  // 2个空格
+          ),
+          if (batteryLevel > 0) TextSpan(
+            text: '⚡${batteryLevel}%',
+            style: TextStyle(color: _getBatteryColor(batteryLevel)),
           ),
         ],
       ),
@@ -107,5 +115,11 @@ class _PerformanceFabContentState extends State<_PerformanceFabContent> {
     if (memory <= 300) return Colors.green[300]!;
     if (memory <= 500) return Colors.yellow[300]!;
     return Colors.red[300]!;
+  }
+  
+  Color _getBatteryColor(int level) {
+    if (level <= 20) return Colors.red[300]!;
+    if (level <= 50) return Colors.orange[300]!;
+    return Colors.teal[300]!;
   }
 }

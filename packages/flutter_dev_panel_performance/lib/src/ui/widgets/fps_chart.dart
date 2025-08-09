@@ -40,13 +40,13 @@ class FpsChart extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: _getFpsColor(currentFps).withOpacity(0.2),
+                    color: (currentFps == 0 ? colorScheme.primary : _getFpsColor(currentFps)).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     currentFps.toStringAsFixed(1),
                     style: theme.textTheme.titleMedium?.copyWith(
-                      color: _getFpsColor(currentFps),
+                      color: currentFps == 0 ? colorScheme.primary : _getFpsColor(currentFps),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -102,13 +102,13 @@ class FpsChart extends StatelessWidget {
                     LineChartBarData(
                       spots: _getSpots(),
                       isCurved: true,
-                      color: colorScheme.primary,
+                      color: Colors.blue,
                       barWidth: 2,
                       isStrokeCapRound: true,
                       dotData: const FlDotData(show: false),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: colorScheme.primary.withOpacity(0.1),
+                        color: Colors.blue.withValues(alpha: 0.1),
                       ),
                     ),
                   ],

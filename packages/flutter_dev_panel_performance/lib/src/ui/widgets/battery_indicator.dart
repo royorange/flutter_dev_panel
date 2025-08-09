@@ -20,7 +20,8 @@ class BatteryIndicator extends StatelessWidget {
       return const SizedBox.shrink();
     }
     
-    final batteryColor = _getBatteryColor(batteryLevel);
+    // Use primary color when battery is 0 (not initialized)
+    final batteryColor = batteryLevel == 0 ? colorScheme.primary : _getBatteryColor(batteryLevel);
     final isCharging = batteryState == 'Charging';
     
     return Card(
@@ -97,7 +98,7 @@ class BatteryIndicator extends StatelessWidget {
   Color _getBatteryColor(int level) {
     if (level <= 20) return Colors.red;
     if (level <= 50) return Colors.orange;
-    return Colors.green;
+    return Colors.teal;
   }
   
   IconData _getStateIcon(String state) {
