@@ -41,6 +41,36 @@ void main() async {
       endpoint: graphQLEndpoint, // 可选：手动指定以确保显示正确
     );
 
+    // Initialize environment configurations
+    EnvironmentManager.instance.initialize(
+      environments: [
+        const EnvironmentConfig(
+          name: 'Development',
+          variables: {
+            'api_url': 'https://dev-api.example.com',
+            'socket_url': 'wss://dev-socket.example.com',
+            'graphql_endpoint': 'https://countries.trevorblades.com/',
+            'debug': true,
+            'log_level': 'verbose',
+            'timeout': 30000,
+          },
+          isDefault: true,
+        ),
+        const EnvironmentConfig(
+          name: 'Production',
+          variables: {
+            'api_url': 'https://api.example.com',
+            'socket_url': 'wss://socket.example.com',
+            'graphql_endpoint': 'https://graphql.example.com/',
+            'debug': false,
+            'log_level': 'error',
+            'timeout': 15000,
+          },
+        ),
+      ],
+      defaultEnvironment: 'Development',
+    );
+
     // Initialize Flutter Dev Panel with log capture
     FlutterDevPanel.initialize(
       config: const DevPanelConfig(
@@ -125,16 +155,34 @@ class _MyHomePageState extends State<MyHomePage>
   late TabController _tabController;
   String _responseText = 'Click button to send request';
   bool _isLoading = false;
+  
+  // Environment variables
+  String _currentEnv = '';
+  String _apiUrl = '';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    
+    // Initialize environment values
+    _updateEnvironmentValues();
+    
+    // Listen to environment changes
+    EnvironmentManager.instance.addListener(_updateEnvironmentValues);
+  }
+  
+  void _updateEnvironmentValues() {
+    setState(() {
+      _currentEnv = EnvironmentManager.instance.currentEnvironment?.name ?? 'None';
+      _apiUrl = EnvironmentManager.instance.getVariable<String>('api_url') ?? 'Not configured';
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    EnvironmentManager.instance.removeListener(_updateEnvironmentValues);
     super.dispose();
   }
 
@@ -577,6 +625,52 @@ class _MyHomePageState extends State<MyHomePage>
                         ),
                       ),
                     ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Current Environment Info
+          Card(
+            color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.dns, color: Colors.green),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Current Environment: $_currentEnv',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'API URL: $_apiUrl',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'This value updates automatically when you switch environments in Dev Panel',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ],
               ),

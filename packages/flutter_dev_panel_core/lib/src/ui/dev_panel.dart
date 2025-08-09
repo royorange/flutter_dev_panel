@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/dev_panel_controller.dart';
 import '../core/module_registry.dart';
+import 'widgets/environment_switcher.dart';
 
 /// Dev Panel main interface
 class DevPanel extends StatefulWidget {
@@ -31,7 +32,7 @@ class _DevPanelState extends State<DevPanel> {
               ),
             ),
             body: const Center(
-              child: Text('暂无可用模块'),
+              child: Text('No modules available'),
             ),
           );
         }
@@ -45,23 +46,39 @@ class _DevPanelState extends State<DevPanel> {
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.of(context).pop(),
               ),
-              bottom: TabBar(
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                indicatorPadding: const EdgeInsets.symmetric(horizontal: 16),
-                tabs: modules.map((module) {
-                  return Tab(
-                    icon: Icon(module.icon),
-                    text: module.name,
-                  );
-                }).toList(),
-              ),
             ),
-            body: TabBarView(
-              children: modules.map((module) {
-                return module.buildPage(context);
-              }).toList(),
+            body: Column(
+              children: [
+                // Environment switcher
+                const EnvironmentSwitcher(),
+                const Divider(height: 1),
+                
+                // Module tabs
+                Material(
+                  color: Theme.of(context).colorScheme.surface,
+                  child: TabBar(
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    indicatorPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    tabs: modules.map((module) {
+                      return Tab(
+                        icon: Icon(module.icon),
+                        text: module.name,
+                      );
+                    }).toList(),
+                  ),
+                ),
+                
+                // Module content
+                Expanded(
+                  child: TabBarView(
+                    children: modules.map((module) {
+                      return module.buildPage(context);
+                    }).toList(),
+                  ),
+                ),
+              ],
             ),
           ),
         );
