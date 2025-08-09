@@ -36,56 +36,59 @@ class LogItem extends StatelessWidget {
           ),
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 日志级别标识
             Container(
               width: 24,
               height: 24,
               margin: const EdgeInsets.only(right: 8),
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: levelColor.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: Center(
-                child: Text(
-                  log.levelText,
-                  style: TextStyle(
-                    color: levelColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
+              child: Text(
+                log.levelText,
+                style: TextStyle(
+                  color: levelColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  height: 1.0,
                 ),
               ),
             ),
+            
+            // 时间戳
+            Container(
+              height: 24, // 与级别标识相同高度
+              alignment: Alignment.center, // 垂直居中
+              child: Text(
+                timeFormat.format(log.timestamp),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            
+            const SizedBox(width: 8),
             
             // 日志内容
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // 时间戳和消息
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        timeFormat.format(log.timestamp),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          log.message,
-                          style: theme.textTheme.bodyMedium,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+                  // 消息
+                  Text(
+                    log.message,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 14,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   
                   // 错误信息（如果有）
