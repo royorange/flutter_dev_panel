@@ -19,6 +19,15 @@ class _ConsolePageState extends State<ConsolePage> {
   void initState() {
     super.initState();
     provider = ConsoleProvider();
+    
+    // 页面打开时如果启用了自动滚动，延迟滚动到底部
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (provider.autoScroll && provider.scrollController.hasClients) {
+        provider.scrollController.jumpTo(
+          provider.scrollController.position.maxScrollExtent,
+        );
+      }
+    });
   }
   
   @override
@@ -49,6 +58,15 @@ class _ConsolePageState extends State<ConsolePage> {
                 if (provider.filteredLogs.isEmpty) {
                   return _buildEmptyState(context);
                 }
+                
+                // 在构建 ListView 后触发自动滚动
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (provider.autoScroll && provider.scrollController.hasClients) {
+                    provider.scrollController.jumpTo(
+                      provider.scrollController.position.maxScrollExtent,
+                    );
+                  }
+                });
                 
                 return ListView.builder(
                   controller: provider.scrollController,

@@ -69,6 +69,13 @@ class ConsoleProvider extends ChangeNotifier {
     final existingLogs = DevLogger.instance.logs;
     _logs = existingLogs.toList();
     _applyFilters();
+    
+    // 加载完成后如果启用了自动滚动，延迟滚动到底部
+    if (_autoScroll && _logs.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom();
+      });
+    }
   }
   
   /// 开始监听新日志
@@ -149,13 +156,21 @@ class ConsoleProvider extends ChangeNotifier {
       // 使用 post frame callback 确保在UI更新后滚动
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (scrollController.hasClients) {
-          scrollController.animateTo(
+          // 使用 jumpTo 立即跳转到底部
+          scrollController.jumpTo(
             scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
           );
         }
       });
+    }
+  }
+  
+  /// 立即滚动到底部（用于页面打开时）
+  void scrollToBottomNow() {
+    if (scrollController.hasClients) {
+      scrollController.jumpTo(
+        scrollController.position.maxScrollExtent,
+      );
     }
   }
   
