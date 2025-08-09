@@ -860,21 +860,32 @@ class _MyHomePageState extends State<MyHomePage>
   }
 
   Widget _buildResponseCard() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       constraints: const BoxConstraints(
         maxHeight: 200,
       ),
       decoration: BoxDecoration(
-        color: Colors.grey[200],
+        color: isDark 
+          ? theme.colorScheme.surfaceContainerHighest
+          : Colors.grey[200],
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
+          Text(
             'Response:',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 8),
           if (_isLoading)
@@ -887,8 +898,8 @@ class _MyHomePageState extends State<MyHomePage>
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: _responseText.startsWith('Error')
-                        ? Colors.red
-                        : Colors.green,
+                        ? theme.colorScheme.error
+                        : Colors.green.shade700,
                     fontSize: 14,
                   ),
                 ),
@@ -934,6 +945,8 @@ class _GraphQLTestPageState extends State<GraphQLTestPage> {
   ''';
 
   String _selectedQuery = 'countries';
+  bool _isLoading = false;
+  QueryResult? _queryResult;
 
   @override
   Widget build(BuildContext context) {
@@ -977,6 +990,7 @@ class _GraphQLTestPageState extends State<GraphQLTestPage> {
                           onChanged: (value) {
                             setState(() {
                               _selectedQuery = value!;
+                              _queryResult = null; // Clear previous result when switching
                             });
                           },
                         ),
@@ -991,6 +1005,7 @@ class _GraphQLTestPageState extends State<GraphQLTestPage> {
                           onChanged: (value) {
                             setState(() {
                               _selectedQuery = value!;
+                              _queryResult = null; // Clear previous result when switching
                             });
                           },
                         ),
@@ -1004,56 +1019,58 @@ class _GraphQLTestPageState extends State<GraphQLTestPage> {
 
           const SizedBox(height: 20),
 
-          // GraphQL 查询结果
-          if (_selectedQuery == 'countries')
-            _buildCountriesQuery()
-          else
-            _buildContinentsQuery(),
+          // Execute button
+          ElevatedButton.icon(
+            onPressed: _isLoading ? null : _executeQuery,
+            icon: _isLoading 
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.send),
+            label: Text(
+              _isLoading 
+                ? 'Loading...' 
+                : 'Execute ${_selectedQuery == 'countries' ? 'Countries' : 'Continents'} Query'
+            ),
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Query result
+          if (_queryResult != null)
+            _buildQueryResult(_queryResult!),
         ],
       ),
     );
   }
 
-  Widget _buildCountriesQuery() {
-    return Query(
-      options: QueryOptions(
-        document: gql(_countriesQuery),
-      ),
-      builder: (QueryResult result, {fetchMore, refetch}) {
-        return Column(
-          children: [
-            ElevatedButton.icon(
-              onPressed: refetch,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Execute Countries Query'),
-            ),
-            const SizedBox(height: 20),
-            _buildQueryResult(result),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildContinentsQuery() {
-    return Query(
-      options: QueryOptions(
-        document: gql(_continentsQuery),
-      ),
-      builder: (QueryResult result, {fetchMore, refetch}) {
-        return Column(
-          children: [
-            ElevatedButton.icon(
-              onPressed: refetch,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Execute Continents Query'),
-            ),
-            const SizedBox(height: 20),
-            _buildQueryResult(result),
-          ],
-        );
-      },
-    );
+  Future<void> _executeQuery() async {
+    setState(() {
+      _isLoading = true;
+      _queryResult = null;
+    });
+    
+    try {
+      final client = GraphQLProvider.of(context).value;
+      final QueryOptions options = QueryOptions(
+        document: gql(_selectedQuery == 'countries' ? _countriesQuery : _continentsQuery),
+        fetchPolicy: FetchPolicy.noCache,
+      );
+      
+      final result = await client.query(options);
+      
+      setState(() {
+        _queryResult = result;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      debugPrint('GraphQL query error: $e');
+    }
   }
 
   Widget _buildQueryResult(QueryResult result) {
@@ -1067,17 +1084,22 @@ class _GraphQLTestPageState extends State<GraphQLTestPage> {
     }
 
     if (result.hasException) {
+      final theme = Theme.of(context);
       return Card(
-        color: Colors.red[50],
+        color: theme.colorScheme.errorContainer.withValues(alpha: 0.3),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              const Icon(Icons.error, color: Colors.red, size: 48),
+              Icon(
+                Icons.error, 
+                color: theme.colorScheme.error, 
+                size: 48,
+              ),
               const SizedBox(height: 16),
               Text(
                 'GraphQL Error:\n${result.exception}',
-                style: const TextStyle(color: Colors.red),
+                style: TextStyle(color: theme.colorScheme.error),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -1157,7 +1179,7 @@ class GraphQLMutationExample extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 这是一个模拟的mutation，实际API可能不支持
-    final String addCountryMutation = r'''
+    const String addCountryMutation = r'''
       mutation AddCountry($name: String!, $code: String!) {
         addCountry(name: $name, code: $code) {
           name

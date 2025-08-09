@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/dev_panel_controller.dart';
 import '../models/dev_panel_config.dart';
+import '../models/panel_settings.dart';
 import 'widgets/modular_monitoring_fab.dart';
 import 'widgets/shake_detector.dart';
 import 'dev_panel.dart';
@@ -89,9 +90,10 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: controller,
+      listenable: Listenable.merge([controller, PanelSettings.instance]),
       builder: (context, child) {
         final config = controller.config;
+        final settings = PanelSettings.instance;
         
         if (!config.enabled || !controller.shouldShowInProduction()) {
           return widget.child;
@@ -99,16 +101,16 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
 
         Widget result = widget.child;
 
-        // 添加摇一摇检测
-        if (config.triggerModes.contains(TriggerMode.shake)) {
+        // Add shake detector (if enabled in both config and settings)
+        if (config.triggerModes.contains(TriggerMode.shake) && settings.enableShake) {
           result = ShakeDetector(
             onShake: _openPanel,
             child: result,
           );
         }
 
-        // 添加悬浮按钮
-        if (config.triggerModes.contains(TriggerMode.fab)) {
+        // Add floating button (if enabled in both config and settings)
+        if (config.triggerModes.contains(TriggerMode.fab) && settings.showFab) {
           result = Stack(
             children: [
               result,

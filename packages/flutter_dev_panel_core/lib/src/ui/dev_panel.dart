@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../core/dev_panel_controller.dart';
 import '../core/module_registry.dart';
+import '../models/panel_settings.dart';
 import 'widgets/environment_switcher.dart';
 import 'widgets/theme_switcher.dart';
+import 'widgets/panel_settings_dialog.dart';
 
 /// Dev Panel main interface
 class DevPanel extends StatefulWidget {
@@ -31,6 +33,12 @@ class _DevPanelState extends State<DevPanel> {
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.of(context).pop(),
               ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () => _showSettingsDialog(context),
+                ),
+              ],
             ),
             body: const Center(
               child: Text('No modules available'),
@@ -47,16 +55,31 @@ class _DevPanelState extends State<DevPanel> {
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.of(context).pop(),
               ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () => _showSettingsDialog(context),
+                ),
+              ],
             ),
-            body: Column(
-              children: [
-                // Environment switcher
-                const EnvironmentSwitcher(),
+            body: ListenableBuilder(
+              listenable: PanelSettings.instance,
+              builder: (context, _) {
+                final settings = PanelSettings.instance;
                 
-                // Theme switcher
-                const ThemeSwitcher(),
-                
-                const Divider(height: 1),
+                return Column(
+                  children: [
+                    // Environment switcher (if enabled)
+                    if (settings.showEnvironmentSwitcher)
+                      const EnvironmentSwitcher(),
+                    
+                    // Theme switcher (if enabled)
+                    if (settings.showThemeSwitcher)
+                      const ThemeSwitcher(),
+                    
+                    // Only show divider if any switcher is visible
+                    if (settings.showEnvironmentSwitcher || settings.showThemeSwitcher)
+                      const Divider(height: 1),
                 
                 // Module tabs
                 Material(
@@ -83,11 +106,20 @@ class _DevPanelState extends State<DevPanel> {
                     }).toList(),
                   ),
                 ),
-              ],
+                  ],
+                );
+              },
             ),
           ),
         );
       },
+    );
+  }
+  
+  void _showSettingsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const PanelSettingsDialog(),
     );
   }
 }

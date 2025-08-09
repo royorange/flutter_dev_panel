@@ -11,6 +11,7 @@ export 'src/core/theme_manager.dart';
 // Model exports
 export 'src/models/dev_module.dart';
 export 'src/models/dev_panel_config.dart';
+export 'src/models/panel_settings.dart';
 
 // UI exports
 export 'src/ui/dev_panel.dart';
