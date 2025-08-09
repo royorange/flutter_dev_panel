@@ -310,10 +310,10 @@ class _NetworkFabContentState extends State<_NetworkFabContent> with SingleTicke
                     builder: (context, child) {
                       return Transform.rotate(
                         angle: _animationController.value * 2 * 3.14159,
-                        child: Icon(
+                        child: const Icon(
                           Icons.sync,
                           size: 11,
-                          color: Colors.blue[300],
+                          color: Colors.white,
                         ),
                       );
                     },
@@ -322,7 +322,7 @@ class _NetworkFabContentState extends State<_NetworkFabContent> with SingleTicke
                   Icon(
                     errorCount > 0 ? Icons.warning : Icons.check_circle,
                     size: 11,
-                    color: errorCount > 0 ? Colors.orange[300] : Colors.green[300],
+                    color: errorCount > 0 ? Colors.orangeAccent : Colors.lightGreenAccent,
                   ),
                 const SizedBox(width: 3),
                 
@@ -341,8 +341,8 @@ class _NetworkFabContentState extends State<_NetworkFabContent> with SingleTicke
                         if (pendingCount > 0) ...[
                           TextSpan(
                             text: pendingCount > 99 ? '↻99+' : '↻$pendingCount',
-                            style: TextStyle(
-                              color: Colors.blue[300],
+                            style: const TextStyle(
+                              color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -352,8 +352,8 @@ class _NetworkFabContentState extends State<_NetworkFabContent> with SingleTicke
                         // 成功/错误统计 - 简化大数字
                         TextSpan(
                           text: _formatCount(successCount),
-                          style: TextStyle(
-                            color: Colors.green[300],
+                          style: const TextStyle(
+                            color: Colors.lightGreenAccent,
                             fontSize: 9,
                           ),
                         ),
@@ -361,8 +361,8 @@ class _NetworkFabContentState extends State<_NetworkFabContent> with SingleTicke
                           const TextSpan(text: '/'),
                           TextSpan(
                             text: _formatCount(errorCount),
-                            style: TextStyle(
-                              color: Colors.red[300],
+                            style: const TextStyle(
+                              color: Colors.redAccent,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -375,8 +375,8 @@ class _NetworkFabContentState extends State<_NetworkFabContent> with SingleTicke
                             text: '⚡${_formatDuration(slowestRequest)}',
                             style: TextStyle(
                               color: slowestRequest.inMilliseconds > 3000 
-                                  ? Colors.red[300] 
-                                  : Colors.yellow[300],
+                                  ? Colors.redAccent 
+                                  : Colors.amberAccent,
                               fontSize: 9,
                             ),
                           ),

@@ -43,9 +43,9 @@ class ConsoleModule extends DevModule {
                 child: Text(
                   '$errorCount ${errorCount == 1 ? 'error' : 'errors'}',
                   style: const TextStyle(
-                    color: Colors.red,
+                    color: Colors.redAccent,
                     fontSize: 11,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -64,9 +64,9 @@ class ConsoleModule extends DevModule {
                 child: Text(
                   '$warningCount ${warningCount == 1 ? 'warning' : 'warnings'}',
                   style: const TextStyle(
-                    color: Colors.orange,
+                    color: Colors.amberAccent,
                     fontSize: 11,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

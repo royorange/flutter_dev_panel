@@ -107,20 +107,20 @@ class _PerformanceFabContentState extends State<_PerformanceFabContent> {
   }
   
   Color _getFpsColor(double fps) {
-    if (fps >= 55) return Colors.green[300]!;
-    if (fps >= 30) return Colors.yellow[300]!;
-    return Colors.red[300]!;
+    if (fps >= 55) return Colors.lightGreenAccent;
+    if (fps >= 30) return Colors.amberAccent;
+    return Colors.redAccent;
   }
   
   Color _getMemoryColor(double memory) {
-    if (memory <= 300) return Colors.green[300]!;
-    if (memory <= 500) return Colors.yellow[300]!;
-    return Colors.red[300]!;
+    if (memory <= 300) return Colors.lightGreenAccent;
+    if (memory <= 500) return Colors.amberAccent;
+    return Colors.redAccent;
   }
   
   Color _getBatteryColor(int level) {
-    if (level <= 20) return Colors.red[300]!;
-    if (level <= 50) return Colors.orange[300]!;
-    return Colors.teal[300]!;
+    if (level <= 20) return Colors.redAccent;
+    if (level <= 50) return Colors.orangeAccent;
+    return Colors.cyanAccent;
   }
 }
