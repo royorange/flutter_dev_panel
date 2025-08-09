@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 日志级别
 enum LogLevel {
@@ -90,6 +91,38 @@ class DevLogger {
     _interceptPrint();
     _interceptDeveloperLog();
     _setupFrameworkLogging();
+    _loadConfig();
+  }
+  
+  /// Load configuration from SharedPreferences
+  Future<void> _loadConfig() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final maxLogs = prefs.getInt('console_max_logs') ?? 1000;
+      final autoScroll = prefs.getBool('console_auto_scroll') ?? true;
+      final combineLoggerOutput = prefs.getBool('console_combine_logger') ?? true;
+      
+      _config = LogCaptureConfig(
+        maxLogs: maxLogs,
+        autoScroll: autoScroll,
+        combineLoggerOutput: combineLoggerOutput,
+      );
+    } catch (e) {
+      // If loading fails, keep default config
+      debugPrint('Failed to load console config: $e');
+    }
+  }
+  
+  /// Save configuration to SharedPreferences
+  Future<void> _saveConfig() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('console_max_logs', _config.maxLogs);
+      await prefs.setBool('console_auto_scroll', _config.autoScroll);
+      await prefs.setBool('console_combine_logger', _config.combineLoggerOutput);
+    } catch (e) {
+      debugPrint('Failed to save console config: $e');
+    }
   }
   
   /// 更新日志捕获配置
@@ -99,6 +132,8 @@ class DevLogger {
     while (_logs.length > config.maxLogs) {
       _logs.removeFirst();
     }
+    // Save to disk
+    _saveConfig();
   }
 
   final _logs = ListQueue<LogEntry>();
@@ -239,10 +274,15 @@ class DevLogger {
     // Parse and detect log source
     final parsedLog = _parseLogMessage(message);
     
+    // Skip empty decoration lines from Logger package
+    if (parsedLog.skip || parsedLog.message == null || parsedLog.message!.isEmpty) {
+      return;
+    }
+    
     final entry = LogEntry(
       timestamp: DateTime.now(),
       level: parsedLog.level ?? level,
-      message: parsedLog.message,
+      message: parsedLog.message!,
       error: error,
       stackTrace: stackTrace,
     );
@@ -376,7 +416,7 @@ class DevLogger {
   // Parse log messages to detect source and level
   _ParsedLog _parseLogMessage(String message) {
     // Check for Logger package format (e.g., "│ ⛔ Error message")
-    if (message.contains('│') || message.contains('┌') || message.contains('└') || message.contains('├')) {
+    if (message.contains('│') || message.contains('┌') || message.contains('└') || message.contains('├') || message.contains('┄')) {
       // Logger package format detected
       LogLevel? level;
       String cleanMessage = message;
@@ -407,8 +447,15 @@ class DevLogger {
             .replaceAll('[0m', '');
         return _ParsedLog(level: level, message: cleanMessage);
       } else {
-        // Empty decoration lines, skip them
-        return _ParsedLog(level: level, message: message);
+        // Only skip if this is purely a Logger decoration line (only contains Logger special chars)
+        // Don't skip user's intentional empty prints
+        final hasOnlyLoggerChars = RegExp(r'^[┌─├│└╟╚╔╗╝═║╠┄\s]*$').hasMatch(message);
+        if (hasOnlyLoggerChars) {
+          return _ParsedLog(level: level, message: null, skip: true);
+        } else {
+          // Keep the message as is (might be intentional empty line from user)
+          return _ParsedLog(level: level, message: message);
+        }
       }
     }
     
@@ -487,9 +534,10 @@ class DevLogger {
 // Helper class for parsed log
 class _ParsedLog {
   final LogLevel? level;
-  final String message;
+  final String? message;
+  final bool skip;
   
-  _ParsedLog({this.level, required this.message});
+  _ParsedLog({this.level, required this.message, this.skip = false});
 }
 
 // Global convenience function to replace print in dev panel
