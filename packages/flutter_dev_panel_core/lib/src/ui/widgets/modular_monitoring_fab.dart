@@ -271,7 +271,7 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
       );
     }
     
-    // 显示所有模块的FAB内容
+    // 显示所有模块的FAB内容，增加间距
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,7 +279,7 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
       children: [
         for (int i = 0; i < _fabContents.length; i++) ...[
           _fabContents[i],
-          if (i < _fabContents.length - 1) const SizedBox(height: 2),
+          if (i < _fabContents.length - 1) const SizedBox(height: 4),
         ],
       ],
     );

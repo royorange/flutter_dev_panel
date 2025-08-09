@@ -21,68 +21,46 @@ class ConsoleModule extends DevModule {
 
   @override
   Widget? buildFabContent(BuildContext context) {
-    // 在 FAB 中显示错误计数，更突出的样式
+    // 使用文字显示，更直观
     final allLogs = DevLogger.instance.logs;
     final errorCount =
         allLogs.where((log) => log.level == LogLevel.error).length;
     final warningCount =
         allLogs.where((log) => log.level == LogLevel.warning).length;
 
-    if (errorCount > 0) {
-      // 有错误时显示红色背景的错误计数
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.red,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.error,
-              color: Colors.white,
-              size: 14,
-            ),
-            const SizedBox(width: 4),
+    if (errorCount > 0 || warningCount > 0) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (errorCount > 0) ...[
             Text(
-              '$errorCount 错误',
+              '$errorCount ${errorCount == 1 ? 'error' : 'errors'}',
               style: const TextStyle(
-                color: Colors.white,
+                color: Colors.red,
                 fontSize: 11,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
-        ),
-      );
-    } else if (warningCount > 0) {
-      // 没有错误但有警告时显示橙色背景的警告计数
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.orange,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.warning,
-              color: Colors.white,
-              size: 14,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              '$warningCount 警告',
-              style: const TextStyle(
-                color: Colors.white,
+          if (errorCount > 0 && warningCount > 0)
+            const Text(
+              ', ',
+              style: TextStyle(
+                color: Colors.white70,
                 fontSize: 11,
-                fontWeight: FontWeight.bold,
+              ),
+            ),
+          if (warningCount > 0) ...[
+            Text(
+              '$warningCount ${warningCount == 1 ? 'warning' : 'warnings'}',
+              style: const TextStyle(
+                color: Colors.orange,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
-        ),
+        ],
       );
     }
     return null;
