@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
+import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
 import 'package:dio/dio.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 
@@ -34,6 +35,7 @@ void main() async {
       NetworkModule(),
       const DeviceModule(),
       const PerformanceModule(),
+      const ConsoleModule(),
     ],
   );
 
@@ -374,7 +376,98 @@ class _MyHomePageState extends State<MyHomePage>
             color: Colors.orange,
           ),
           
-          const SizedBox(height: 30),
+          const SizedBox(height: 16),
+          
+          // Console Module Card
+          _buildModuleCard(
+            icon: Icons.terminal,
+            title: 'Console / Logs',
+            description: 'View and filter application logs and errors',
+            features: [
+              'Real-time log capture',
+              'Log level filtering',
+              'Search functionality',
+              'Error tracking',
+            ],
+            color: Colors.purple,
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Console Test Actions
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.bug_report, color: Colors.purple),
+                      SizedBox(width: 8),
+                      Text(
+                        'Console Test Actions',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          DevLogger.instance.verbose('Verbose log message');
+                          DevLogger.instance.debug('Debug information');
+                          DevLogger.instance.info('Info: Action completed');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Logs added')),
+                          );
+                        },
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Add Normal Logs'),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          DevLogger.instance.warning('Warning: Resource usage high');
+                          DevLogger.instance.error(
+                            'Error: Failed to load resource',
+                            error: 'FileNotFoundException',
+                            stackTrace: 'at loadFile() line 42',
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Errors added')),
+                          );
+                        },
+                        icon: const Icon(Icons.error_outline, size: 16),
+                        label: const Text('Add Errors'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          ConsoleModule.addTestLogs();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Test logs added')),
+                          );
+                        },
+                        icon: const Icon(Icons.text_snippet, size: 16),
+                        label: const Text('Add Test Logs'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
           
           // How to use section
           Card(

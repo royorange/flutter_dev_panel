@@ -4,6 +4,7 @@ library flutter_dev_panel_core;
 export 'src/core/dev_panel_controller.dart';
 export 'src/core/module_registry.dart';
 export 'src/core/monitoring_data_provider.dart';
+export 'src/core/dev_logger.dart';
 
 // Model exports
 export 'src/models/dev_module.dart';

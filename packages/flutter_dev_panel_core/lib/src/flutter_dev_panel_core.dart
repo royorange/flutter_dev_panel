@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'core/dev_panel_controller.dart';
 import 'core/module_registry.dart';
+import 'core/dev_logger.dart';
 import 'models/dev_module.dart';
 import 'models/dev_panel_config.dart';
 import 'ui/dev_panel.dart';

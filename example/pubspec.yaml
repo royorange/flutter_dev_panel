@@ -13,6 +13,9 @@ dependencies:
   flutter_dev_panel:
     path: ../
   
+  flutter_dev_panel_console:
+    path: ../packages/flutter_dev_panel_console
+  
   dio: ^5.4.0
   graphql_flutter: ^5.1.0
   sensors_plus: ^6.1.1
