@@ -6,6 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 功能介绍：这是一个 flutter 的插件库，用于实现一个 flutter用的 dev 开发面板
 - 库名称： flutter_dev_panel
 - 主要功能：
+    - Console/日志监控
+        - 自动捕获print、debugPrint、Logger包输出、Flutter错误
+        - 支持日志级别过滤（Verbose、Debug、Info、Warning、Error）  
+        - 支持关键词搜索和实时过滤
+        - Logger包多行输出智能合并（可配置）
+        - 自动识别并显示不同级别的颜色（错误红色、警告橙色）
+        - 设置持久化：最大日志数、自动滚动、Logger优化显示
+        - FAB显示错误和警告计数（如 "2 errors, 3 warnings"）
+        - 暂停/继续日志捕获功能（不持久化）
     - 网络监控
         - 支持多种HTTP库：Dio、http包、GraphQL（graphql_flutter）
         - 显示当前请求详细信息和状态，并可以点击请求查看详细信息
@@ -30,8 +39,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### pubspec核心依赖：
     # 核心依赖
-    get  # 状态管理和路由
-    logger  # 日志工具
+    intl  # 时间和日期格式化
+    shared_preferences  # 本地存储
 
     # 网络监控
     dio  # HTTP 客户端库，用于拦截器实现
@@ -81,7 +90,8 @@ packages/
 │           ├── core/                # 核心功能
 │           │   ├── dev_panel_controller.dart     # 面板控制器
 │           │   ├── module_registry.dart          # 模块注册中心
-│           │   └── monitoring_data_provider.dart # 中央数据提供者
+│           │   ├── monitoring_data_provider.dart # 中央数据提供者
+│           │   └── dev_logger.dart               # 日志管理器
 │           ├── models/              # 数据模型
 │           │   ├── dev_module.dart  # 模块基类
 │           │   └── dev_panel_config.dart # 配置
@@ -91,6 +101,18 @@ packages/
 │               └── widgets/
 │                   ├── modular_monitoring_fab.dart # 模块化FAB
 │                   └── shake_detector.dart # 摇一摇检测
+│
+├── flutter_dev_panel_console/      # Console日志模块
+│   └── lib/src/
+│       ├── console_module.dart     # Console模块实现
+│       ├── providers/
+│       │   └── console_provider.dart # 状态管理
+│       └── ui/
+│           ├── pages/
+│           │   └── console_page.dart # 主页面
+│           └── widgets/
+│               ├── log_item.dart     # 日志项组件
+│               └── log_filter_bar.dart # 过滤栏
 │
 ├── flutter_dev_panel_network/      # 网络监控模块
 │   └── lib/src/
@@ -104,10 +126,14 @@ packages/
 │           ├── http_client_interceptor.dart # http包
 │           └── graphql_interceptor.dart     # GraphQL
 │
-└── flutter_dev_panel_performance/  # 性能监控模块
+├── flutter_dev_panel_performance/  # 性能监控模块
+│   └── lib/src/
+│       ├── performance_module.dart # 性能模块实现
+│       └── performance_monitor_controller.dart
+│
+└── flutter_dev_panel_device/       # 设备信息模块
     └── lib/src/
-        ├── performance_module.dart # 性能模块实现
-        └── performance_monitor_controller.dart
+        └── device_module.dart      # 设备模块实现
 ```
 
 ## 核心架构机制
@@ -207,6 +233,61 @@ NetworkModule.attachToDio(dio);
 NetworkModule.createHttpClient();
 NetworkModule.createGraphQLClient(endpoint: '...');
 ```
+
+### 6. Console日志捕获机制
+
+#### 日志捕获方式
+
+```dart
+// 在main.dart中使用Zone包装应用
+runZonedGuarded(() async {
+  // 应用初始化
+  runApp(MyApp());
+}, (error, stack) {
+  // 错误处理
+}, zoneSpecification: ZoneSpecification(
+  print: (self, parent, zone, line) {
+    DevLogger.instance.info(line);
+    parent.print(zone, line);
+  },
+));
+```
+
+#### DevLogger核心功能
+
+1. **自动捕获多种日志源**
+   - print() 语句通过Zone拦截
+   - debugPrint() 通过重写实现
+   - Logger包输出自动识别（通过特殊字符检测）
+   - Flutter错误通过FlutterError.onError
+   - 异步错误通过PlatformDispatcher.onError
+
+2. **Logger包多行输出智能合并**
+   - 检测Logger特殊字符（┌├│└┄）
+   - 缓冲多行输出直到检测到结束符
+   - 清理ANSI转义序列和装饰字符
+   - 智能识别主消息和堆栈跟踪
+
+3. **配置持久化（SharedPreferences）**
+   ```dart
+   class LogCaptureConfig {
+     final int maxLogs;              // 最大日志数量
+     final bool autoScroll;          // 自动滚动
+     final bool combineLoggerOutput; // 合并Logger输出
+   }
+   ```
+
+4. **日志级别与颜色**
+   - Error: 红色
+   - Warning: 橙色  
+   - Info: 绿色（默认）
+   - Debug: 蓝色
+   - Verbose: 灰色
+
+5. **暂停机制**
+   - 暂停状态只在内存中（不持久化）
+   - 暂停时不捕获新日志
+   - FAB不显示暂停时的统计
 
 ## 开发命令
 
