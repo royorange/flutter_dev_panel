@@ -1,33 +1,58 @@
-# Flutter Dev Panel Console Module
+# Flutter Dev Panel - Console Module
 
-Console 模块为 Flutter Dev Panel 提供完整的日志捕获和查看功能。
+[![pub package](https://img.shields.io/pub/v/flutter_dev_panel_console.svg)](https://pub.dev/packages/flutter_dev_panel_console)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Flutter](https://img.shields.io/badge/Flutter-%E2%89%A53.10.0-blue)](https://flutter.dev)
 
-## 功能特性
+A comprehensive logging and console module for Flutter Dev Panel that provides zero-configuration log capture, filtering, and management capabilities for Flutter applications.
 
-### 日志捕获
-- ✅ 自动捕获 `print` 和 `debugPrint` 语句
-- ✅ 自动捕获 `Logger` 包输出（无需配置）
-- ✅ 捕获 Flutter 框架错误和异常
-- ✅ 捕获未处理的异步错误
-- ✅ 智能识别日志级别和来源
+## Features
 
-### 日志查看
-- 🔍 实时搜索和过滤
-- 📊 按日志级别过滤（Verbose、Debug、Info、Warning、Error）
-- 🎨 颜色编码的日志级别
-- ⏰ 时间戳显示
-- ⏸️ 暂停/继续接收新日志
-- 📜 自动滚动到最新日志
-- 📋 点击查看详细信息和堆栈跟踪
+### Log Capture
+- **Automatic capture** of `print` and `debugPrint` statements
+- **Logger package integration** - Works out of the box with the popular Logger package
+- **Flutter framework errors** - Captures all Flutter errors and exceptions
+- **Async error handling** - Catches unhandled asynchronous errors
+- **Smart source detection** - Automatically identifies and tags log sources
 
-### 灵活配置
-- ⚙️ 可配置的日志捕获选项
-- 🎯 三种预设模式：最小、开发、完整
-- 🔧 详细的自定义配置
+### Log Viewing
+- **Real-time search** - Filter logs by content instantly
+- **Level filtering** - Filter by Verbose, Debug, Info, Warning, and Error levels
+- **Color-coded levels** - Visual distinction between different log severities
+- **Timestamp display** - Precise timing information for each log entry
+- **Pause/Resume** - Control log collection in real-time
+- **Auto-scroll** - Automatically scrolls to latest logs (configurable)
+- **Detail view** - Tap to expand and view full log details including stack traces
 
-## 使用方法
+### Configuration
+- **Flexible capture options** - Fine-grained control over what gets logged
+- **Preset modes** - Minimal, Development, and Full capture modes
+- **Persistent settings** - Configuration survives app restarts
+- **Runtime adjustable** - Change settings without restarting the app
 
-### 基本使用
+## Installation
+
+Add this to your package's `pubspec.yaml` file:
+
+```yaml
+dependencies:
+  flutter_dev_panel_console:
+    git:
+      url: https://github.com/yourusername/flutter_dev_panel
+      path: packages/flutter_dev_panel_console
+```
+
+Or if using a local path:
+
+```yaml
+dependencies:
+  flutter_dev_panel_console:
+    path: ../packages/flutter_dev_panel_console
+```
+
+## Usage
+
+### Basic Setup
 
 ```dart
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
@@ -35,19 +60,22 @@ import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
 
 void main() {
   runZonedGuarded(() async {
+    // Initialize with console module
     FlutterDevPanel.initialize(
       modules: [
         const ConsoleModule(),
-        // 其他模块...
+        // Add other modules as needed
       ],
       enableLogCapture: true,
     );
     
     runApp(MyApp());
   }, (error, stack) {
-    // 错误会被自动捕获
+    // Errors are automatically captured
+    DevLogger.instance.error('Uncaught error', error: error, stackTrace: stack);
   }, zoneSpecification: ZoneSpecification(
     print: (self, parent, zone, line) {
+      // Capture print statements
       DevLogger.instance.info('[Print] $line');
       parent.print(zone, line);
     },
@@ -55,59 +83,50 @@ void main() {
 }
 ```
 
-### 配置日志捕获
+### Configuration Options
+
+#### Using Preset Configurations
 
 ```dart
-// 使用预设配置
+// Minimal mode - maxLogs: 500, autoScroll: true
 DevLogger.instance.updateConfig(
-  const LogCaptureConfig.minimal(),     // 最小模式：仅应用日志和错误
-  // const LogCaptureConfig.development(), // 开发模式：应用、库和网络日志（默认）
-  // const LogCaptureConfig.full(),       // 完整模式：捕获所有日志
+  const LogCaptureConfig.minimal(),
 );
 
-// 自定义配置
+// Development mode - maxLogs: 1000, autoScroll: true (default)
+DevLogger.instance.updateConfig(
+  const LogCaptureConfig.development(),
+);
+
+// Full mode - maxLogs: 5000, autoScroll: true
+DevLogger.instance.updateConfig(
+  const LogCaptureConfig.full(),
+);
+
+```
+
+#### Custom Configuration
+
+```dart
 DevLogger.instance.updateConfig(
   const LogCaptureConfig(
-    captureFrameworkLogs: false,  // Flutter 框架日志
-    captureNetworkLogs: true,     // 网络请求日志
-    captureSystemLogs: false,     // 系统平台日志
-    captureLibraryLogs: true,     // 第三方库日志
-    captureVerbose: true,         // Verbose 级别日志
-    captureAllErrors: true,       // 所有错误（推荐开启）
-    maxLogs: 1000,               // 最大日志数量
+    maxLogs: 1000,                // Maximum number of logs to keep
+    autoScroll: true,             // Auto-scroll to latest logs
+    combineLoggerOutput: true,    // Combine multi-line Logger package output
   ),
 );
 ```
 
-### 在 Console UI 中配置
+### Logger Package Integration
 
-用户可以通过 Console 页面右上角的设置按钮动态调整日志捕获配置：
-
-1. **快速预设**：一键切换最小、开发、完整模式
-2. **详细设置**：分别开关各类日志捕获
-3. **实时生效**：配置更改立即生效，无需重启
-
-## 日志来源识别
-
-Console 模块会自动识别并标记日志来源：
-
-- `[Print]` - print 语句
-- `[Debug]` - debugPrint 语句
-- `[Logger]` - Logger 包输出
-- `[Flutter]` - Flutter 框架日志
-- `[Network]` - 网络请求日志
-- `[System]` - 系统平台日志
-
-## 与 Logger 包集成
-
-无需任何配置，Console 模块会自动捕获 Logger 包的输出：
+The console module automatically captures output from the Logger package:
 
 ```dart
 import 'package:logger/logger.dart';
 
 final logger = Logger();
 
-// 这些都会被自动捕获
+// All these are automatically captured
 logger.t('Trace message');
 logger.d('Debug message');
 logger.i('Info message');
@@ -115,24 +134,126 @@ logger.w('Warning message');
 logger.e('Error message', error: exception, stackTrace: stack);
 ```
 
-## 性能考虑
+### Manual Logging
 
-- **最小模式**：性能影响最小，仅捕获必要日志
-- **开发模式**：平衡性能和功能，适合日常开发
-- **完整模式**：捕获所有日志，可能影响性能，适合调试复杂问题
+You can also use the DevLogger directly:
 
-## 配置建议
+```dart
+// Different log levels
+DevLogger.instance.verbose('Detailed trace information');
+DevLogger.instance.debug('Debug information');
+DevLogger.instance.info('General information');
+DevLogger.instance.warning('Warning message');
+DevLogger.instance.error('Error occurred', error: exception, stackTrace: stack);
 
-| 场景 | 推荐配置 | 说明 |
-|-----|---------|-----|
-| 日常开发 | `LogCaptureConfig.development()` | 默认配置，平衡性能和功能 |
-| 性能调试 | `LogCaptureConfig.minimal()` | 最小化日志，减少性能影响 |
-| 问题排查 | `LogCaptureConfig.full()` | 捕获所有日志，帮助定位问题 |
-| 生产环境 | 禁用或使用 `minimal` | 减少性能开销 |
+// With source tagging
+DevLogger.instance.info('[Network] Request completed');
+DevLogger.instance.error('[Database] Query failed', error: error);
+```
 
-## 注意事项
+## API Reference
 
-1. 日志捕获仅在非 Release 模式下工作
-2. 捕获更多日志会增加内存使用和性能开销
-3. 默认最多保存 1000 条日志，可通过配置调整
-4. Flutter 框架内部日志（如 "Reloaded" 等）默认不捕获，可通过配置开启
+### ConsoleModule
+
+The main module class that integrates with Flutter Dev Panel:
+
+```dart
+class ConsoleModule extends DevModule {
+  const ConsoleModule();
+  
+  @override
+  Widget buildPage(BuildContext context);
+  
+  @override
+  Widget? buildFabContent(BuildContext context);
+}
+```
+
+### LogCaptureConfig
+
+Configuration for log capture behavior:
+
+```dart
+class LogCaptureConfig {
+  final bool captureFrameworkLogs;
+  final bool captureNetworkLogs;
+  final bool captureSystemLogs;
+  final bool captureLibraryLogs;
+  final bool captureVerbose;
+  final bool captureAllErrors;
+  final int maxLogs;
+  
+  const LogCaptureConfig({...});
+  
+  // Preset configurations
+  const LogCaptureConfig.minimal();
+  const LogCaptureConfig.development();
+  const LogCaptureConfig.full();
+}
+```
+
+### DevLogger
+
+The singleton logger instance:
+
+```dart
+class DevLogger {
+  static DevLogger get instance;
+  
+  void verbose(String message, {dynamic error, StackTrace? stackTrace});
+  void debug(String message, {dynamic error, StackTrace? stackTrace});
+  void info(String message, {dynamic error, StackTrace? stackTrace});
+  void warning(String message, {dynamic error, StackTrace? stackTrace});
+  void error(String message, {dynamic error, StackTrace? stackTrace});
+  
+  void updateConfig(LogCaptureConfig config);
+  void clearLogs();
+  void setPaused(bool paused);
+}
+```
+
+## Log Source Identification
+
+The console module automatically detects and formats logs from different sources:
+
+- **Print statements** - Standard print output
+- **debugPrint** - Debug print statements
+- **Logger package** - Multi-line output automatically combined
+- **Flutter errors** - Framework errors and exceptions
+- **Custom prefixes** - Logs with `Error:`, `Warning:`, `Info:`, etc. are auto-detected
+
+## Performance Considerations
+
+Different configuration modes have different memory impacts:
+
+| Mode | Max Logs | Use Case |
+|------|----------|----------|
+| Minimal | 500 | Limited memory, basic debugging |
+| Development | 1000 | Daily development, balanced features |
+| Full | 5000 | Debugging complex issues, complete history |
+
+## Best Practices
+
+1. **Use appropriate log levels** - Use error for errors, warning for warnings, etc.
+2. **Add context to logs** - Include relevant information to help debugging
+3. **Configure for your needs** - Use minimal mode for performance, full for debugging
+4. **Clean up verbose logs** - Remove unnecessary verbose logging in production
+5. **Use source tags** - Tag logs with `[Network]`, `[Database]`, etc. for clarity
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For issues, questions, or suggestions, please file an issue on the [GitHub repository](https://github.com/yourusername/flutter_dev_panel/issues).

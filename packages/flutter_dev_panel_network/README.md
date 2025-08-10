@@ -1,110 +1,160 @@
 # Flutter Dev Panel - Network Module
 
-网络监控模块，支持 Dio、HTTP、GraphQL 等多种网络库，提供统一的请求监控和调试功能。
+[![pub package](https://img.shields.io/pub/v/flutter_dev_panel_network.svg)](https://pub.dev/packages/flutter_dev_panel_network)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Flutter](https://img.shields.io/badge/Flutter-%E2%89%A53.10.0-blue)](https://flutter.dev)
 
-## ✨ 核心特性
+A comprehensive network monitoring module for Flutter Dev Panel that provides unified request tracking and debugging capabilities across multiple HTTP client libraries including Dio, http package, and GraphQL.
 
-- 🔌 **多库支持** - Dio、http包、graphql_flutter 无缝集成
-- 💾 **持久化存储** - 请求历史自动保存，应用重启后可查看
-- 📊 **实时监控** - FAB 悬浮窗实时显示网络活动
-- 🔍 **强大搜索** - 支持 URL、状态码、方法等多维度过滤
-- 📱 **会话隔离** - 区分历史数据和当前会话，FAB 只显示活动请求
-- 🎨 **优雅UI** - Material Design 3，支持暗黑模式
+## Features
 
-## 📦 安装
+### Core Capabilities
+- **Multi-library support** - Seamless integration with Dio, http package, and graphql_flutter
+- **Persistent storage** - Request history automatically saved and survives app restarts
+- **Real-time monitoring** - Live network activity displayed in floating action button
+- **Advanced filtering** - Search by URL, status code, method, and more
+- **Session isolation** - Distinguish between historical and current session requests
+- **Material Design 3** - Modern UI with full dark mode support
+
+### Network Monitoring
+- **Request/Response inspection** - View headers, body, timing, and size
+- **Error tracking** - Detailed error messages and stack traces
+- **Performance metrics** - Request duration and response size tracking
+- **GraphQL support** - Operation type detection, query/mutation inspection
+- **WebSocket support** - Monitor GraphQL subscriptions and WebSocket connections
+
+### FAB Display
+The floating action button provides real-time network statistics:
+- **Pending requests** - Animated counter with spinner
+- **Success count** - Green badge for successful requests
+- **Error count** - Red highlight for failed requests
+- **Performance** - Slowest request time (>1s)
+- **Data usage** - Total download size
+
+## Installation
+
+Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
   flutter_dev_panel_network:
-    path: packages/flutter_dev_panel_network
+    git:
+      url: https://github.com/yourusername/flutter_dev_panel
+      path: packages/flutter_dev_panel_network
 ```
 
-## 🚀 快速开始
+Or if using a local path:
 
-### 注册模块
+```yaml
+dependencies:
+  flutter_dev_panel_network:
+    path: ../packages/flutter_dev_panel_network
+```
+
+## Usage
+
+### Basic Setup
 
 ```dart
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 import 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
 
 void main() {
-  // 注册网络监控模块
-  FlutterDevPanel.registerModule(NetworkModule());
+  // Register network monitoring module
+  FlutterDevPanel.initialize(
+    modules: [
+      NetworkModule(),
+      // Add other modules as needed
+    ],
+  );
   
   runApp(MyApp());
 }
 ```
 
-## 📡 HTTP 库集成
-
-### Dio 集成（最流行）
+### Dio Integration
 
 ```dart
 import 'package:dio/dio.dart';
 
-// 最简单 - 一行代码
+// Simple one-line setup
 final dio = Dio();
 NetworkModule.attachToDio(dio);
 
-// 多实例
+// Multiple Dio instances
 NetworkModule.attachToMultipleDio([dio1, dio2, dio3]);
 
-// 手动添加拦截器
+// Manual interceptor addition
 dio.interceptors.add(NetworkModule.createInterceptor());
+
+// Using the Dio instance
+final response = await dio.get('https://api.example.com/data');
 ```
 
-### GraphQL 集成（graphql_flutter）
+### GraphQL Integration
 
 ```dart
 import 'package:graphql_flutter/graphql_flutter.dart';
 
-// 方式1：最简单 - 附加到现有客户端（推荐）
+// Method 1: Attach to existing client (recommended)
 final originalClient = GraphQLClient(
   link: HttpLink('https://api.example.com/graphql'),
   cache: GraphQLCache(),
 );
 
-// 一行代码添加监控
 final monitoredClient = NetworkModule.attachToGraphQL(originalClient);
 
-// 方式2：创建新客户端
+// Method 2: Create new monitored client
 final client = NetworkModule.createGraphQLClient(
   endpoint: 'https://api.example.com/graphql',
-  subscriptionEndpoint: 'wss://api.example.com/graphql', // 可选
+  subscriptionEndpoint: 'wss://api.example.com/graphql', // Optional
   defaultHeaders: {'Authorization': 'Bearer $token'},
 );
 
-// 方式3：Link 层集成
+// Method 3: Link-level integration
 final monitoringLink = NetworkModule.createGraphQLInterceptor();
 final link = Link.from([
-  monitoringLink,  // 监控放最前
+  monitoringLink,  // Place monitoring first
   authLink,
   httpLink,
 ]);
+
+// Use with GraphQLProvider
+GraphQLProvider(
+  client: ValueNotifier(monitoredClient),
+  child: MyApp(),
+);
 ```
 
-### HTTP 包集成
+### HTTP Package Integration
 
 ```dart
 import 'package:http/http.dart' as http;
 
-// 创建监控客户端
+// Create monitored client
 final client = NetworkModule.createHttpClient();
 
-// 包装现有客户端
-final wrapped = NetworkModule.wrapHttpClient(existingClient);
+// Wrap existing client
+final wrappedClient = NetworkModule.wrapHttpClient(existingClient);
 
-// 使用
+// Use as normal
 final response = await client.get(Uri.parse('https://api.example.com'));
+final data = await client.post(
+  Uri.parse('https://api.example.com/data'),
+  headers: {'Content-Type': 'application/json'},
+  body: jsonEncode({'key': 'value'}),
+);
 ```
 
-### 自定义 HTTP 库
+### Custom HTTP Library Integration
+
+For custom HTTP implementations or libraries not directly supported:
 
 ```dart
-// 获取基础拦截器
+// Get the base interceptor
 final interceptor = NetworkModule.getBaseInterceptor();
 
-// 请求前
+// Before making request
 final requestId = interceptor.recordRequest(
   url: 'https://api.example.com/data',
   method: 'GET',
@@ -112,7 +162,7 @@ final requestId = interceptor.recordRequest(
   body: requestBody,
 );
 
-// 响应后
+// After receiving response
 interceptor.recordResponse(
   requestId: requestId,
   statusCode: 200,
@@ -120,74 +170,143 @@ interceptor.recordResponse(
   responseSize: bytes.length,
 );
 
-// 或记录错误
+// On error
 interceptor.recordError(
   requestId: requestId,
-  error: 'Timeout',
+  error: 'Connection timeout',
 );
 ```
 
-## 📊 FAB 实时显示
+## API Reference
 
-悬浮按钮会实时显示网络活动：
+### NetworkModule
 
-- 🔄 **进行中** - 旋转动画 + 数量（`↻3`）
-- ✅ **成功** - 绿色计数
-- ❌ **错误** - 红色高亮（`/2`）
-- ⚡ **性能** - 最慢请求时间（>1s 显示）
-- 📥 **流量** - 下载数据量（`↓2.3M`）
-
-### 显示规则
-
-- 只显示当前会话的请求（应用重启后历史不触发 FAB）
-- 数字过大自动格式化（1000→1k）
-- 自动防溢出（Flexible + ellipsis）
-
-## 🔧 配置选项
-
-### 设置最大请求数
+The main module class:
 
 ```dart
-// 默认保存 100 条
+class NetworkModule extends DevModule {
+  // Dio integration
+  static void attachToDio(Dio dio);
+  static void attachToMultipleDio(List<Dio> dioInstances);
+  static Interceptor createInterceptor();
+  
+  // GraphQL integration
+  static GraphQLClient attachToGraphQL(GraphQLClient client);
+  static GraphQLClient createGraphQLClient({
+    required String endpoint,
+    String? subscriptionEndpoint,
+    Map<String, String>? defaultHeaders,
+  });
+  static Link createGraphQLInterceptor();
+  
+  // HTTP package integration
+  static http.Client createHttpClient();
+  static http.Client wrapHttpClient(http.Client client);
+  
+  // Custom integration
+  static BaseInterceptor getBaseInterceptor();
+  
+  // Controller access
+  static NetworkMonitorController get controller;
+}
+```
+
+### NetworkMonitorController
+
+Controls network monitoring behavior:
+
+```dart
+class NetworkMonitorController {
+  // Configuration
+  void setMaxRequests(int max);
+  void setPaused(bool paused);
+  void togglePause();
+  
+  // Data management
+  void clearRequests();
+  Stream<List<NetworkRequest>> get requestsStream;
+  List<NetworkRequest> get requests;
+  
+  // Session management
+  bool get hasSessionActivity;
+  int get sessionRequestCount;
+  int get sessionErrorCount;
+}
+```
+
+### NetworkRequest
+
+Represents a captured network request:
+
+```dart
+class NetworkRequest {
+  final String id;
+  final String method;
+  final String url;
+  final Map<String, dynamic>? headers;
+  final dynamic requestBody;
+  final int? statusCode;
+  final dynamic responseBody;
+  final DateTime timestamp;
+  final Duration? duration;
+  final int? responseSize;
+  final String? error;
+  final RequestStatus status;
+  
+  // GraphQL specific
+  final String? operationType;
+  final String? operationName;
+  final Map<String, dynamic>? variables;
+}
+```
+
+## Configuration
+
+### Setting Maximum Requests
+
+```dart
+// Default is 100
 NetworkModule.controller.setMaxRequests(200);
 ```
 
-### 暂停/恢复监控
+### Pause/Resume Monitoring
 
 ```dart
-// 暂停
+// Pause monitoring
 NetworkModule.controller.setPaused(true);
 
-// 恢复
+// Resume monitoring
 NetworkModule.controller.setPaused(false);
 
-// 切换
+// Toggle state
 NetworkModule.controller.togglePause();
 ```
 
-### 清除历史
+### Clear History
 
 ```dart
+// Clear all stored requests
 NetworkModule.controller.clearRequests();
 ```
 
-## 🎯 GraphQL 特定功能
+## GraphQL Features
 
-### 操作类型识别
+### Operation Type Detection
 
-自动识别并标记：
-- QUERY
-- MUTATION
-- SUBSCRIPTION
+The module automatically detects and displays:
+- **QUERY** - Data fetching operations
+- **MUTATION** - Data modification operations
+- **SUBSCRIPTION** - Real-time data subscriptions
 
-### 请求详情
+### Request Details
 
-- Operation 名称
-- GraphQL 查询语句
-- Variables 变量
-- GraphQL 错误（即使 HTTP 200 也会标记）
+For GraphQL requests, additional information is captured:
+- Operation name
+- Query/Mutation string
+- Variables
+- GraphQL-specific errors (even with HTTP 200 status)
 
-### WebSocket 订阅
+### WebSocket Subscriptions
 
 ```dart
 final client = NetworkModule.createGraphQLClient(
@@ -195,26 +314,34 @@ final client = NetworkModule.createGraphQLClient(
   subscriptionEndpoint: 'wss://api.example.com/graphql',
 );
 
-// 订阅会被正确监控
+// Subscriptions are automatically monitored
+final subscription = client.subscribe(
+  SubscriptionOptions(
+    document: gql(subscriptionDocument),
+    variables: variables,
+  ),
+);
+
 subscription.listen((result) {
-  // 实时数据
+  // Real-time updates
 });
 ```
 
-## 💾 数据持久化
+## Data Persistence
 
-- 自动保存请求历史到 SharedPreferences
-- 应用重启后自动加载
-- 保存数量与 maxRequests 设置一致
-- 超出限制自动删除最早记录
+### Storage Behavior
+- Requests automatically saved to SharedPreferences
+- History survives app restarts
+- Storage limit matches maxRequests setting
+- Oldest requests auto-deleted when limit reached
 
-### 会话隔离
+### Session Management
+- **Historical data** - Displayed in request list, searchable
+- **Session data** - Triggers FAB updates and statistics
+- Session resets on app restart
+- FAB only shows current session activity
 
-- **历史数据** - 显示在列表中，可查看详情
-- **会话数据** - 触发 FAB 显示和统计
-- 重启应用后会话统计归零，FAB 不显示历史
-
-## 📱 完整示例
+## Complete Example
 
 ```dart
 import 'package:flutter/material.dart';
@@ -224,14 +351,16 @@ import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 import 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
 
 void main() {
-  // 注册网络模块
-  FlutterDevPanel.registerModule(NetworkModule());
+  // Initialize Dev Panel with network module
+  FlutterDevPanel.initialize(
+    modules: [NetworkModule()],
+  );
   
-  // Dio 集成
+  // Setup Dio
   final dio = Dio();
   NetworkModule.attachToDio(dio);
   
-  // GraphQL 集成
+  // Setup GraphQL
   final graphQLClient = NetworkModule.createGraphQLClient(
     endpoint: 'https://countries.trevorblades.com/',
   );
@@ -246,7 +375,11 @@ class MyApp extends StatelessWidget {
   final Dio dio;
   final GraphQLClient graphQLClient;
   
-  MyApp({required this.dio, required this.graphQLClient});
+  const MyApp({
+    Key? key,
+    required this.dio,
+    required this.graphQLClient,
+  }) : super(key: key);
   
   @override
   Widget build(BuildContext context) {
@@ -254,82 +387,63 @@ class MyApp extends StatelessWidget {
       client: ValueNotifier(graphQLClient),
       child: FlutterDevPanel.wrap(
         child: MaterialApp(
+          title: 'Network Monitor Demo',
           home: NetworkDemoPage(dio: dio),
         ),
       ),
     );
   }
 }
-
-class NetworkDemoPage extends StatelessWidget {
-  final Dio dio;
-  
-  NetworkDemoPage({required this.dio});
-  
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Network Demo')),
-      body: Column(
-        children: [
-          // REST API 请求
-          ElevatedButton(
-            onPressed: () async {
-              await dio.get('https://jsonplaceholder.typicode.com/posts/1');
-            },
-            child: Text('REST Request'),
-          ),
-          
-          // GraphQL 查询
-          Query(
-            options: QueryOptions(
-              document: gql(r'''
-                query GetCountries {
-                  countries {
-                    name
-                    emoji
-                  }
-                }
-              '''),
-            ),
-            builder: (result, {fetchMore, refetch}) {
-              if (result.isLoading) return CircularProgressIndicator();
-              
-              final countries = result.data?['countries'] ?? [];
-              return Text('Loaded ${countries.length} countries');
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
 ```
 
-## ⚠️ 注意事项
+## Performance Considerations
 
-1. **生产环境** - 建议在生产环境禁用，避免敏感数据泄露
-2. **性能影响** - 大量请求时可能影响性能，可调整 maxRequests
-3. **隐私数据** - 注意请求头中的 token 等敏感信息会被记录
-4. **GraphQL 大查询** - 大型查询结果可能占用较多内存
+1. **Request limit** - Keep maxRequests reasonable (default 100)
+2. **Body size** - Large request/response bodies may impact memory
+3. **Production builds** - Consider disabling in release mode
+4. **Sensitive data** - Be aware that headers and bodies are stored
 
-## 🛠 故障排除
+## Troubleshooting
 
-### FAB 不显示
-- 检查是否有活动请求（历史请求不触发）
-- 确认模块已正确注册
-- 查看 `hasSessionActivity` 状态
+### FAB not showing network activity
+- Verify module is registered with FlutterDevPanel
+- Check if monitoring is paused
+- Ensure interceptors are properly attached
+- Note that historical requests don't trigger FAB
 
-### 请求未记录
-- 确认拦截器已正确添加
-- 检查是否暂停了监控
-- GraphQL 需要使用包装后的客户端
+### Requests not being captured
+- Confirm interceptor is added to HTTP client
+- Check if monitoring is paused
+- For GraphQL, ensure using wrapped client
+- Verify network permissions on device
 
-### 历史丢失
-- 检查 SharedPreferences 权限
-- 确认未调用 clearRequests()
-- 查看控制台是否有存储错误
+### Storage issues
+- Check SharedPreferences permissions
+- Verify storage isn't full
+- Look for storage-related errors in console
 
-## 📄 许可证
+## Best Practices
 
-MIT License - 详见 LICENSE 文件
+1. **Security** - Disable in production to prevent data leakage
+2. **Privacy** - Be mindful of sensitive data in headers/bodies
+3. **Performance** - Adjust maxRequests based on app needs
+4. **Testing** - Use network module to verify API integration
+5. **Debugging** - Enable full request/response logging during development
+
+## Contributing
+
+We welcome contributions! Please see our contributing guidelines for details.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For issues, questions, or suggestions, please file an issue on the [GitHub repository](https://github.com/yourusername/flutter_dev_panel/issues).

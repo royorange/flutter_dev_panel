@@ -1,176 +1,317 @@
 # Flutter Dev Panel
 
-一个功能丰富的Flutter应用开发调试面板，提供网络监控、环境切换、设备信息、性能监控等功能。
+[![pub package](https://img.shields.io/pub/v/flutter_dev_panel.svg)](https://pub.dev/packages/flutter_dev_panel)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## ✨ 功能特性
+A modular, zero-intrusion debugging panel for Flutter applications that provides real-time monitoring and debugging capabilities during development.
 
-- 🌐 **网络监控** - 拦截并显示所有HTTP请求，支持查看详情、搜索、过滤
-- 🔄 **环境切换** - 动态切换开发、测试、生产环境配置
-- 📱 **设备信息** - 显示设备型号、系统版本、屏幕信息等
-- 📊 **性能监控** - 实时FPS监控，性能图表展示
-- 🎯 **多种触发方式** - 悬浮按钮、摇一摇、手动调用
-- 🔌 **模块化架构** - 支持自定义模块扩展
-- 🎨 **Material Design 3** - 美观现代的UI设计
+[中文文档](README_CN.md)
 
-## 📦 安装
+## Features
 
-在 `pubspec.yaml` 中添加依赖：
+### Core Capabilities
+- **Zero Intrusion**: No impact on production code
+- **Modular Architecture**: Load only the modules you need
+- **High Performance**: Optimized to minimize impact on app performance
+- **Multiple Trigger Modes**: Floating button, shake gesture, or programmatic
+
+### Available Modules
+
+#### Console Module
+- Real-time log capture (print, debugPrint, Logger package)
+- Log level filtering (verbose, debug, info, warning, error)
+- Search and filter capabilities
+- Automatic ANSI color code handling
+- Configurable log retention and auto-scroll
+
+#### Network Module
+- HTTP request/response monitoring
+- GraphQL query and mutation tracking
+- Support for Dio, http, and GraphQL packages
+- Request history persistence
+- Detailed request/response inspection
+- JSON viewer with syntax highlighting
+
+#### Device Module
+- Device model and specifications
+- Screen dimensions and PPI calculation
+- Operating system information
+- Platform-specific details
+- App package information
+
+#### Performance Module
+- Real-time FPS monitoring
+- Memory usage tracking
+- Dropped frames detection
+- Performance charts and trends
+- Memory peak tracking
+
+#### Environment Module
+- Environment switching (Development/Production)
+- Environment variable management
+- Configuration persistence
+- Real-time environment updates
+
+## Installation
+
+Add the following dependencies to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_dev_panel: ^0.0.1
+  flutter_dev_panel: ^1.0.0
+  flutter_dev_panel_console: ^1.0.0
+  flutter_dev_panel_network: ^1.0.0
+  flutter_dev_panel_device: ^1.0.0
+  flutter_dev_panel_performance: ^1.0.0
 ```
 
-## 🚀 快速开始
+## Quick Start
 
-### 1. 初始化
+### 1. Initialize the Dev Panel
 
 ```dart
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // 初始化Flutter Dev Panel
-  await FlutterDevPanel.init(
-    config: DevPanelConfig(
-      enabled: true,
-      triggerModes: {TriggerMode.fab, TriggerMode.shake},
-      environments: Environment.defaultEnvironments(),
-    ),
-  );
-  
-  runApp(MyApp());
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    
+    // Initialize environment configurations
+    EnvironmentManager.instance.initialize(
+      environments: [
+        const EnvironmentConfig(
+          name: 'Development',
+          variables: {
+            'api_url': 'https://dev-api.example.com',
+            'debug': true,
+          },
+          isDefault: true,
+        ),
+        const EnvironmentConfig(
+          name: 'Production',
+          variables: {
+            'api_url': 'https://api.example.com',
+            'debug': false,
+          },
+        ),
+      ],
+    );
+    
+    // Initialize Flutter Dev Panel
+    FlutterDevPanel.initialize(
+      config: const DevPanelConfig(
+        enabled: true,
+        triggerModes: {TriggerMode.fab, TriggerMode.shake},
+        showInProduction: false,
+      ),
+      modules: [
+        const ConsoleModule(),
+        NetworkModule(),
+        const DeviceModule(),
+        const PerformanceModule(),
+      ],
+      enableLogCapture: true,
+    );
+    
+    runApp(MyApp());
+  }, (error, stack) {
+    DevLogger.instance.error('Uncaught Error', 
+      error: error.toString(), 
+      stackTrace: stack.toString()
+    );
+  });
 }
 ```
 
-### 2. 包装应用
+### 2. Wrap Your App
 
 ```dart
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: FlutterDevPanel.wrap(
+      home: DevPanelWrapper(
         child: YourHomePage(),
-        enableFloatingButton: true,
-        enableShakeDetection: true,
       ),
     );
   }
 }
 ```
 
-### 3. 配置网络监控
+### 3. Configure Network Monitoring (Optional)
 
+For Dio:
 ```dart
-import 'package:dio/dio.dart';
-
 final dio = Dio();
-FlutterDevPanel.addDioInterceptor(dio);
+NetworkModule.attachToDio(dio);
 ```
 
-### 4. 使用环境配置
+For GraphQL:
+```dart
+final graphQLClient = GraphQLClient(
+  link: HttpLink('https://api.example.com/graphql'),
+  cache: GraphQLCache(),
+);
+final monitoredClient = NetworkModule.attachToGraphQL(graphQLClient);
+```
+
+## Module Configuration
+
+### Console Module
+```dart
+DevLogger.instance.updateConfig(
+  const LogCaptureConfig(
+    maxLogs: 500,
+    autoScroll: true,
+    combineLoggerOutput: true,  // Combine multi-line Logger package output
+  ),
+);
+
+// Use predefined configurations
+DevLogger.instance.updateConfig(
+  const LogCaptureConfig.development(), // maxLogs: 1000, autoScroll: true
+);
+```
+
+### Performance Module
+The performance module automatically monitors:
+- Frame rate (FPS)
+- Memory usage
+- Dropped frames
+- Render time
+
+No additional configuration required.
+
+## Accessing the Dev Panel
+
+There are three ways to open the dev panel:
+
+1. **Floating Button**: Tap the floating debug button
+2. **Shake Gesture**: Shake your device
+3. **Programmatically**: 
+```dart
+FlutterDevPanel.open(context);
+```
+
+## Environment Management
+
+Access environment variables in your app:
 
 ```dart
-// 获取当前环境配置
-final apiUrl = FlutterDevPanel.getEnvironmentConfig<String>('api_url');
+// Get current environment
+final currentEnv = EnvironmentManager.instance.currentEnvironment;
 
-// 切换环境
-FlutterDevPanel.switchEnvironment('生产环境');
+// Get specific variable
+final apiUrl = EnvironmentManager.instance.getVariable<String>('api_url');
+
+// Listen to environment changes
+EnvironmentManager.instance.addListener(() {
+  // Handle environment change
+});
 ```
 
-## 📖 详细使用
+## Advanced Usage
 
-### 手动控制面板
+### Custom Module Creation
 
-```dart
-// 显示面板
-FlutterDevPanel.show();
-
-// 隐藏面板
-FlutterDevPanel.hide();
-
-// 切换显示状态
-FlutterDevPanel.toggle();
-```
-
-### 自定义模块
+Create your own custom modules by extending `DevModule`:
 
 ```dart
 class CustomModule extends DevModule {
-  CustomModule() : super(
-    id: 'custom',
-    name: '自定义模块',
-    description: '自定义功能描述',
-    icon: Icons.extension,
-    type: ModuleType.custom,
-  );
-
+  @override
+  String get name => 'Custom';
+  
+  @override
+  IconData get icon => Icons.extension;
+  
   @override
   Widget buildPage(BuildContext context) {
     return YourCustomPage();
   }
+  
+  @override
+  Widget? buildFabContent(BuildContext context) {
+    // Optional: Return widget to display in FAB
+    return Text('Custom Info');
+  }
 }
-
-// 注册自定义模块
-FlutterDevPanel.registerModule(CustomModule());
 ```
 
-### 环境配置
+### Production Safety
+
+The dev panel automatically disables itself in production builds unless explicitly configured:
 
 ```dart
-// 创建环境
-final env = Environment(
-  name: '开发环境',
-  config: {
-    'api_url': 'https://dev.api.example.com',
-    'timeout': 30000,
-    'debug': true,
-  },
+FlutterDevPanel.initialize(
+  config: const DevPanelConfig(
+    enabled: !kReleaseMode, // Automatically disable in release
+    showInProduction: false, // Extra safety check
+  ),
+  // ...
 );
-
-// 使用环境配置
-final apiUrl = FlutterDevPanel.getEnvironmentConfig<String>('api_url');
-final timeout = FlutterDevPanel.getEnvironmentConfig<int>('timeout');
 ```
 
-## 🎮 触发方式
+## Architecture
 
-1. **悬浮按钮** - 可拖拽的悬浮调试按钮
-2. **摇一摇** - 摇动设备3次打开面板
-3. **手动调用** - 代码中调用 `FlutterDevPanel.show()`
+The Flutter Dev Panel follows a modular architecture:
 
-## 🔧 配置选项
-
-```dart
-DevPanelConfig(
-  enabled: true,                    // 是否启用
-  triggerModes: {                   // 触发方式
-    TriggerMode.fab,
-    TriggerMode.shake,
-    TriggerMode.manual,
-  },
-  modules: [...],                    // 功能模块
-  environments: [...],               // 环境配置
-  themeConfig: ThemeConfig(...),    // 主题配置
-  showInProduction: false,          // 是否在生产环境显示
-)
+```
+flutter_dev_panel/
+├── lib/
+│   ├── core/              # Core functionality
+│   ├── modules/            # Module interfaces
+│   └── ui/                 # UI components
+├── packages/
+│   ├── flutter_dev_panel_console/     # Console module
+│   ├── flutter_dev_panel_network/     # Network module
+│   ├── flutter_dev_panel_device/      # Device info module
+│   └── flutter_dev_panel_performance/ # Performance module
+└── example/                            # Example application
 ```
 
-## 📱 示例应用
+## Contributing
 
-查看 [example](./example) 目录了解完整的使用示例。
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+### Development Setup
+
+1. Clone the repository
+2. Run `flutter pub get` in the root directory
+3. Run the example app: `cd example && flutter run`
+
+### Running Tests
 
 ```bash
-cd example
-flutter run
+flutter test
 ```
 
-## 🤝 贡献
+## License
 
-欢迎提交 Issue 和 Pull Request！
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📄 License
+## Support
 
-MIT License - 详见 [LICENSE](./LICENSE) 文件
+- **Issues**: [GitHub Issues](https://github.com/yourusername/flutter_dev_panel/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/flutter_dev_panel/discussions)
+- **Documentation**: [API Documentation](https://pub.dev/documentation/flutter_dev_panel/latest/)
+
+## Acknowledgments
+
+Special thanks to all contributors who have helped make this project better.
+
+## Roadmap
+
+- [ ] Custom theme support
+- [ ] Export/Import configurations
+- [ ] Network request replay
+- [ ] Performance profiling export
+- [ ] WebSocket monitoring
+- [ ] Database query monitoring
+- [ ] State management inspection
+
+## Related Projects
+
+- [flutter_dev_panel_console](https://pub.dev/packages/flutter_dev_panel_console)
+- [flutter_dev_panel_network](https://pub.dev/packages/flutter_dev_panel_network)
+- [flutter_dev_panel_device](https://pub.dev/packages/flutter_dev_panel_device)
+- [flutter_dev_panel_performance](https://pub.dev/packages/flutter_dev_panel_performance)
