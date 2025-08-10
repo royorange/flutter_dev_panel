@@ -35,8 +35,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 5. Performance 性能监控
 - FPS监控（使用flutter_fps）
-- 内存和电池使用情况
+- 内存使用和峰值追踪
+- 瞬时丢帧检测（FPS < 55时显示）
 - 实时图表展示
+- FAB显示：FPS、内存、瞬时丢帧警告
 
 ## 设计原则
 - **零侵入** - 不影响生产代码
@@ -77,10 +79,11 @@ runZonedGuarded(() => runApp(MyApp()),
 ```
 
 特性：
-- Logger包多行智能合并
+- Logger包多行智能合并（通过_flushLoggerBuffer处理）
 - ANSI转义序列清理
 - 配置持久化（maxLogs、autoScroll）
 - 暂停状态不持久化
+- 清除日志时触发FAB更新
 
 ### 3. 环境管理（EnvironmentManager）
 ```dart
@@ -106,6 +109,23 @@ final apiUrl = EnvironmentManager.instance.getVariable<String>('api_url');
 - 监听 `MonitoringDataProvider` 变化
 - 查询各模块 `buildFabContent()`
 - 自动展开/收起（用户操作后保持状态）
+- 各模块FAB显示内容：
+  - Console: 错误/警告计数
+  - Network: 请求统计（pending/成功/错误）
+  - Performance: FPS、内存、瞬时丢帧警告
+
+### 6. 主题管理（ThemeManager）
+- 支持System/Light/Dark模式
+- 自定义主题配置
+- 持久化到SharedPreferences
+- 与应用主题联动
+
+### 7. 面板设置（PanelSettings）
+- 可配置显示/隐藏环境切换器
+- 可配置显示/隐藏主题切换器
+- 可配置FAB显示
+- 可配置摇一摇手势
+- 设置持久化
 
 ## 使用方式
 
