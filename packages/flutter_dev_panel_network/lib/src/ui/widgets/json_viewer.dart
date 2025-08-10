@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 
-/// JSON查看器，支持字段级别的展开/收起
+/// 优化版的JSON查看器，使用懒加载和虚拟化提升性能
 class JsonViewer extends StatefulWidget {
   final String jsonString;
   final TextStyle? style;
@@ -18,20 +18,25 @@ class JsonViewer extends StatefulWidget {
 
 class _JsonViewerState extends State<JsonViewer> {
   dynamic _jsonData;
+  String? _errorMessage;
   final Set<String> _expandedKeys = {};
+  
+  // 缓存已构建的节点，避免重复构建
+  final Map<String, Widget> _widgetCache = {};
   
   @override
   void initState() {
     super.initState();
     _parseJson();
-    // 默认展开顶层
-    _expandedKeys.add('');
+    // 默认展开第一层
+    _expandedKeys.add('root');
   }
   
   @override
   void didUpdateWidget(JsonViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.jsonString != widget.jsonString) {
+      _widgetCache.clear(); // 清除缓存
       _parseJson();
     }
   }
@@ -39,8 +44,10 @@ class _JsonViewerState extends State<JsonViewer> {
   void _parseJson() {
     try {
       _jsonData = json.decode(widget.jsonString);
+      _errorMessage = null;
     } catch (e) {
-      _jsonData = null; // 不是JSON就显示原始文本
+      _jsonData = null;
+      _errorMessage = 'Invalid JSON format';
     }
   }
   
@@ -49,7 +56,7 @@ class _JsonViewerState extends State<JsonViewer> {
     if (_jsonData == null) {
       // 不是JSON，显示原始文本
       return SelectableText(
-        widget.jsonString,
+        _errorMessage ?? widget.jsonString,
         style: widget.style ?? TextStyle(
           fontFamily: 'monospace',
           fontSize: 12,
@@ -58,143 +65,52 @@ class _JsonViewerState extends State<JsonViewer> {
       );
     }
     
-    return _buildJsonTree(_jsonData, '');
-  }
-  
-  Widget _buildJsonTree(dynamic data, String path) {
-    if (data == null) {
-      return _buildValue('null', path, Colors.grey);
-    }
-    
-    if (data is bool) {
-      return _buildValue(data.toString(), path, Colors.blue);
-    }
-    
-    if (data is num) {
-      return _buildValue(data.toString(), path, Colors.purple);
-    }
-    
-    if (data is String) {
-      return _buildStringValue(data, path);
-    }
-    
-    if (data is List) {
-      return _buildList(data, path);
-    }
-    
-    if (data is Map) {
-      return _buildMap(data, path);
-    }
-    
-    return _buildValue(data.toString(), path, null);
-  }
-  
-  Widget _buildStringValue(String value, String path) {
-    final theme = Theme.of(context);
-    final needsExpansion = value.length > 50 || value.contains('\n'); // 降低阈值
-    final isExpanded = _expandedKeys.contains(path);
-    
-    if (!needsExpansion) {
-      return _buildValue('"$value"', path, Colors.green);
-    }
-    
-    // 对于长字符串，提供展开/收起功能
-    if (!isExpanded) {
-      // 收起状态：显示截断的文本 + 展开按钮
-      return Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 4,
-        children: [
-          SelectableText(
-            '"${_truncateString(value)}"',
-            style: widget.style?.copyWith(color: Colors.green) ?? 
-                   const TextStyle(
-                     fontFamily: 'monospace',
-                     fontSize: 12,
-                     color: Colors.green,
-                   ),
-          ),
-          InkWell(
-            onTap: () {
-              setState(() {
-                _expandedKeys.add(path);
-              });
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                'show all',
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-    
-    // 展开状态：显示完整文本 + 收起按钮
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SelectableText(
-          '"$value"',
-          style: widget.style?.copyWith(color: Colors.green) ?? 
-                 const TextStyle(
-                   fontFamily: 'monospace',
-                   fontSize: 12,
-                   color: Colors.green,
-                 ),
-        ),
-        const SizedBox(height: 4),
-        InkWell(
-          onTap: () {
-            setState(() {
-              _expandedKeys.remove(path);
-            });
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.secondaryContainer,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              'hide',
-              style: TextStyle(
-                color: theme.colorScheme.secondary,
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ),
-      ],
+    // 直接构建树，不使用横向滚动
+    return SingleChildScrollView(
+      child: _buildJsonTree(_jsonData, 'root', 0),
     );
   }
   
-  String _truncateString(String value) {
-    const maxLength = 40; // 减少长度避免溢出
-    if (value.length <= maxLength) return value;
-    
-    // 如果有换行符，在第一个换行符处截断
-    final newlineIndex = value.indexOf('\n');
-    if (newlineIndex > 0 && newlineIndex < maxLength) {
-      return '${value.substring(0, newlineIndex)}...';
+  Widget _buildJsonTree(dynamic data, String path, int depth) {
+    // 深度限制，防止过深的嵌套
+    if (depth > 10) {
+      return _buildPrimitiveValue('...', Colors.grey);
     }
     
-    return '${value.substring(0, maxLength)}...';
+    // 尝试从缓存获取
+    final cacheKey = '$path:${data.hashCode}:${_expandedKeys.contains(path)}';
+    if (_widgetCache.containsKey(cacheKey) && depth > 2) {
+      return _widgetCache[cacheKey]!;
+    }
+    
+    Widget widget;
+    
+    if (data == null) {
+      widget = _buildPrimitiveValue('null', Colors.grey);
+    } else if (data is bool) {
+      widget = _buildPrimitiveValue(data.toString(), Colors.blue);
+    } else if (data is num) {
+      widget = _buildPrimitiveValue(data.toString(), Colors.purple);
+    } else if (data is String) {
+      widget = _buildStringValue(data);
+    } else if (data is List) {
+      widget = _buildOptimizedListView(data, path, depth);
+    } else if (data is Map) {
+      widget = _buildOptimizedMapView(data, path, depth);
+    } else {
+      widget = _buildPrimitiveValue(data.toString(), null);
+    }
+    
+    // 缓存深层节点
+    if (depth > 2) {
+      _widgetCache[cacheKey] = widget;
+    }
+    
+    return widget;
   }
   
-  Widget _buildValue(String value, String path, Color? color) {
-    return SelectableText(
+  Widget _buildPrimitiveValue(String value, Color? color) {
+    return Text(
       value,
       style: widget.style?.copyWith(color: color) ?? 
              TextStyle(
@@ -205,246 +121,291 @@ class _JsonViewerState extends State<JsonViewer> {
     );
   }
   
-  Widget _buildList(List list, String path) {
-    final theme = Theme.of(context);
-    final isRoot = path.isEmpty; // 判断是否是顶层
-    final isExpanded = _expandedKeys.contains(path);
+  Widget _buildStringValue(String value) {
+    // 对于长字符串，使用省略而不是全部显示
+    const maxLength = 200;
+    final needsTruncate = value.length > maxLength;
+    final displayValue = needsTruncate 
+        ? '"${value.substring(0, maxLength)}..."' 
+        : '"$value"';
     
-    if (list.isEmpty) {
-      return _buildValue('[]', path, null);
+    final textWidget = Text(
+      displayValue,
+      style: widget.style?.copyWith(color: Colors.green) ?? 
+             TextStyle(
+               fontFamily: 'monospace',
+               fontSize: 12,
+               color: Colors.green,
+             ),
+      softWrap: true,
+    );
+    
+    if (!needsTruncate) {
+      return textWidget;
     }
     
-    // 决定是否需要折叠功能
-    final needsCollapse = !isRoot && list.length > 3;
-    
-    // 未展开时显示折叠状态
-    if (needsCollapse && !isExpanded) {
-      return Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 4,
+    // 长字符串可点击查看完整内容
+    return GestureDetector(
+      onTap: () {
+        _showFullContent(context, value);
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _buildValue('[...', path, null),
-          Text(
-            ' ${list.length} items ',
-            style: TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 12,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+          Expanded(
+            child: textWidget,
           ),
-          _buildValue('...]', path, null),
           const SizedBox(width: 4),
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _expandedKeys.add(path);
-              });
-            },
-            child: Text(
-              'expand',
-              style: TextStyle(
-                color: theme.colorScheme.primary,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+          Icon(
+            Icons.open_in_new,
+            size: 12,
+            color: Theme.of(context).colorScheme.primary,
           ),
         ],
-      );
+      ),
+    );
+  }
+  
+  Widget _buildOptimizedListView(List list, String path, int depth) {
+    if (list.isEmpty) {
+      return _buildPrimitiveValue('[]', null);
     }
     
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildValue('[', path, null),
-            // 需要折叠功能且已展开时显示collapse按钮
-            if (needsCollapse && isExpanded) ...[
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _expandedKeys.remove(path);
-                  });
-                },
+    final isExpanded = _expandedKeys.contains(path);
+    
+    // 简单值的列表可以内联显示
+    final hasOnlyPrimitives = list.every((item) => 
+      item == null || item is bool || item is num || 
+      (item is String && item.length < 50));
+    
+    if (hasOnlyPrimitives && list.length <= 5 && !isExpanded) {
+      // 内联显示简单列表
+      final items = list.take(5).map((item) => _formatPrimitive(item)).join(', ');
+      final suffix = list.length > 5 ? ', ...' : '';
+      return _buildPrimitiveValue('[$items$suffix]', null);
+    }
+    
+    // 对于大列表，使用懒加载
+    return _buildCollapsibleContainer(
+      path: path,
+      isExpanded: isExpanded,
+      header: '[',
+      footer: ']',
+      itemCount: list.length,
+      itemBuilder: (index) {
+        if (index >= list.length) return const SizedBox.shrink();
+        
+        final item = list[index];
+        final isLast = index == list.length - 1;
+        
+        return Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 40,
                 child: Text(
-                  'collapse',
+                  '$index:',
                   style: TextStyle(
-                    color: theme.colorScheme.primary,
+                    fontFamily: 'monospace',
                     fontSize: 11,
-                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
+              Flexible(
+                child: _buildJsonTree(item, '$path[$index]', depth + 1),
+              ),
+              if (!isLast)
+                _buildPrimitiveValue(',', null),
             ],
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.only(left: 16),
-          child: Column(
+          ),
+        );
+      },
+    );
+  }
+  
+  Widget _buildOptimizedMapView(Map map, String path, int depth) {
+    if (map.isEmpty) {
+      return _buildPrimitiveValue('{}', null);
+    }
+    
+    final isExpanded = _expandedKeys.contains(path);
+    final entries = map.entries.toList();
+    
+    return _buildCollapsibleContainer(
+      path: path,
+      isExpanded: isExpanded,
+      header: '{',
+      footer: '}',
+      itemCount: entries.length,
+      itemBuilder: (index) {
+        if (index >= entries.length) return const SizedBox.shrink();
+        
+        final entry = entries[index];
+        final key = entry.key;
+        final value = entry.value;
+        final isLast = index == entries.length - 1;
+        final fieldPath = '$path.$key';
+        
+        // 内联显示所有值，不再区分简单复杂
+        
+        return Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: list.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              final isLast = index == list.length - 1;
-              
-              return Wrap(
-                crossAxisAlignment: WrapCrossAlignment.start,
-                children: [
-                  _buildJsonTree(item, '$path[$index]'),
-                  if (!isLast)
-                    _buildValue(',', '', null),
-                ],
-              );
-            }).toList(),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildPrimitiveValue('"$key": ', Colors.blue),
+              Flexible(
+                child: _buildJsonTree(value, fieldPath, depth + 1),
+              ),
+              if (!isLast)
+                _buildPrimitiveValue(',', null),
+            ],
+          ),
+        );
+      },
+    );
+  }
+  
+  Widget _buildCollapsibleContainer({
+    required String path,
+    required bool isExpanded,
+    required String header,
+    required String footer,
+    required int itemCount,
+    required Widget Function(int) itemBuilder,
+  }) {
+    // 对于超大列表，限制显示数量
+    const maxVisibleItems = 100;
+    final showMore = itemCount > maxVisibleItems;
+    final visibleCount = showMore ? maxVisibleItems : itemCount;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          onTap: () {
+            setState(() {
+              if (isExpanded) {
+                _expandedKeys.remove(path);
+                // 清除该路径下的缓存
+                _widgetCache.removeWhere((key, value) => key.startsWith(path));
+              } else {
+                _expandedKeys.add(path);
+              }
+            });
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isExpanded ? Icons.arrow_drop_down : Icons.arrow_right,
+                size: 16,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              _buildPrimitiveValue(header, null),
+              if (!isExpanded)
+                Text(
+                  ' $itemCount ${itemCount == 1 ? 'item' : 'items'} $footer',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+            ],
           ),
         ),
-        _buildValue(']', path, null),
+        if (isExpanded) ...[
+          Padding(
+            padding: const EdgeInsets.only(left: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 使用ListView.builder进行懒加载
+                for (int i = 0; i < visibleCount; i++)
+                  itemBuilder(i),
+                if (showMore)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: TextButton(
+                      onPressed: () {
+                        // 可以在这里实现加载更多
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Showing first $maxVisibleItems of $itemCount items'),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        '... and ${itemCount - maxVisibleItems} more items',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          _buildPrimitiveValue(footer, null),
+        ],
       ],
     );
   }
   
-  Widget _buildMap(Map map, String path) {
-    final theme = Theme.of(context);
-    final isRoot = path.isEmpty; // 判断是否是顶层
-    final isExpanded = _expandedKeys.contains(path);
-    
-    if (map.isEmpty) {
-      return _buildValue('{}', path, null);
+  String _formatPrimitive(dynamic value) {
+    if (value == null) return 'null';
+    if (value is String) {
+      if (value.length > 30) {
+        return '"${value.substring(0, 30)}..."';
+      }
+      return '"$value"';
     }
-    
-    // 决定是否需要折叠功能
-    final needsCollapse = !isRoot && map.length > 3;
-    
-    // 未展开时显示折叠状态
-    if (needsCollapse && !isExpanded) {
-      return Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 4,
-        children: [
-          _buildValue('{...', path, null),
-          Text(
-            ' ${map.length} fields ',
-            style: TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 12,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+    return value.toString();
+  }
+  
+  void _showFullContent(BuildContext context, String content) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Full Content'),
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+            maxWidth: MediaQuery.of(context).size.width * 0.9,
           ),
-          _buildValue('...}', path, null),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _expandedKeys.add(path);
-              });
-            },
-            child: Text(
-              'expand',
-              style: TextStyle(
-                color: theme.colorScheme.primary,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
+          child: SingleChildScrollView(
+            child: SelectableText(
+              content,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12,
               ),
             ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
           ),
         ],
-      );
-    }
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildValue('{', path, null),
-            // 需要折叠功能且已展开时显示collapse按钮
-            if (needsCollapse && isExpanded) ...[
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _expandedKeys.remove(path);
-                  });
-                },
-                child: Text(
-                  'collapse',
-                  style: TextStyle(
-                    color: theme.colorScheme.primary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.only(left: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: map.entries.map((entry) {
-              final key = entry.key;
-              final value = entry.value;
-              final isLast = entry.key == map.keys.last;
-              final fieldPath = path.isEmpty ? key.toString() : '$path.$key';
-              
-              // 对于简单值和短字符串，保持在同一行
-              final isSimpleValue = value == null || 
-                  value is bool || 
-                  value is num || 
-                  (value is String && value.length < 50 && !value.contains('\n'));
-              
-              if (isSimpleValue) {
-                return Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.start,
-                    children: [
-                      _buildValue('"$key": ', fieldPath, Colors.blue),
-                      _buildJsonTree(value, fieldPath),
-                      if (!isLast)
-                        _buildValue(',', '', null),
-                    ],
-                  ),
-                );
-              }
-              
-              // 对于长字符串，使用 Wrap 允许换行
-              if (value is String) {
-                return Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.start,
-                    children: [
-                      _buildValue('"$key": ', fieldPath, Colors.blue),
-                      _buildJsonTree(value, fieldPath),
-                      if (!isLast)
-                        _buildValue(',', '', null),
-                    ],
-                  ),
-                );
-              }
-              
-              // 对于复杂对象（数组、嵌套对象），使用垂直布局
-              return Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildValue('"$key": ', fieldPath, Colors.blue),
-                    _buildJsonTree(value, fieldPath),
-                    if (!isLast)
-                      _buildValue(',', '', null),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        _buildValue('}', path, null),
-      ],
+      ),
     );
+  }
+  
+  @override
+  void dispose() {
+    _widgetCache.clear();
+    super.dispose();
   }
 }

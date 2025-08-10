@@ -24,7 +24,8 @@
       "Bash(rm:*)",
       "Bash(flutter:*)",
       "Bash(find:*)",
-      "Bash(dart:*)"
+      "Bash(dart:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }
