@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dev_panel_core/src/core/monitoring_data_provider.dart';
-import 'package:battery_plus/battery_plus.dart';
+import 'package:flutter_dev_panel_core/flutter_dev_panel_core.dart';
 import 'models/performance_data.dart';
 import 'fps_tracker.dart';
 
@@ -18,11 +18,15 @@ class PerformanceMonitorController extends ChangeNotifier {
   
   final FpsTracker _fpsTracker = FpsTracker();
   final PerformanceMetrics metrics = PerformanceMetrics();
-  final Battery _battery = Battery();
   
   StreamSubscription<double>? _fpsSubscription;
-  StreamSubscription<BatteryState>? _batteryStateSubscription;
   Timer? _memoryTimer;
+  Timer? _renderTimer;
+  
+  // Performance tracking variables
+  double _peakMemory = 0;
+  int _droppedFramesCount = 0;
+  double _lastRenderTime = 0;
   
   bool _isMonitoring = false;
   bool get isMonitoring => _isMonitoring;
@@ -33,11 +37,9 @@ class PerformanceMonitorController extends ChangeNotifier {
   double _currentMemory = 0;
   double get currentMemory => _currentMemory;
   
-  int _currentBatteryLevel = 0;
-  int get currentBatteryLevel => _currentBatteryLevel;
-  
-  BatteryState _currentBatteryState = BatteryState.unknown;
-  BatteryState get currentBatteryState => _currentBatteryState;
+  double get peakMemory => _peakMemory;
+  int get droppedFrames => _droppedFramesCount;
+  double get renderTime => _lastRenderTime;
 
   void startMonitoring() {
     if (_isMonitoring) return;
@@ -54,8 +56,8 @@ class PerformanceMonitorController extends ChangeNotifier {
       _updateMemoryUsage();
     });
     
-    // Start battery monitoring
-    _startBatteryMonitoring();
+    // Track render metrics
+    _startRenderTracking();
     
     // 数据已通过MonitoringDataProvider自动通知
     
@@ -73,8 +75,8 @@ class PerformanceMonitorController extends ChangeNotifier {
     _memoryTimer?.cancel();
     _memoryTimer = null;
     
-    _batteryStateSubscription?.cancel();
-    _batteryStateSubscription = null;
+    _renderTimer?.cancel();
+    _renderTimer = null;
     
     // 清除全局监控数据
     try {
@@ -95,6 +97,9 @@ class PerformanceMonitorController extends ChangeNotifier {
     metrics.clear();
     _currentFps = 0;
     _currentMemory = 0;
+    _peakMemory = 0;
+    _droppedFramesCount = 0;
+    _lastRenderTime = 0;
     notifyListeners();
   }
 
@@ -103,8 +108,9 @@ class PerformanceMonitorController extends ChangeNotifier {
       timestamp: DateTime.now(),
       fps: _currentFps,
       memoryUsage: _currentMemory,
-      batteryLevel: _currentBatteryLevel,
-      batteryState: _getBatteryStateString(),
+      peakMemory: _peakMemory,
+      droppedFrames: _droppedFramesCount,
+      renderTime: _lastRenderTime,
     );
     metrics.addDataPoint(data);
     
@@ -126,64 +132,54 @@ class PerformanceMonitorController extends ChangeNotifier {
   }
 
   void _updateMemoryUsage() {
-    if (Platform.isAndroid || Platform.isIOS) {
-      final memoryInfo = ProcessInfo.currentRss;
-      _currentMemory = memoryInfo / (1024 * 1024);
-    } else {
-      _currentMemory = ProcessInfo.currentRss / (1024 * 1024);
+    // Get current memory usage
+    final memoryInfo = ProcessInfo.currentRss;
+    _currentMemory = memoryInfo / (1024 * 1024);
+    
+    // Track peak memory
+    if (_currentMemory > _peakMemory) {
+      _peakMemory = _currentMemory;
     }
+    
+    // Get max RSS (peak memory usage)
+    try {
+      final maxRss = ProcessInfo.maxRss;
+      final maxMemory = maxRss / (1024 * 1024);
+      if (maxMemory > _peakMemory) {
+        _peakMemory = maxMemory;
+      }
+    } catch (_) {
+      // maxRss might not be available on all platforms
+    }
+    
     _updateMetrics();
   }
   
-  void _startBatteryMonitoring() async {
-    try {
-      // Get initial battery level only once at startup
-      final batteryLevel = await _battery.batteryLevel;
-      _currentBatteryLevel = batteryLevel;
-      
-      // Get initial battery state
-      final batteryState = await _battery.batteryState;
-      _currentBatteryState = batteryState;
-      
-      // Listen to battery state changes (system broadcast)
-      // This only triggers when battery state actually changes
-      _batteryStateSubscription = _battery.onBatteryStateChanged.listen((state) async {
-        _currentBatteryState = state;
-        
-        // When battery state changes, also update the battery level
-        // This happens when plugging/unplugging charger or battery level changes significantly
-        try {
-          final level = await _battery.batteryLevel;
-          if (level != _currentBatteryLevel) {
-            _currentBatteryLevel = level;
-            _updateMetrics();
-          }
-        } catch (_) {
-          // Ignore errors
-        }
-        
-        notifyListeners();
-      });
-      
-      // No periodic timer needed - we rely on system events only
-    } catch (_) {
-      // Battery monitoring not available on this platform
-      _currentBatteryLevel = -1;
-    }
+  void _startRenderTracking() {
+    // Track frame rendering metrics
+    // Use a lower frequency to avoid performance impact
+    _renderTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _updateRenderMetrics();
+    });
   }
   
-  String _getBatteryStateString() {
-    switch (_currentBatteryState) {
-      case BatteryState.charging:
-        return 'Charging';
-      case BatteryState.discharging:
-        return 'Discharging';
-      case BatteryState.full:
-        return 'Full';
-      case BatteryState.connectedNotCharging:
-        return 'Connected (Not Charging)';
-      case BatteryState.unknown:
-        return 'Unknown';
+  void _updateRenderMetrics() {
+    try {
+      // Track dropped frames (simplified approach)
+      // In a real implementation, you'd track frame callbacks
+      if (_currentFps < 55 && _currentFps > 0) {
+        // Estimate dropped frames based on FPS
+        const expectedFrames = 60;
+        final actualFrames = _currentFps.round();
+        _droppedFramesCount += max(0, expectedFrames - actualFrames);
+      }
+      
+      // Estimate render time based on FPS
+      if (_currentFps > 0) {
+        _lastRenderTime = 1000 / _currentFps; // Convert to milliseconds
+      }
+    } catch (_) {
+      // Ignore errors in render tracking
     }
   }
 

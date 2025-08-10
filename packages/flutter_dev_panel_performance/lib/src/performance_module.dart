@@ -66,11 +66,18 @@ class _PerformanceFabContentState extends State<_PerformanceFabContent> {
     // 通过检查是否有数据来判断监控状态
     final fps = _dataProvider.fps;
     final memory = _dataProvider.memory;
-    final batteryLevel = PerformanceMonitorController.instance.currentBatteryLevel;
     
     // 如果没有数据（监控未开启），返回空widget
-    if (fps == null && memory == null && batteryLevel <= 0) {
+    if (fps == null && memory == null) {
       return const SizedBox.shrink();
+    }
+    
+    // 计算瞬时丢帧（当FPS低于55时）
+    int? instantDrops;
+    if (fps != null && fps < 55 && fps > 0) {
+      // 估算本次采样周期内的丢帧数
+      const expectedFps = 60.0;
+      instantDrops = (expectedFps - fps).round();
     }
     
     // 使用RichText分别显示颜色
@@ -90,17 +97,23 @@ class _PerformanceFabContentState extends State<_PerformanceFabContent> {
           if (fps != null && memory != null) const TextSpan(
             text: '  ',  // 2个空格
           ),
-          if (memory != null) TextSpan(
-            text: '${memory.toStringAsFixed(0)}MB',
-            style: TextStyle(color: _getMemoryColor(memory)),
-          ),
-          if ((fps != null || memory != null) && batteryLevel > 0) const TextSpan(
-            text: '  ',  // 2个空格
-          ),
-          if (batteryLevel > 0) TextSpan(
-            text: '⚡${batteryLevel}%',
-            style: TextStyle(color: _getBatteryColor(batteryLevel)),
-          ),
+          if (memory != null) ...[
+            TextSpan(
+              text: '${memory.toStringAsFixed(0)}MB',
+              style: TextStyle(color: _getMemoryColor(memory)),
+            ),
+          ],
+          // 只在有明显丢帧时显示
+          if (instantDrops != null && instantDrops > 5) ...[
+            const TextSpan(text: '  '),
+            TextSpan(
+              text: '⚠$instantDrops drops',
+              style: const TextStyle(
+                color: Colors.orangeAccent,
+                fontSize: 9,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -116,11 +129,5 @@ class _PerformanceFabContentState extends State<_PerformanceFabContent> {
     if (memory <= 300) return Colors.lightGreenAccent;
     if (memory <= 500) return Colors.amberAccent;
     return Colors.redAccent;
-  }
-  
-  Color _getBatteryColor(int level) {
-    if (level <= 20) return Colors.redAccent;
-    if (level <= 50) return Colors.orangeAccent;
-    return Colors.cyanAccent;
   }
 }
