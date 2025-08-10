@@ -334,6 +334,19 @@ class DevLogger {
   }
   
   /// Flush the Logger buffer as a single log entry
+  /// 
+  /// This method is critical for handling Logger package's multi-line output.
+  /// Logger package prints each line separately (with box-drawing characters),
+  /// which would create multiple log entries if not properly combined.
+  /// 
+  /// This method:
+  /// 1. Combines all buffered lines into a single log entry
+  /// 2. Detects the appropriate log level from emoji/text indicators
+  /// 3. Cleans up box-drawing characters and ANSI color codes
+  /// 4. Triggers FAB update via MonitoringDataProvider
+  /// 
+  /// IMPORTANT: Must call MonitoringDataProvider.instance.triggerUpdate() 
+  /// after adding the log, otherwise FAB won't update for Logger package logs.
   void _flushLoggerBuffer() {
     if (_loggerBuffer.isEmpty) return;
     
