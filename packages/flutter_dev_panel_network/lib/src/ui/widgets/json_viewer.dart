@@ -132,7 +132,7 @@ class _JsonViewerState extends State<JsonViewer> {
     final textWidget = Text(
       displayValue,
       style: widget.style?.copyWith(color: Colors.green) ?? 
-             TextStyle(
+             const TextStyle(
                fontFamily: 'monospace',
                fontSize: 12,
                color: Colors.green,
@@ -288,37 +288,44 @@ class _JsonViewerState extends State<JsonViewer> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        InkWell(
-          onTap: () {
-            setState(() {
-              if (isExpanded) {
-                _expandedKeys.remove(path);
-                // 清除该路径下的缓存
-                _widgetCache.removeWhere((key, value) => key.startsWith(path));
-              } else {
-                _expandedKeys.add(path);
-              }
-            });
-          },
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isExpanded ? Icons.arrow_drop_down : Icons.arrow_right,
-                size: 16,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              _buildPrimitiveValue(header, null),
-              if (!isExpanded)
-                Text(
-                  ' $itemCount ${itemCount == 1 ? 'item' : 'items'} $footer',
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                if (isExpanded) {
+                  _expandedKeys.remove(path);
+                  // 清除该路径下的缓存
+                  _widgetCache.removeWhere((key, value) => key.startsWith(path));
+                } else {
+                  _expandedKeys.add(path);
+                }
+              });
+            },
+            borderRadius: BorderRadius.circular(4),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isExpanded ? Icons.arrow_drop_down : Icons.arrow_right,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
-                ),
-            ],
+                  _buildPrimitiveValue(header, null),
+                  if (!isExpanded)
+                    Text(
+                      ' $itemCount ${itemCount == 1 ? 'item' : 'items'} $footer',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
         if (isExpanded) ...[
