@@ -1,6 +1,4 @@
 PODS:
-  - battery_plus (0.0.1):
-    - FlutterMacOS
   - connectivity_plus (0.0.1):
     - FlutterMacOS
   - device_info_plus (0.0.1):
@@ -16,7 +14,6 @@ PODS:
     - FlutterMacOS
 
 DEPENDENCIES:
-  - battery_plus (from `Flutter/ephemeral/.symlinks/plugins/battery_plus/macos`)
   - connectivity_plus (from `Flutter/ephemeral/.symlinks/plugins/connectivity_plus/macos`)
   - device_info_plus (from `Flutter/ephemeral/.symlinks/plugins/device_info_plus/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
@@ -25,8 +22,6 @@ DEPENDENCIES:
   - shared_preferences_foundation (from `Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin`)
 
 EXTERNAL SOURCES:
-  battery_plus:
-    :path: Flutter/ephemeral/.symlinks/plugins/battery_plus/macos
   connectivity_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/connectivity_plus/macos
   device_info_plus:
@@ -41,7 +36,6 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin
 
 SPEC CHECKSUMS:
-  battery_plus: 0ed4cf1e771b535a89ac7323e0855ec734cf745f
   connectivity_plus: 0a976dfd033b59192912fa3c6c7b54aab5093802
   device_info_plus: ce1b7762849d3ec103d0e0517299f2db7ad60720
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1

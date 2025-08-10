@@ -77,9 +77,10 @@ class _JsonViewerState extends State<JsonViewer> {
       return _buildPrimitiveValue('...', Colors.grey);
     }
     
-    // 尝试从缓存获取
+    // 尝试从缓存获取 - 但不缓存可折叠的容器
     final cacheKey = '$path:${data.hashCode}:${_expandedKeys.contains(path)}';
-    if (_widgetCache.containsKey(cacheKey) && depth > 2) {
+    final isCollapsible = data is List || data is Map;
+    if (_widgetCache.containsKey(cacheKey) && depth > 2 && !isCollapsible) {
       return _widgetCache[cacheKey]!;
     }
     
@@ -101,8 +102,8 @@ class _JsonViewerState extends State<JsonViewer> {
       widget = _buildPrimitiveValue(data.toString(), null);
     }
     
-    // 缓存深层节点
-    if (depth > 2) {
+    // 缓存深层节点 - 但不缓存可折叠的容器
+    if (depth > 2 && !isCollapsible) {
       _widgetCache[cacheKey] = widget;
     }
     
@@ -241,6 +242,7 @@ class _JsonViewerState extends State<JsonViewer> {
       header: '{',
       footer: '}',
       itemCount: entries.length,
+      isMap: true,  // 添加标志来区分 Map 和 List
       itemBuilder: (index) {
         if (index >= entries.length) return const SizedBox.shrink();
         
@@ -278,6 +280,7 @@ class _JsonViewerState extends State<JsonViewer> {
     required String footer,
     required int itemCount,
     required Widget Function(int) itemBuilder,
+    bool isMap = false,  // 添加参数来区分 Map 和 List
   }) {
     // 对于超大列表，限制显示数量
     const maxVisibleItems = 100;
@@ -316,7 +319,7 @@ class _JsonViewerState extends State<JsonViewer> {
                   _buildPrimitiveValue(header, null),
                   if (!isExpanded)
                     Text(
-                      ' $itemCount ${itemCount == 1 ? 'item' : 'items'} $footer',
+                      ' $itemCount ${isMap ? (itemCount == 1 ? 'field' : 'fields') : (itemCount == 1 ? 'item' : 'items')} $footer',
                       style: TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 12,
