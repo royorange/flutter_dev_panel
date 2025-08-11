@@ -29,7 +29,10 @@
       "Bash(for pkg in console network device performance)",
       "Bash(do)",
       "Bash(echo:*)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(for dir in flutter_dev_panel_*)",
+      "Bash(do echo \"=== Testing $dir ===\")",
+      "Bash(git rm:*)"
     ],
     "deny": []
   }

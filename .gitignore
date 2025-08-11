@@ -27,5 +27,11 @@ migrate_working_dir/
 **/doc/api/
 .dart_tool/
 .flutter-plugins-dependencies
-/build/
+build/
+**/build/
 /coverage/
+
+# Test cache files
+*.dill
+*.dill.track.dill
+test_cache/

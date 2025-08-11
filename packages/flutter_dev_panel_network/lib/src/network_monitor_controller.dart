@@ -163,6 +163,11 @@ class NetworkMonitorController extends ChangeNotifier {
 
   void clearRequests() {
     _requests.clear();
+    // 重置会话统计
+    _sessionRequestCount = 0;
+    _sessionSuccessCount = 0;
+    _sessionErrorCount = 0;
+    _sessionPendingCount = 0;
     NetworkStorage.clearRequests(); // 清除本地存储
     notifyListeners();
   }
