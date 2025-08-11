@@ -42,8 +42,11 @@ void main() async {
     );
 
     // Initialize environment configurations
-    EnvironmentManager.instance.initialize(
+    // Priority: .env files > code configuration > saved configuration
+    await EnvironmentManager.instance.initialize(
+      loadFromEnvFiles: true, // Try to load from .env files first
       environments: [
+        // These are fallback configurations if .env files are not found
         const EnvironmentConfig(
           name: 'Development',
           variables: {

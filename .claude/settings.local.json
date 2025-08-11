@@ -25,7 +25,11 @@
       "Bash(flutter:*)",
       "Bash(find:*)",
       "Bash(dart:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(for pkg in console network device performance)",
+      "Bash(do)",
+      "Bash(echo:*)",
+      "Bash(done)"
     ],
     "deny": []
   }

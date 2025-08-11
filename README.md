@@ -195,20 +195,64 @@ FlutterDevPanel.open(context);
 
 ## Environment Management
 
-Access environment variables in your app:
+### Using .env Files (Recommended)
+
+Flutter Dev Panel supports loading environment configurations from `.env` files:
+
+1. Create `.env` files in your project root:
+   - `.env` - Default environment
+   - `.env.dev` or `.env.development` - Development environment
+   - `.env.prod` or `.env.production` - Production environment
+   - `.env.test` - Test environment
+   - `.env.local` - Local overrides (add to .gitignore)
+
+2. Add `.env` files to your `pubspec.yaml`:
+```yaml
+flutter:
+  assets:
+    - .env
+    - .env.dev
+    - .env.prod
+```
+
+3. Initialize with `.env` support:
+```dart
+await EnvironmentManager.instance.initialize(
+  loadFromEnvFiles: true,  // Enable .env file loading
+  environments: [          // Fallback if .env files not found
+    // ... your code-based configs
+  ],
+);
+```
+
+### Priority Order
+
+Environment configurations are loaded with the following priority:
+1. **`.env` files** (highest priority)
+2. **Code configuration** (provided in `initialize()`)
+3. **Saved configuration** (from previous runs)
+
+### Accessing Environment Variables
 
 ```dart
 // Get current environment
 final currentEnv = EnvironmentManager.instance.currentEnvironment;
 
 // Get specific variable
-final apiUrl = EnvironmentManager.instance.getVariable<String>('api_url');
+final apiUrl = EnvironmentManager.instance.getVariable<String>('API_URL');
 
 // Listen to environment changes
 EnvironmentManager.instance.addListener(() {
   // Handle environment change
 });
 ```
+
+### Best Practices
+
+1. **Never commit real `.env` files** - Add them to `.gitignore`
+2. **Provide `.env.example`** - Template for other developers
+3. **Use code fallbacks** - For when `.env` files are missing
+4. **Handle missing environments** - Gracefully handle renamed/deleted configs
 
 ## Advanced Usage
 

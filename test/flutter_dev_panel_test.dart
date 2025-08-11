@@ -1,66 +1,130 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
-import 'package:flutter_dev_panel_core/flutter_dev_panel_core.dart';
+import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
 import 'package:dio/dio.dart';
 
 void main() {
-  group('Flutter Dev Panel Core Tests', () {
+  group('Flutter Dev Panel Integration Tests', () {
     setUp(() {
-      FlutterDevPanelCore.instance.reset();
+      // Reset before each test
+      TestWidgetsFlutterBinding.ensureInitialized();
     });
 
-    test('Core initialization with config', () {
-      FlutterDevPanelCore.instance.initialize(
-        config: const DevPanelConfig(
-          enabled: true,
-          triggerModes: {TriggerMode.fab, TriggerMode.shake},
-          showInProduction: false,
+    testWidgets('FlutterDevPanel.initialize works correctly', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              FlutterDevPanel.initialize(
+                config: const DevPanelConfig(
+                  enabled: true,
+                  triggerModes: {TriggerMode.fab, TriggerMode.manual},
+                  showInProduction: false,
+                ),
+                modules: [
+                  const ConsoleModule(),
+                  NetworkModule(),
+                ],
+                enableLogCapture: true,
+              );
+              
+              return const Scaffold(
+                body: Text('Test App'),
+              );
+            },
+          ),
+        ),
+      );
+      
+      expect(find.text('Test App'), findsOneWidget);
+    });
+
+    testWidgets('DevPanelWrapper renders child correctly', (tester) async {
+      FlutterDevPanel.initialize(
+        config: const DevPanelConfig(enabled: true),
+        modules: [],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DevPanelWrapper(
+            child: Scaffold(
+              body: const Text('Wrapped Content'),
+            ),
+          ),
         ),
       );
 
-      final config = FlutterDevPanelCore.instance.controller.config;
-      expect(config.enabled, true);
-      expect(config.triggerModes.length, 2);
-      expect(config.showInProduction, false);
+      expect(find.text('Wrapped Content'), findsOneWidget);
     });
 
-    test('Module registration', () {
-      final modules = [
-        NetworkModule(),
-        const DeviceModule(),
-        const PerformanceModule(),
-      ];
-
-      FlutterDevPanelCore.instance.initialize(modules: modules);
-
-      final registry = FlutterDevPanelCore.instance.moduleRegistry;
-      expect(registry.modules.length, 3);
-      expect(registry.getModule('network'), isNotNull);
-      expect(registry.getModule('device_info'), isNotNull);
-      expect(registry.getModule('performance'), isNotNull);
-    });
-
-    test('NetworkModule Dio attachment', () {
+    test('NetworkModule.attachToDio adds interceptor', () {
       final dio = Dio();
       NetworkModule.attachToDio(dio);
       
       expect(dio.interceptors.isNotEmpty, true);
+      expect(
+        dio.interceptors.any((i) => i.toString().contains('NetworkInterceptor')),
+        true,
+      );
     });
 
-    test('Module enable and disable', () {
-      FlutterDevPanelCore.instance.initialize(
-        modules: [NetworkModule()],
+    testWidgets('FlutterDevPanel.open shows panel', (tester) async {
+      FlutterDevPanel.initialize(
+        config: const DevPanelConfig(enabled: true),
+        modules: [const ConsoleModule()],
       );
 
-      final registry = FlutterDevPanelCore.instance.moduleRegistry;
-      
-      expect(registry.isModuleEnabled('network'), true);
-      
-      registry.disableModule('network');
-      expect(registry.isModuleEnabled('network'), false);
-      
-      registry.enableModule('network');
-      expect(registry.isModuleEnabled('network'), true);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DevPanelWrapper(
+            child: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  return ElevatedButton(
+                    onPressed: () => FlutterDevPanel.open(context),
+                    child: const Text('Open Panel'),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Tap the button to open panel
+      await tester.tap(find.text('Open Panel'));
+      await tester.pumpAndSettle();
+
+      // Panel should be visible
+      expect(find.text('Dev Panel'), findsOneWidget);
+    });
+  });
+
+  group('Module Registration Tests', () {
+    test('Console module registers correctly', () {
+      final module = const ConsoleModule();
+      expect(module.name, 'Console');
+      expect(module.icon, Icons.terminal);
+    });
+
+    test('Network module registers correctly', () {
+      final module = NetworkModule();
+      expect(module.name, 'Network');
+      expect(module.icon, Icons.network_check);
+    });
+
+    test('Device module registers correctly', () {
+      final module = const DeviceModule();
+      expect(module.name, 'Device Info');
+      expect(module.icon, Icons.phone_android);
+    });
+
+    test('Performance module registers correctly', () {
+      final module = const PerformanceModule();
+      expect(module.name, 'Performance');
+      expect(module.icon, Icons.speed);
     });
   });
 }

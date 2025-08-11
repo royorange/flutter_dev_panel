@@ -195,20 +195,64 @@ FlutterDevPanel.open(context);
 
 ## 环境管理
 
-在应用中访问环境变量：
+### 使用 .env 文件（推荐）
+
+Flutter Dev Panel 支持从 `.env` 文件加载环境配置：
+
+1. 在项目根目录创建 `.env` 文件：
+   - `.env` - 默认环境
+   - `.env.dev` 或 `.env.development` - 开发环境
+   - `.env.prod` 或 `.env.production` - 生产环境
+   - `.env.test` - 测试环境
+   - `.env.local` - 本地覆盖（添加到 .gitignore）
+
+2. 将 `.env` 文件添加到 `pubspec.yaml`：
+```yaml
+flutter:
+  assets:
+    - .env
+    - .env.dev
+    - .env.prod
+```
+
+3. 初始化时启用 `.env` 支持：
+```dart
+await EnvironmentManager.instance.initialize(
+  loadFromEnvFiles: true,  // 启用 .env 文件加载
+  environments: [          // 找不到 .env 文件时的回退配置
+    // ... 您的代码配置
+  ],
+);
+```
+
+### 优先级顺序
+
+环境配置按以下优先级加载：
+1. **`.env` 文件**（最高优先级）
+2. **代码配置**（在 `initialize()` 中提供）
+3. **保存的配置**（来自之前的运行）
+
+### 访问环境变量
 
 ```dart
 // 获取当前环境
 final currentEnv = EnvironmentManager.instance.currentEnvironment;
 
 // 获取特定变量
-final apiUrl = EnvironmentManager.instance.getVariable<String>('api_url');
+final apiUrl = EnvironmentManager.instance.getVariable<String>('API_URL');
 
 // 监听环境变化
 EnvironmentManager.instance.addListener(() {
   // 处理环境变化
 });
 ```
+
+### 最佳实践
+
+1. **不要提交真实的 `.env` 文件** - 将它们添加到 `.gitignore`
+2. **提供 `.env.example`** - 为其他开发者提供模板
+3. **使用代码回退** - 以防 `.env` 文件丢失
+4. **处理缺失的环境** - 优雅地处理重命名/删除的配置
 
 ## 高级用法
 

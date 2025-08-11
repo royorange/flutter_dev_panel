@@ -28,3 +28,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  
+  # Include .env files as assets
+  assets:
+    - .env
+    - .env.dev
+    - .env.prod

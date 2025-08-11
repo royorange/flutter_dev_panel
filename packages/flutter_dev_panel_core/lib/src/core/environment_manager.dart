@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'env_loader.dart';
 
 /// Environment configuration
 class EnvironmentConfig {
@@ -67,14 +68,51 @@ class EnvironmentManager extends ChangeNotifier {
   static const String _storageKey = 'dev_panel_environments';
   static const String _currentEnvKey = 'dev_panel_current_env';
 
-  /// Initialize with default environments
-  void initialize({
+  /// Initialize with environments from multiple sources
+  /// Priority: .env files > code configuration > saved configuration
+  Future<void> initialize({
     List<EnvironmentConfig>? environments,
     String? defaultEnvironment,
-  }) {
-    if (environments != null && environments.isNotEmpty) {
+    bool loadFromEnvFiles = true,
+  }) async {
+    // Load from .env files if enabled
+    List<EnvironmentConfig>? envFileConfigs;
+    if (loadFromEnvFiles) {
+      try {
+        envFileConfigs = await EnvLoader.loadFromEnvFiles();
+        if (envFileConfigs != null && envFileConfigs.isNotEmpty) {
+          debugPrint('Loaded ${envFileConfigs.length} environments from .env files');
+        }
+      } catch (e) {
+        debugPrint('Failed to load .env files: $e');
+      }
+    }
+    
+    // Load saved configuration
+    List<EnvironmentConfig>? savedConfigs;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final envsJson = prefs.getString(_storageKey);
+      if (envsJson != null) {
+        final List<dynamic> envsList = jsonDecode(envsJson) as List<dynamic>;
+        savedConfigs = envsList
+            .map((json) => EnvironmentConfig.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('Failed to load saved environments: $e');
+    }
+    
+    // Merge all sources
+    final mergedEnvs = EnvLoader.mergeEnvironments(
+      fromEnvFiles: envFileConfigs,
+      fromCode: environments,
+      fromStorage: savedConfigs,
+    );
+    
+    if (mergedEnvs.isNotEmpty) {
       _environments.clear();
-      _environments.addAll(environments);
+      _environments.addAll(mergedEnvs);
       
       // Set default environment
       if (defaultEnvironment != null) {
@@ -84,15 +122,32 @@ class EnvironmentManager extends ChangeNotifier {
         );
         _currentEnvironment = env;
       } else {
-        // Use the one marked as default or the first one
-        _currentEnvironment = _environments.firstWhere(
-          (e) => e.isDefault,
-          orElse: () => _environments.first,
-        );
+        // Try to restore previously selected environment
+        final prefs = await SharedPreferences.getInstance();
+        final lastEnvName = prefs.getString(_currentEnvKey);
+        if (lastEnvName != null) {
+          final lastEnv = _environments.firstWhere(
+            (e) => e.name == lastEnvName,
+            orElse: () => _environments.firstWhere(
+              (e) => e.isDefault,
+              orElse: () => _environments.first,
+            ),
+          );
+          _currentEnvironment = lastEnv;
+        } else {
+          // Use the one marked as default or the first one
+          _currentEnvironment = _environments.firstWhere(
+            (e) => e.isDefault,
+            orElse: () => _environments.first,
+          );
+        }
       }
       
       _saveEnvironments();
       notifyListeners();
+    } else if (environments == null || environments.isEmpty) {
+      // No environments provided, try to create from .env files only
+      debugPrint('No environments configured. Please provide environments or create .env files.');
     }
   }
 
@@ -154,12 +209,18 @@ class EnvironmentManager extends ChangeNotifier {
 
   /// Switch to a different environment
   void switchEnvironment(String name) {
-    final env = _environments.firstWhere(
-      (e) => e.name == name,
-      orElse: () => _environments.first,
-    );
+    // Handle case where saved environment no longer exists
+    EnvironmentConfig? env;
+    try {
+      env = _environments.firstWhere((e) => e.name == name);
+    } catch (e) {
+      debugPrint('Environment "$name" not found, falling back to first available');
+      if (_environments.isNotEmpty) {
+        env = _environments.first;
+      }
+    }
     
-    if (_currentEnvironment != env) {
+    if (env != null && _currentEnvironment != env) {
       _currentEnvironment = env;
       _saveEnvironments();
       notifyListeners();
