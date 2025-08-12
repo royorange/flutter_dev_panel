@@ -72,6 +72,9 @@ publish_package() {
     # 显示包大小信息
     echo "$dry_run_output" | grep "Total compressed" || true
     
+    # 调试：显示 dry_run 退出码
+    print_info "Dry-run 退出码: $dry_run_exit_code"
+    
     # 检查是否有真正的错误（不是 "Failed to update packages"）
     if echo "$dry_run_output" | grep -q "Package has.*error"; then
         print_error "发布前检查失败（有错误）"
@@ -94,7 +97,9 @@ publish_package() {
     
     # 询问是否发布
     echo ""
+    print_info "准备发布提示..."
     read -p "是否发布 $package_name 到 pub.dev? [Y/n] " -r
+    echo "用户输入: '$REPLY'"  # 调试信息
     if [[ $REPLY =~ ^[Nn]$ ]]; then
         print_info "跳过发布 $package_name"
     else
@@ -105,6 +110,7 @@ publish_package() {
     
     cd - > /dev/null
     echo ""
+    print_info "publish_package 函数结束"
 }
 
 # 更新子包依赖的函数
@@ -185,6 +191,8 @@ main() {
     echo ""
     print_info "====== 发布主包 ======"
     publish_package "." "flutter_dev_panel"
+    local main_result=$?
+    print_info "主包发布函数返回: $main_result"
     
     # 询问是否继续发布子包
     echo ""
