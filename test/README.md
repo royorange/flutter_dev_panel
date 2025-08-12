@@ -31,11 +31,12 @@ flutter test packages/flutter_dev_panel_performance/test
 
 ## Test Coverage
 
-- **Core Package**: 12 tests
-  - Module registration
-  - Configuration management
-  - DevLogger functionality
-  - Network integration
+- **Core Package**: 18 tests
+  - Module registration (4 tests)
+  - Configuration management (3 tests)
+  - Network integration (2 tests)
+  - Environment management (6 tests)
+  - DevLogger functionality (3 tests)
 
 - **Console Module**: 23 tests
   - Log capture and filtering

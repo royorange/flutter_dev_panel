@@ -101,6 +101,74 @@ void main() {
     });
   });
 
+  group('Environment Management Tests', () {
+    test('EnvironmentConfig can be created with required fields', () {
+      const config = EnvironmentConfig(
+        name: 'Test',
+        variables: {'key': 'value'},
+      );
+
+      expect(config.name, 'Test');
+      expect(config.variables['key'], 'value');
+      expect(config.isDefault, false);
+    });
+
+    test('EnvironmentConfig can be created with all fields', () {
+      const config = EnvironmentConfig(
+        name: 'Production',
+        variables: {
+          'api_url': 'https://api.example.com',
+          'debug': false,
+          'timeout': 10000,
+        },
+        isDefault: true,
+      );
+
+      expect(config.name, 'Production');
+      expect(config.variables['api_url'], 'https://api.example.com');
+      expect(config.variables['debug'], false);
+      expect(config.variables['timeout'], 10000);
+      expect(config.isDefault, true);
+    });
+
+    test('EnvironmentConfig copyWith works correctly', () {
+      const original = EnvironmentConfig(
+        name: 'Original',
+        variables: {'key1': 'value1'},
+        isDefault: true,
+      );
+
+      final modified = original.copyWith(
+        name: 'Modified',
+        variables: {'key2': 'value2'},
+      );
+
+      expect(modified.name, 'Modified');
+      expect(modified.variables['key2'], 'value2');
+      expect(modified.isDefault, true); // Should preserve original value
+    });
+
+    test('EnvironmentManager singleton instance works', () {
+      final instance1 = EnvironmentManager.instance;
+      final instance2 = EnvironmentManager.instance;
+      
+      expect(identical(instance1, instance2), true);
+    });
+
+    test('EnvironmentManager getVariable returns null for non-existent key', () {
+      final value = EnvironmentManager.instance.getVariable<String>('non_existent');
+      expect(value, isNull);
+    });
+
+    test('EnvironmentManager getVariable returns default for non-existent key', () {
+      final value = EnvironmentManager.instance.getVariable<String>(
+        'non_existent',
+        defaultValue: 'default',
+      );
+      expect(value, 'default');
+    });
+  });
+
   group('DevLogger Tests', () {
     setUp(() {
       // Clear logs before each test
