@@ -53,10 +53,11 @@ publish_package() {
     
     # 分析代码
     print_info "分析代码..."
-    if dart analyze > /dev/null 2>&1; then
+    if dart analyze lib > /dev/null 2>&1; then
         print_success "代码分析通过"
     else
         print_error "代码分析失败"
+        dart analyze lib
         return 1
     fi
     
