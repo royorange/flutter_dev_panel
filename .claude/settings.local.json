@@ -46,7 +46,8 @@
       "Bash(for:*)",
       "Bash(tail:*)",
       "WebFetch(domain:dart.dev)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(./publish.sh)"
     ],
     "deny": []
   }
