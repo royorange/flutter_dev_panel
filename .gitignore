@@ -35,3 +35,6 @@ build/
 *.dill
 *.dill.track.dill
 test_cache/
+
+# Local Claude settings
+.claude/settings.local.json
