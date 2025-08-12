@@ -64,18 +64,27 @@ publish_package() {
     # 干运行检查
     print_info "运行发布前检查..."
     local dry_run_output
-    dry_run_output=$(flutter pub publish --dry-run 2>&1)
+    local dry_run_exit_code
     
-    # 检查是否有错误（不只是警告）
-    if echo "$dry_run_output" | grep -q "Package validation found the following.*error"; then
+    dry_run_output=$(flutter pub publish --dry-run 2>&1)
+    dry_run_exit_code=$?
+    
+    # 显示包大小信息
+    echo "$dry_run_output" | grep "Total compressed" || true
+    
+    # 检查输出内容判断是否可以发布
+    if echo "$dry_run_output" | grep -q "error.*:"; then
         print_error "发布前检查失败（有错误）"
-        echo "$dry_run_output"
+        echo "$dry_run_output" | grep -A 10 "error"
         return 1
     elif echo "$dry_run_output" | grep -q "Package has.*warning"; then
-        print_info "发布前检查通过（有警告，但不影响发布）"
-        echo "$dry_run_output" | grep -A 5 "Total compressed"
-    else
+        print_info "发布前检查通过（有警告但可以发布）"
+        print_success "包大小合理，可以继续发布"
+    elif [[ $dry_run_exit_code -eq 0 ]]; then
         print_success "发布前检查完全通过"
+    else
+        print_info "发布前检查完成（请检查输出）"
+        echo "$dry_run_output" | tail -20
     fi
     
     # 询问是否发布
