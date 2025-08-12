@@ -54,20 +54,45 @@
 
 ## 安装
 
-在 `pubspec.yaml` 中添加以下依赖：
+在 `pubspec.yaml` 中添加：
 
 ```yaml
 dependencies:
   flutter_dev_panel: ^1.0.0
-  flutter_dev_panel_console: ^1.0.0
-  flutter_dev_panel_network: ^1.0.0
-  flutter_dev_panel_device: ^1.0.0
-  flutter_dev_panel_performance: ^1.0.0
 ```
+
+或者如果您只想在开发时使用：
+
+```yaml
+dev_dependencies:
+  flutter_dev_panel: ^1.0.0
+```
+
+注意：主包会自动包含所有核心功能。各个模块包（console、network、device、performance）作为传递依赖被包含。
 
 ## 快速开始
 
-### 1. 初始化开发面板
+### 1. 基础用法（最简单）
+
+```dart
+import 'package:flutter_dev_panel/flutter_dev_panel.dart';
+
+void main() {
+  // 初始化开发面板（在 Release 模式自动禁用）
+  FlutterDevPanel.initialize(
+    modules: [
+      ConsoleModule(),
+      NetworkModule(),
+      DeviceModule(),
+      PerformanceModule(),
+    ],
+  );
+  
+  runApp(MyApp());
+}
+```
+
+### 2. 高级用法（配置环境）
 
 ```dart
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
@@ -123,22 +148,22 @@ void main() {
 }
 ```
 
-### 2. 包装您的应用
+### 3. 包装您的应用
 
 ```dart
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: DevPanelWrapper(
-        child: YourHomePage(),
+    return DevPanelWrapper(
+      child: MaterialApp(
+        home: YourHomePage(),
       ),
     );
   }
 }
 ```
 
-### 3. 配置网络监控（可选）
+### 4. 配置网络监控（可选）
 
 对于 Dio：
 ```dart

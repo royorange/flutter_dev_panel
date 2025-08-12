@@ -273,14 +273,31 @@ class EnvironmentManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Get a variable from current environment
-  T? getVariable<T>(String key) {
-    return _currentEnvironment?.variables[key] as T?;
+  /// Get a variable from current environment with optional default value
+  /// 
+  /// Example:
+  /// ```dart
+  /// // Without default value (returns null if not found)
+  /// final apiUrl = EnvironmentManager.instance.getVariable<String>('API_URL');
+  /// 
+  /// // With default value
+  /// final apiUrl = EnvironmentManager.instance.getVariable<String>(
+  ///   'API_URL', 
+  ///   defaultValue: 'https://api.example.com'
+  /// );
+  /// ```
+  T? getVariable<T>(String key, {T? defaultValue}) {
+    final value = _currentEnvironment?.variables[key];
+    if (value != null) {
+      return value as T;
+    }
+    return defaultValue;
   }
 
-  /// Get a variable with a default value
+  /// Get a variable with a required default value (deprecated, use getVariable with defaultValue)
+  @Deprecated('Use getVariable with defaultValue parameter instead')
   T getVariableOrDefault<T>(String key, T defaultValue) {
-    return getVariable<T>(key) ?? defaultValue;
+    return getVariable<T>(key, defaultValue: defaultValue) ?? defaultValue;
   }
 
   /// Update a variable in current environment

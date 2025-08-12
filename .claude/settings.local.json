@@ -32,7 +32,8 @@
       "Bash(done)",
       "Bash(for dir in flutter_dev_panel_*)",
       "Bash(do echo \"=== Testing $dir ===\")",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(/tmp/test_assert:*)"
     ],
     "deny": []
   }

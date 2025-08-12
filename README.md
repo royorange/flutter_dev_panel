@@ -54,20 +54,45 @@ A modular, zero-intrusion debugging panel for Flutter applications that provides
 
 ## Installation
 
-Add the following dependencies to your `pubspec.yaml`:
+Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
   flutter_dev_panel: ^1.0.0
-  flutter_dev_panel_console: ^1.0.0
-  flutter_dev_panel_network: ^1.0.0
-  flutter_dev_panel_device: ^1.0.0
-  flutter_dev_panel_performance: ^1.0.0
 ```
+
+Or if you prefer to use it only during development:
+
+```yaml
+dev_dependencies:
+  flutter_dev_panel: ^1.0.0
+```
+
+Note: The main package automatically includes all core functionality. Individual module packages (console, network, device, performance) are included as transitive dependencies.
 
 ## Quick Start
 
-### 1. Initialize the Dev Panel
+### 1. Basic Usage (Simplest)
+
+```dart
+import 'package:flutter_dev_panel/flutter_dev_panel.dart';
+
+void main() {
+  // Initialize Dev Panel (automatically disabled in Release mode)
+  FlutterDevPanel.initialize(
+    modules: [
+      ConsoleModule(),
+      NetworkModule(),
+      DeviceModule(),
+      PerformanceModule(),
+    ],
+  );
+  
+  runApp(MyApp());
+}
+```
+
+### 2. Advanced Usage with Environment Configuration
 
 ```dart
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
@@ -123,22 +148,22 @@ void main() {
 }
 ```
 
-### 2. Wrap Your App
+### 3. Wrap Your App
 
 ```dart
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: DevPanelWrapper(
-        child: YourHomePage(),
+    return DevPanelWrapper(
+      child: MaterialApp(
+        home: YourHomePage(),
       ),
     );
   }
 }
 ```
 
-### 3. Configure Network Monitoring (Optional)
+### 4. Configure Network Monitoring (Optional)
 
 For Dio:
 ```dart
@@ -238,8 +263,11 @@ Environment configurations are loaded with the following priority:
 // Get current environment
 final currentEnv = EnvironmentManager.instance.currentEnvironment;
 
-// Get specific variable
-final apiUrl = EnvironmentManager.instance.getVariable<String>('API_URL');
+// Get specific variable with optional default value
+final apiUrl = EnvironmentManager.instance.getVariable<String>(
+  'API_URL',
+  defaultValue: 'https://api.example.com'
+);
 
 // Listen to environment changes
 EnvironmentManager.instance.addListener(() {
@@ -283,16 +311,21 @@ class CustomModule extends DevModule {
 
 ### Production Safety
 
-The dev panel automatically disables itself in production builds unless explicitly configured:
+The dev panel automatically disables itself in production builds:
 
 ```dart
+// In your main.dart
 FlutterDevPanel.initialize(
-  config: const DevPanelConfig(
-    enabled: !kReleaseMode, // Automatically disable in release
-    showInProduction: false, // Extra safety check
-  ),
-  // ...
+  modules: [...],
 );
+// The above code becomes a no-op in Release mode automatically
+
+// For explicit control:
+if (kDebugMode) {
+  FlutterDevPanel.initialize(
+    modules: [...],
+  );
+}
 ```
 
 ## Architecture

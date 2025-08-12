@@ -2,6 +2,8 @@
 
 Core framework for Flutter Dev Panel - A modular, zero-intrusion debugging panel for Flutter applications.
 
+**⚠️ Note: This is an internal package. Users should install the main `flutter_dev_panel` package instead.**
+
 ## Features
 
 - 🔌 **Modular Architecture** - Load only the modules you need
@@ -13,10 +15,14 @@ Core framework for Flutter Dev Panel - A modular, zero-intrusion debugging panel
 
 ## Installation
 
+**For end users, please use the main package:**
+
 ```yaml
 dependencies:
-  flutter_dev_panel_core: ^0.0.1
+  flutter_dev_panel: ^1.0.0
 ```
+
+This core package is automatically included as a dependency.
 
 ## Quick Start
 
@@ -39,7 +45,7 @@ void main() {
     ],
   );
 
-  // Initialize dev panel
+  // Initialize dev panel (using the main package)
   FlutterDevPanel.initialize(
     config: const DevPanelConfig(
       enabled: true,
