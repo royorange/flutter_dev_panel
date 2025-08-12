@@ -181,31 +181,62 @@ main() {
     print_info "Main package version: $MAIN_VERSION"
     
     echo ""
-    echo "Publishing order:"
-    echo "1. flutter_dev_panel (main package)"
-    echo "2. flutter_dev_panel_console"
-    echo "3. flutter_dev_panel_network"
-    echo "4. flutter_dev_panel_device"
-    echo "5. flutter_dev_panel_performance"
+    echo "Select publishing option:"
+    echo "1. Publish all packages (main + sub-packages)"
+    echo "2. Publish main package only"
+    echo "3. Publish sub-packages only"
+    echo "4. Publish specific package"
+    echo "0. Exit"
     echo ""
     
-    read -p "Start publishing process? [Y/n] " -r
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
-        print_info "Publishing cancelled"
-        exit 0
-    fi
+    read -p "Enter your choice (0-4): " -r choice
     
-    # Publish main package
+    case $choice in
+        1)
+            # Publish all
+            publish_main_package
+            publish_all_subpackages
+            ;;
+        2)
+            # Main package only
+            publish_main_package
+            ;;
+        3)
+            # Sub-packages only
+            publish_all_subpackages
+            ;;
+        4)
+            # Specific package
+            publish_specific_package
+            ;;
+        0)
+            print_info "Publishing cancelled"
+            exit 0
+            ;;
+        *)
+            print_error "Invalid choice"
+            exit 1
+            ;;
+    esac
+    
+    echo ""
+    print_success "Publishing process completed!"
+}
+
+# Function to publish main package
+publish_main_package() {
     echo ""
     print_info "====== Publishing Main Package ======"
     publish_package "." "flutter_dev_panel"
-    
-    # Ask whether to continue with sub-packages
+}
+
+# Function to publish all sub-packages
+publish_all_subpackages() {
     echo ""
-    read -p "Main package published. Continue with sub-packages? [Y/n] " -r
+    read -p "Continue with sub-packages? [Y/n] " -r
     if [[ $REPLY =~ ^[Nn]$ ]]; then
         print_info "Skipping sub-packages"
-        exit 0
+        return
     fi
     
     # Sub-packages list
@@ -236,9 +267,6 @@ main() {
         fi
     done
     
-    echo ""
-    print_success "All packages publishing process completed!"
-    
     # Ask whether to restore local development configuration
     echo ""
     read -p "Restore local development configuration (path dependencies)? [Y/n] " -r
@@ -247,6 +275,74 @@ main() {
             restore_subpackage_dependencies "packages/$package"
         done
         print_success "Local development configuration restored"
+    fi
+}
+
+# Function to publish specific package
+publish_specific_package() {
+    echo ""
+    echo "Available packages:"
+    echo "1. flutter_dev_panel (main)"
+    echo "2. flutter_dev_panel_console"
+    echo "3. flutter_dev_panel_network"
+    echo "4. flutter_dev_panel_device"
+    echo "5. flutter_dev_panel_performance"
+    echo "0. Back to main menu"
+    echo ""
+    
+    read -p "Select package to publish (0-5): " -r pkg_choice
+    
+    case $pkg_choice in
+        1)
+            publish_main_package
+            ;;
+        2)
+            publish_single_subpackage "flutter_dev_panel_console"
+            ;;
+        3)
+            publish_single_subpackage "flutter_dev_panel_network"
+            ;;
+        4)
+            publish_single_subpackage "flutter_dev_panel_device"
+            ;;
+        5)
+            publish_single_subpackage "flutter_dev_panel_performance"
+            ;;
+        0)
+            main
+            ;;
+        *)
+            print_error "Invalid package selection"
+            ;;
+    esac
+}
+
+# Function to publish a single sub-package
+publish_single_subpackage() {
+    local package=$1
+    local package_path="packages/$package"
+    
+    echo ""
+    print_info "====== Publishing $package ======"
+    
+    # Update dependencies
+    update_subpackage_dependencies "$package_path" "$MAIN_VERSION"
+    
+    # Publish package
+    if publish_package "$package_path" "$package"; then
+        print_success "$package published successfully"
+        
+        # Ask whether to restore local development configuration
+        echo ""
+        read -p "Restore local development configuration for $package? [Y/n] " -r
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            restore_subpackage_dependencies "$package_path"
+            print_success "Local development configuration restored for $package"
+        fi
+    else
+        print_error "$package publishing failed"
+        # Restore original configuration
+        restore_subpackage_dependencies "$package_path"
     fi
 }
 
