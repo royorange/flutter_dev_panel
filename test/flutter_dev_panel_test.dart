@@ -1,7 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
-import 'package:dio/dio.dart';
 
 /// Flutter Dev Panel Unit Tests
 /// 
@@ -18,35 +16,8 @@ import 'package:dio/dio.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   
-  group('Module Registration Tests', () {
-    test('Console module registers correctly', () {
-      const module = ConsoleModule();
-      expect(module.name, 'Console');
-      expect(module.icon, Icons.terminal);
-      expect(module.id, 'console');
-    });
-
-    test('Network module registers correctly', () {
-      final module = NetworkModule();
-      expect(module.name, 'Network');
-      expect(module.icon, Icons.wifi);
-      expect(module.id, 'network');
-    });
-
-    test('Device module registers correctly', () {
-      const module = DeviceModule();
-      expect(module.name, 'Device Info');
-      expect(module.icon, Icons.devices);
-      expect(module.id, 'device_info');
-    });
-
-    test('Performance module registers correctly', () {
-      const module = PerformanceModule();
-      expect(module.name, 'Performance');
-      expect(module.icon, Icons.speed);
-      expect(module.id, 'performance');
-    });
-  });
+  // Module tests have been moved to their respective packages
+  // since modules are now published as separate packages
 
   group('Core Components Tests', () {
     test('DevPanelConfig can be created with defaults', () {
@@ -77,29 +48,7 @@ void main() {
     });
   });
 
-  group('Network Module Integration', () {
-    test('NetworkModule.attachToDio adds interceptor', () {
-      final dio = Dio();
-      NetworkModule.attachToDio(dio);
-      
-      expect(dio.interceptors.isNotEmpty, true);
-      expect(
-        dio.interceptors.any((i) => i.toString().contains('NetworkInterceptor')),
-        true,
-      );
-    });
-
-    test('Multiple Dio instances can be attached', () {
-      final dio1 = Dio();
-      final dio2 = Dio();
-      
-      NetworkModule.attachToDio(dio1);
-      NetworkModule.attachToDio(dio2);
-      
-      expect(dio1.interceptors.isNotEmpty, true);
-      expect(dio2.interceptors.isNotEmpty, true);
-    });
-  });
+  // Network module tests have been moved to flutter_dev_panel_network package
 
   group('Environment Management Tests', () {
     test('EnvironmentConfig can be created with required fields', () {
