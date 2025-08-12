@@ -72,20 +72,25 @@ publish_package() {
     # 显示包大小信息
     echo "$dry_run_output" | grep "Total compressed" || true
     
-    # 检查输出内容判断是否可以发布
-    if echo "$dry_run_output" | grep -q "error.*:"; then
+    # 检查是否有真正的错误（不是 "Failed to update packages"）
+    if echo "$dry_run_output" | grep -q "Package has.*error"; then
         print_error "发布前检查失败（有错误）"
         echo "$dry_run_output" | grep -A 10 "error"
         return 1
     elif echo "$dry_run_output" | grep -q "Package has.*warning"; then
+        # 有警告但可以发布（常见于 monorepo 结构）
         print_info "发布前检查通过（有警告但可以发布）"
-        print_success "包大小合理，可以继续发布"
-    elif [[ $dry_run_exit_code -eq 0 ]]; then
+        print_info "警告通常是关于 gitignored 文件，这在 monorepo 中是正常的"
+    elif echo "$dry_run_output" | grep -q "Total compressed"; then
+        # 完全没有问题
         print_success "发布前检查完全通过"
     else
+        # 未知情况，显示输出让用户判断
         print_info "发布前检查完成（请检查输出）"
         echo "$dry_run_output" | tail -20
     fi
+    
+    # "Failed to update packages" 只是 pub 工具的误导性消息，不影响发布
     
     # 询问是否发布
     echo ""

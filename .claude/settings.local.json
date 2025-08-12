@@ -44,7 +44,8 @@
       "Bash(sed:*)",
       "Bash(fi)",
       "Bash(for:*)",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "WebFetch(domain:dart.dev)"
     ],
     "deny": []
   }
