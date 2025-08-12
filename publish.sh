@@ -113,8 +113,8 @@ publish_package() {
         print_info "Skipping $package_name"
     else
         print_info "Publishing $package_name..."
-        # Don't use --force as it skips important checks
-        flutter pub publish
+        # Use echo "y" to auto-confirm the publishing prompt
+        echo "y" | flutter pub publish
         if [[ $? -eq 0 ]]; then
             print_success "$package_name published successfully!"
         else
