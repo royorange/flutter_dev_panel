@@ -113,8 +113,14 @@ publish_package() {
         print_info "Skipping $package_name"
     else
         print_info "Publishing $package_name..."
-        flutter pub publish --force
-        print_success "$package_name published successfully!"
+        # Don't use --force as it skips important checks
+        flutter pub publish
+        if [[ $? -eq 0 ]]; then
+            print_success "$package_name published successfully!"
+        else
+            print_error "$package_name publishing failed"
+            return 1
+        fi
     fi
     
     cd - > /dev/null
