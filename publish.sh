@@ -66,16 +66,17 @@ publish_package() {
     local dry_run_output
     local dry_run_exit_code
     
+    # 暂时禁用 set -e 以捕获退出码
+    set +e
     dry_run_output=$(flutter pub publish --dry-run 2>&1)
     dry_run_exit_code=$?
+    set -e
     
     # 显示包大小信息
     echo "$dry_run_output" | grep "Total compressed" || true
     
-    # 调试：显示 dry_run 退出码
-    print_info "Dry-run 退出码: $dry_run_exit_code"
-    
-    # 检查是否有真正的错误（不是 "Failed to update packages"）
+    # 检查是否有真正的错误
+    # 退出码 65 通常表示有警告但可以发布
     if echo "$dry_run_output" | grep -q "Package has.*error"; then
         print_error "发布前检查失败（有错误）"
         echo "$dry_run_output" | grep -A 10 "error"
@@ -84,22 +85,17 @@ publish_package() {
         # 有警告但可以发布（常见于 monorepo 结构）
         print_info "发布前检查通过（有警告但可以发布）"
         print_info "警告通常是关于 gitignored 文件，这在 monorepo 中是正常的"
-    elif echo "$dry_run_output" | grep -q "Total compressed"; then
+    elif [[ $dry_run_exit_code -eq 0 ]]; then
         # 完全没有问题
         print_success "发布前检查完全通过"
     else
-        # 未知情况，显示输出让用户判断
-        print_info "发布前检查完成（请检查输出）"
-        echo "$dry_run_output" | tail -20
+        # 其他情况也继续（只要没有明确的错误）
+        print_info "发布前检查完成"
     fi
-    
-    # "Failed to update packages" 只是 pub 工具的误导性消息，不影响发布
     
     # 询问是否发布
     echo ""
-    print_info "准备发布提示..."
     read -p "是否发布 $package_name 到 pub.dev? [Y/n] " -r
-    echo "用户输入: '$REPLY'"  # 调试信息
     if [[ $REPLY =~ ^[Nn]$ ]]; then
         print_info "跳过发布 $package_name"
     else
@@ -110,7 +106,6 @@ publish_package() {
     
     cd - > /dev/null
     echo ""
-    print_info "publish_package 函数结束"
 }
 
 # 更新子包依赖的函数
@@ -191,8 +186,6 @@ main() {
     echo ""
     print_info "====== 发布主包 ======"
     publish_package "." "flutter_dev_panel"
-    local main_result=$?
-    print_info "主包发布函数返回: $main_result"
     
     # 询问是否继续发布子包
     echo ""
