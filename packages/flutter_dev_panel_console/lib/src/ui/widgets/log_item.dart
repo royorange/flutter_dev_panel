@@ -43,7 +43,7 @@ class LogItem extends StatelessWidget {
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: theme.dividerColor.withOpacity(0.2),
+              color: theme.dividerColor.withValues(alpha: 0.2),
             ),
           ),
         ),
@@ -57,7 +57,7 @@ class LogItem extends StatelessWidget {
               margin: const EdgeInsets.only(right: 8),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: levelColor.withOpacity(0.2),
+                color: levelColor.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -78,7 +78,7 @@ class LogItem extends StatelessWidget {
               child: Text(
                 timeFormat.format(log.timestamp),
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   fontFamily: 'monospace',
                   fontSize: 12,
                 ),
@@ -110,7 +110,7 @@ class LogItem extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
+                        color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -132,7 +132,7 @@ class LogItem extends StatelessWidget {
             Icon(
               Icons.chevron_right,
               size: 20,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
           ],
         ),
@@ -204,7 +204,7 @@ class LogDetailSheet extends StatelessWidget {
             height: 4,
             margin: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: theme.colorScheme.onSurface.withOpacity(0.2),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -217,7 +217,7 @@ class LogDetailSheet extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: levelColor.withOpacity(0.2),
+                    color: levelColor.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -343,13 +343,13 @@ class LogDetailSheet extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isError 
-              ? Colors.red.withOpacity(0.1)
+              ? Colors.red.withValues(alpha: 0.1)
               : theme.colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isError
-                ? Colors.red.withOpacity(0.3)
-                : theme.dividerColor.withOpacity(0.2),
+                ? Colors.red.withValues(alpha: 0.3)
+                : theme.dividerColor.withValues(alpha: 0.2),
             ),
           ),
           child: SelectableText(

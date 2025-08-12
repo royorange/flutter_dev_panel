@@ -101,7 +101,7 @@ class _ConsolePageState extends State<ConsolePage> {
         color: theme.colorScheme.surfaceContainerHighest,
         border: Border(
           bottom: BorderSide(
-            color: theme.dividerColor.withOpacity(0.2),
+            color: theme.dividerColor.withValues(alpha: 0.2),
           ),
         ),
       ),
@@ -121,7 +121,7 @@ class _ConsolePageState extends State<ConsolePage> {
                   Icon(
                     Icons.search,
                     size: 18,
-                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -132,7 +132,7 @@ class _ConsolePageState extends State<ConsolePage> {
                       decoration: InputDecoration(
                         hintText: 'Search logs...',
                         hintStyle: TextStyle(
-                          color: theme.colorScheme.onSurface.withOpacity(0.3),
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                         ),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.zero,
@@ -149,7 +149,7 @@ class _ConsolePageState extends State<ConsolePage> {
                           icon: Icon(
                             Icons.clear,
                             size: 18,
-                            color: theme.colorScheme.onSurface.withOpacity(0.5),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -212,20 +212,20 @@ class _ConsolePageState extends State<ConsolePage> {
           Icon(
             Icons.description_outlined,
             size: 64,
-            color: theme.colorScheme.onSurface.withOpacity(0.2),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
           ),
           const SizedBox(height: 16),
           Text(
             'No logs yet',
             style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Waiting for logs...',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
           ),
         ],
@@ -249,7 +249,7 @@ class _ConsolePageState extends State<ConsolePage> {
         color: theme.colorScheme.surfaceContainerHighest,
         border: Border(
           top: BorderSide(
-            color: theme.dividerColor.withOpacity(0.2),
+            color: theme.dividerColor.withValues(alpha: 0.2),
           ),
         ),
       ),
@@ -299,7 +299,7 @@ class _ConsolePageState extends State<ConsolePage> {
               Text(
                 'Total: ${provider.filteredLogs.length} / ${provider.logs.length}',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
             ],
@@ -323,7 +323,7 @@ class _ConsolePageState extends State<ConsolePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -387,11 +387,11 @@ class _ConsolePageState extends State<ConsolePage> {
             final currentConfig = DevLogger.instance.config;
             
             return AlertDialog(
-              title: Row(
+              title: const Row(
                 children: [
-                  const Icon(Icons.settings, size: 24),
-                  const SizedBox(width: 8),
-                  const Text('Log Capture Settings'),
+                  Icon(Icons.settings, size: 24),
+                  SizedBox(width: 8),
+                  Text('Log Capture Settings'),
                 ],
               ),
               content: SingleChildScrollView(

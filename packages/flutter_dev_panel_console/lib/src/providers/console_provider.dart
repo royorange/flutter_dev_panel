@@ -36,12 +36,9 @@ class ConsoleProvider extends ChangeNotifier {
   /// 搜索防抖定时器
   Timer? _searchDebounceTimer;
   
-  /// 最大日志条数（为了性能优化）
-  static const int _maxLogsCount = 1000;
-  
   /// 批量更新定时器（性能优化）
   Timer? _batchUpdateTimer;
-  List<LogEntry> _pendingLogs = [];
+  final List<LogEntry> _pendingLogs = [];
   
   ConsoleProvider() {
     _initialize();
