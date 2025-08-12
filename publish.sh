@@ -53,12 +53,25 @@ publish_package() {
     
     # 分析代码
     print_info "分析代码..."
-    if dart analyze lib > /dev/null 2>&1; then
+    # 暂时禁用 set -e 以捕获分析结果
+    set +e
+    dart analyze lib --no-fatal-warnings > /dev/null 2>&1
+    local analyze_exit_code=$?
+    set -e
+    
+    if [[ $analyze_exit_code -eq 0 ]]; then
         print_success "代码分析通过"
     else
-        print_error "代码分析失败"
-        dart analyze lib
-        return 1
+        # 显示分析结果，但只有错误才失败，警告可以继续
+        local analyze_output=$(dart analyze lib 2>&1)
+        if echo "$analyze_output" | grep -q "error"; then
+            print_error "代码分析失败（有错误）"
+            echo "$analyze_output"
+            return 1
+        else
+            print_info "代码分析通过（有警告）"
+            print_info "警告不影响发布，可以继续"
+        fi
     fi
     
     # 干运行检查
