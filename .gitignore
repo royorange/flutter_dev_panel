@@ -38,3 +38,10 @@ test_cache/
 
 # Local Claude settings
 .claude/settings.local.json
+
+# Publishing script temporary files
+**/*.bak
+packages/*/pubspec.yaml.bak
+
+# Build artifacts that might change
+**/build/unit_test_assets/NOTICES.Z
