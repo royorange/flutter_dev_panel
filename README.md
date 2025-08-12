@@ -15,16 +15,26 @@ A modular, zero-intrusion debugging panel for Flutter applications that provides
 - **High Performance**: Optimized to minimize impact on app performance
 - **Multiple Trigger Modes**: Floating button, shake gesture, or programmatic
 
-### Available Modules
+### Core Features (Built-in)
 
-#### Console Module
+#### Environment Management
+- Environment switching (Development/Production/Custom)
+- Environment variable management
+- Configuration persistence
+- Real-time environment updates
+- Support for .env files
+- Priority-based configuration loading
+
+### Optional Modules
+
+#### Console Module (`flutter_dev_panel_console`)
 - Real-time log capture (print, debugPrint, Logger package)
 - Log level filtering (verbose, debug, info, warning, error)
 - Search and filter capabilities
-- Automatic ANSI color code handling
 - Configurable log retention and auto-scroll
+- Smart multi-line log merging for Logger package
 
-#### Network Module
+#### Network Module (`flutter_dev_panel_network`)
 - HTTP request/response monitoring
 - GraphQL query and mutation tracking
 - Support for Dio, http, and GraphQL packages
@@ -32,25 +42,19 @@ A modular, zero-intrusion debugging panel for Flutter applications that provides
 - Detailed request/response inspection
 - JSON viewer with syntax highlighting
 
-#### Device Module
+#### Device Module (`flutter_dev_panel_device`)
 - Device model and specifications
 - Screen dimensions and PPI calculation
 - Operating system information
 - Platform-specific details
 - App package information
 
-#### Performance Module
+#### Performance Module (`flutter_dev_panel_performance`)
 - Real-time FPS monitoring
 - Memory usage tracking
 - Dropped frames detection
 - Performance charts and trends
 - Memory peak tracking
-
-#### Environment Module
-- Environment switching (Development/Production)
-- Environment variable management
-- Configuration persistence
-- Real-time environment updates
 
 ## Installation
 
@@ -414,7 +418,11 @@ Special thanks to all contributors who have helped make this project better.
 ## Package Structure
 
 ### Core Package (Required)
-- **flutter_dev_panel** - Core framework with UI components, environment management, and base infrastructure
+- **flutter_dev_panel** - Core framework including:
+  - UI components (DevPanelWrapper, DevPanel, FAB)
+  - Environment management (EnvironmentManager, .env support)
+  - Base infrastructure (ModuleRegistry, DevLogger)
+  - Configuration management (DevPanelConfig, PanelSettings)
 
 ### Optional Module Packages
 - **flutter_dev_panel_console** - Console/logging module with advanced filtering and log capture

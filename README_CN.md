@@ -15,16 +15,26 @@
 - **高性能**: 优化以最小化对应用性能的影响
 - **多种触发方式**: 悬浮按钮、摇一摇手势或程序化调用
 
-### 可用模块
+### 核心功能（内置）
 
-#### 控制台模块
+#### 环境管理
+- 环境切换（开发/生产/自定义）
+- 环境变量管理
+- 配置持久化
+- 实时环境更新
+- 支持 .env 文件
+- 基于优先级的配置加载
+
+### 可选模块
+
+#### 控制台模块（`flutter_dev_panel_console`）
 - 实时日志捕获（print、debugPrint、Logger 包）
 - 日志级别过滤（verbose、debug、info、warning、error）
 - 搜索和过滤功能
-- 自动 ANSI 颜色代码处理
 - 可配置的日志保留和自动滚动
+- Logger 包多行输出智能合并
 
-#### 网络模块
+#### 网络模块（`flutter_dev_panel_network`）
 - HTTP 请求/响应监控
 - GraphQL 查询和变更跟踪
 - 支持 Dio、http 和 GraphQL 包
@@ -32,25 +42,19 @@
 - 详细的请求/响应检查
 - 带语法高亮的 JSON 查看器
 
-#### 设备模块
+#### 设备模块（`flutter_dev_panel_device`）
 - 设备型号和规格
 - 屏幕尺寸和 PPI 计算
 - 操作系统信息
 - 平台特定详情
 - 应用包信息
 
-#### 性能模块
+#### 性能模块（`flutter_dev_panel_performance`）
 - 实时 FPS 监控
 - 内存使用跟踪
 - 丢帧检测
 - 性能图表和趋势
 - 内存峰值跟踪
-
-#### 环境模块
-- 环境切换（开发/生产）
-- 环境变量管理
-- 配置持久化
-- 实时环境更新
 
 ## 安装
 
@@ -406,7 +410,11 @@ flutter test
 ## 包结构
 
 ### 核心包（必需）
-- **flutter_dev_panel** - 核心框架，包含 UI 组件、环境管理和基础设施
+- **flutter_dev_panel** - 核心框架，包含：
+  - UI 组件（DevPanelWrapper、DevPanel、悬浮按钮）
+  - 环境管理（EnvironmentManager、.env 文件支持）
+  - 基础设施（模块注册、DevLogger）
+  - 配置管理（DevPanelConfig、PanelSettings）
 
 ### 可选模块包
 - **flutter_dev_panel_console** - 控制台/日志模块，支持高级过滤和日志捕获
