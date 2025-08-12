@@ -54,21 +54,43 @@ A modular, zero-intrusion debugging panel for Flutter applications that provides
 
 ## Installation
 
-Add to your `pubspec.yaml`:
+### Option 1: Install Core Only (Minimal)
 
 ```yaml
 dependencies:
   flutter_dev_panel: ^1.0.0
 ```
 
-Or if you prefer to use it only during development:
+### Option 2: Install with Specific Modules (Recommended)
+
+```yaml
+dependencies:
+  flutter_dev_panel: ^1.0.0
+  flutter_dev_panel_console: ^1.0.0    # For logging
+  flutter_dev_panel_network: ^1.0.0    # For network monitoring
+  # Add only the modules you need
+```
+
+### Option 3: Install All Modules
+
+```yaml
+dependencies:
+  flutter_dev_panel: ^1.0.0
+  flutter_dev_panel_console: ^1.0.0
+  flutter_dev_panel_network: ^1.0.0
+  flutter_dev_panel_device: ^1.0.0
+  flutter_dev_panel_performance: ^1.0.0
+```
+
+### For Development Only
+
+If you want to use it only during development:
 
 ```yaml
 dev_dependencies:
   flutter_dev_panel: ^1.0.0
+  # Add the modules you need
 ```
-
-Note: The main package automatically includes all core functionality. Individual module packages (console, network, device, performance) are included as transitive dependencies.
 
 ## Quick Start
 
@@ -333,18 +355,21 @@ if (kDebugMode) {
 The Flutter Dev Panel follows a modular architecture:
 
 ```
-flutter_dev_panel/
+flutter_dev_panel/              # Core framework (required)
 ├── lib/
-│   ├── core/              # Core functionality
-│   ├── modules/            # Module interfaces
-│   └── ui/                 # UI components
-├── packages/
-│   ├── flutter_dev_panel_console/     # Console module
-│   ├── flutter_dev_panel_network/     # Network module
-│   ├── flutter_dev_panel_device/      # Device info module
-│   └── flutter_dev_panel_performance/ # Performance module
-└── example/                            # Example application
+│   └── src/
+│       ├── core/               # Core functionality
+│       ├── models/             # Data models
+│       └── ui/                 # UI components
+├── packages/                   # Optional modules
+│   ├── flutter_dev_panel_console/     # Console/logging module
+│   ├── flutter_dev_panel_network/     # Network monitoring module
+│   ├── flutter_dev_panel_device/      # Device information module
+│   └── flutter_dev_panel_performance/ # Performance monitoring module
+└── example/                    # Example application
 ```
+
+Each module package depends on the core `flutter_dev_panel` package and can be installed independently based on your needs.
 
 ## Contributing
 
@@ -386,9 +411,30 @@ Special thanks to all contributors who have helped make this project better.
 - [ ] Database query monitoring
 - [ ] State management inspection
 
-## Related Projects
+## Package Structure
 
-- [flutter_dev_panel_console](https://pub.dev/packages/flutter_dev_panel_console)
-- [flutter_dev_panel_network](https://pub.dev/packages/flutter_dev_panel_network)
-- [flutter_dev_panel_device](https://pub.dev/packages/flutter_dev_panel_device)
-- [flutter_dev_panel_performance](https://pub.dev/packages/flutter_dev_panel_performance)
+### Core Package (Required)
+- **flutter_dev_panel** - Core framework with UI components, environment management, and base infrastructure
+
+### Optional Module Packages
+- **flutter_dev_panel_console** - Console/logging module with advanced filtering and log capture
+- **flutter_dev_panel_network** - Network monitoring for Dio, HTTP, and GraphQL
+- **flutter_dev_panel_device** - Device information and system details
+- **flutter_dev_panel_performance** - FPS monitoring, memory tracking, and performance metrics
+
+## Testing
+
+```bash
+# Run all tests
+flutter test
+
+# Test individual modules
+flutter test packages/flutter_dev_panel_console/test
+flutter test packages/flutter_dev_panel_network/test
+flutter test packages/flutter_dev_panel_device/test
+flutter test packages/flutter_dev_panel_performance/test
+
+# Run example app
+cd example
+flutter run
+```

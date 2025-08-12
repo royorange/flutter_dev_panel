@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_dev_panel_core/flutter_dev_panel_core.dart';
+import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 
 /// Console 模块的状态管理
 class ConsoleProvider extends ChangeNotifier {

@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dev_panel_core/src/core/monitoring_data_provider.dart';
+import 'package:flutter_dev_panel/src/core/monitoring_data_provider.dart';
 import 'models/network_request.dart';
 import 'models/network_filter.dart';
 import 'storage/network_storage.dart';

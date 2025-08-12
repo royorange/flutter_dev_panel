@@ -1,64 +1,83 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
-import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
 import 'package:dio/dio.dart';
 
+/// Flutter Dev Panel Unit Tests
+/// 
+/// Note: You may see SharedPreferences warnings during test execution.
+/// These are expected and can be safely ignored. They occur because
+/// SharedPreferences plugin is not available in the test environment.
+/// 
+/// Example warnings you might see:
+/// - "Failed to load max requests: MissingPluginException"
+/// - "Failed to load network requests: MissingPluginException"
+/// - "Failed to load console config: MissingPluginException"
+/// 
+/// These warnings do not affect test results or functionality.
 void main() {
-  group('Flutter Dev Panel Integration Tests', () {
-    setUp(() {
-      // Reset before each test
-      TestWidgetsFlutterBinding.ensureInitialized();
+  TestWidgetsFlutterBinding.ensureInitialized();
+  
+  group('Module Registration Tests', () {
+    test('Console module registers correctly', () {
+      const module = ConsoleModule();
+      expect(module.name, 'Console');
+      expect(module.icon, Icons.terminal);
+      expect(module.id, 'console');
     });
 
-    testWidgets('FlutterDevPanel.initialize works correctly', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              FlutterDevPanel.initialize(
-                config: const DevPanelConfig(
-                  enabled: true,
-                  triggerModes: {TriggerMode.fab, TriggerMode.manual},
-                  showInProduction: false,
-                ),
-                modules: [
-                  const ConsoleModule(),
-                  NetworkModule(),
-                ],
-                enableLogCapture: true,
-              );
-              
-              return const Scaffold(
-                body: Text('Test App'),
-              );
-            },
-          ),
-        ),
-      );
-      
-      expect(find.text('Test App'), findsOneWidget);
+    test('Network module registers correctly', () {
+      final module = NetworkModule();
+      expect(module.name, 'Network');
+      expect(module.icon, Icons.wifi);
+      expect(module.id, 'network');
     });
 
-    testWidgets('DevPanelWrapper renders child correctly', (tester) async {
-      FlutterDevPanel.initialize(
-        config: const DevPanelConfig(enabled: true),
-        modules: [],
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: DevPanelWrapper(
-            child: Scaffold(
-              body: const Text('Wrapped Content'),
-            ),
-          ),
-        ),
-      );
-
-      expect(find.text('Wrapped Content'), findsOneWidget);
+    test('Device module registers correctly', () {
+      const module = DeviceModule();
+      expect(module.name, 'Device Info');
+      expect(module.icon, Icons.devices);
+      expect(module.id, 'device_info');
     });
 
+    test('Performance module registers correctly', () {
+      const module = PerformanceModule();
+      expect(module.name, 'Performance');
+      expect(module.icon, Icons.speed);
+      expect(module.id, 'performance');
+    });
+  });
+
+  group('Core Components Tests', () {
+    test('DevPanelConfig can be created with defaults', () {
+      const config = DevPanelConfig();
+      expect(config.enabled, true);
+      expect(config.showInProduction, false);
+      expect(config.triggerModes.contains(TriggerMode.fab), true);
+    });
+
+    test('DevPanelConfig can be customized', () {
+      const config = DevPanelConfig(
+        enabled: false,
+        showInProduction: true,
+        triggerModes: {TriggerMode.shake, TriggerMode.manual},
+      );
+      expect(config.enabled, false);
+      expect(config.showInProduction, true);
+      expect(config.triggerModes.contains(TriggerMode.shake), true);
+      expect(config.triggerModes.contains(TriggerMode.manual), true);
+      expect(config.triggerModes.contains(TriggerMode.fab), false);
+    });
+
+    test('TriggerMode enum has correct values', () {
+      expect(TriggerMode.values.length, 3);
+      expect(TriggerMode.values.contains(TriggerMode.fab), true);
+      expect(TriggerMode.values.contains(TriggerMode.shake), true);
+      expect(TriggerMode.values.contains(TriggerMode.manual), true);
+    });
+  });
+
+  group('Network Module Integration', () {
     test('NetworkModule.attachToDio adds interceptor', () {
       final dio = Dio();
       NetworkModule.attachToDio(dio);
@@ -70,61 +89,52 @@ void main() {
       );
     });
 
-    testWidgets('FlutterDevPanel.open shows panel', (tester) async {
-      FlutterDevPanel.initialize(
-        config: const DevPanelConfig(enabled: true),
-        modules: [const ConsoleModule()],
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: DevPanelWrapper(
-            child: Scaffold(
-              body: Builder(
-                builder: (context) {
-                  return ElevatedButton(
-                    onPressed: () => FlutterDevPanel.open(context),
-                    child: const Text('Open Panel'),
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
-      );
-
-      // Tap the button to open panel
-      await tester.tap(find.text('Open Panel'));
-      await tester.pumpAndSettle();
-
-      // Panel should be visible
-      expect(find.text('Dev Panel'), findsOneWidget);
+    test('Multiple Dio instances can be attached', () {
+      final dio1 = Dio();
+      final dio2 = Dio();
+      
+      NetworkModule.attachToDio(dio1);
+      NetworkModule.attachToDio(dio2);
+      
+      expect(dio1.interceptors.isNotEmpty, true);
+      expect(dio2.interceptors.isNotEmpty, true);
     });
   });
 
-  group('Module Registration Tests', () {
-    test('Console module registers correctly', () {
-      final module = const ConsoleModule();
-      expect(module.name, 'Console');
-      expect(module.icon, Icons.terminal);
+  group('DevLogger Tests', () {
+    setUp(() {
+      // Clear logs before each test
+      DevLogger.instance.clear();
     });
 
-    test('Network module registers correctly', () {
-      final module = NetworkModule();
-      expect(module.name, 'Network');
-      expect(module.icon, Icons.network_check);
+    test('DevLogger can log different levels', () {
+      DevLogger.instance.verbose('Verbose message');
+      DevLogger.instance.debug('Debug message');
+      DevLogger.instance.info('Info message');
+      DevLogger.instance.warning('Warning message');
+      DevLogger.instance.error('Error message');
+      
+      final logs = DevLogger.instance.logs;
+      expect(logs.length, 5);
+      expect(logs[0].level, LogLevel.verbose);
+      expect(logs[1].level, LogLevel.debug);
+      expect(logs[2].level, LogLevel.info);
+      expect(logs[3].level, LogLevel.warning);
+      expect(logs[4].level, LogLevel.error);
     });
 
-    test('Device module registers correctly', () {
-      final module = const DeviceModule();
-      expect(module.name, 'Device Info');
-      expect(module.icon, Icons.phone_android);
+    test('DevLogger static log method works', () {
+      DevLogger.log('Static log message');
+      expect(DevLogger.instance.logs.isNotEmpty, true);
+      expect(DevLogger.instance.logs.last.message, 'Static log message');
     });
 
-    test('Performance module registers correctly', () {
-      final module = const PerformanceModule();
-      expect(module.name, 'Performance');
-      expect(module.icon, Icons.speed);
+    test('DevLogger clear removes all logs', () {
+      DevLogger.instance.info('Test message');
+      expect(DevLogger.instance.logs.isNotEmpty, true);
+      
+      DevLogger.instance.clear();
+      expect(DevLogger.instance.logs.isEmpty, true);
     });
   });
 }

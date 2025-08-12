@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dev_panel_core/flutter_dev_panel_core.dart';
+import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 import 'models/performance_data.dart';
 import 'fps_tracker.dart';
 

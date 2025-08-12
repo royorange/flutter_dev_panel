@@ -10,8 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_dev_panel_core:
-    path: ../flutter_dev_panel_core
+  flutter_dev_panel:
+    path: ../..
   dio: ^5.4.0
   http: ^1.2.0
   graphql_flutter: ^5.1.0

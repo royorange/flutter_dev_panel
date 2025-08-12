@@ -180,29 +180,22 @@ packages:
       relative: true
     source: path
     version: "0.0.1"
-  flutter_dev_panel_core:
-    dependency: transitive
-    description:
-      path: "../packages/flutter_dev_panel_core"
-      relative: true
-    source: path
-    version: "0.0.1"
   flutter_dev_panel_device:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "../packages/flutter_dev_panel_device"
       relative: true
     source: path
     version: "0.0.1"
   flutter_dev_panel_network:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "../packages/flutter_dev_panel_network"
       relative: true
     source: path
     version: "0.0.1"
   flutter_dev_panel_performance:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "../packages/flutter_dev_panel_performance"
       relative: true

@@ -12,11 +12,15 @@ dependencies:
   flutter:
     sdk: flutter
   
-  # 核心模块
-  flutter_dev_panel_core:
-    path: packages/flutter_dev_panel_core
+  # Core dependencies (移自 flutter_dev_panel_core)
+  sensors_plus: ^6.1.1
+  shared_preferences: ^2.2.2
+  flutter_dotenv: ^5.1.0
   
-  # 可选模块（用户可以选择性导入）
+  # Optional module packages (用户按需安装)
+  # 注意：这些现在是可选的，用户可以根据需要添加
+  flutter_dev_panel_console:
+    path: packages/flutter_dev_panel_console
   flutter_dev_panel_network:
     path: packages/flutter_dev_panel_network
   flutter_dev_panel_device:
@@ -28,9 +32,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-  # Test dependencies
-  flutter_dev_panel_console:
-    path: packages/flutter_dev_panel_console
   dio: ^5.4.0
 
 # For information on the generic Dart part of this file, see the

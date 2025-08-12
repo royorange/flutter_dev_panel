@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dev_panel_core/flutter_dev_panel_core.dart';
+import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 import 'package:graphql_flutter/graphql_flutter.dart' as gql;

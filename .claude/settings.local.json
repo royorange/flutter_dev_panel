@@ -33,7 +33,11 @@
       "Bash(for dir in flutter_dev_panel_*)",
       "Bash(do echo \"=== Testing $dir ===\")",
       "Bash(git rm:*)",
-      "Bash(/tmp/test_assert:*)"
+      "Bash(/tmp/test_assert:*)",
+      "Bash(cp:*)",
+      "Bash(chmod:*)",
+      "Bash(./test_all.sh)",
+      "Bash(/Users/roy/development/flutter_dev_panel/test_all.sh)"
     ],
     "deny": []
   }

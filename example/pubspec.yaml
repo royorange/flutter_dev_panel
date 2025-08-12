@@ -10,12 +10,21 @@ dependencies:
   flutter:
     sdk: flutter
   
+  # Core framework
   flutter_dev_panel:
     path: ../
   
+  # All modules for testing
   flutter_dev_panel_console:
     path: ../packages/flutter_dev_panel_console
+  flutter_dev_panel_network:
+    path: ../packages/flutter_dev_panel_network
+  flutter_dev_panel_device:
+    path: ../packages/flutter_dev_panel_device
+  flutter_dev_panel_performance:
+    path: ../packages/flutter_dev_panel_performance
   
+  # Dependencies for testing
   dio: ^5.4.0
   graphql_flutter: ^5.1.0
   sensors_plus: ^6.1.1

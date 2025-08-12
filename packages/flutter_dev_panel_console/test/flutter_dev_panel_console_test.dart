@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
 import 'package:flutter_dev_panel_console/src/ui/pages/console_page.dart';
-import 'package:flutter_dev_panel_core/flutter_dev_panel_core.dart';
+import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 
 // Simple test context for unit tests
 class _TestBuildContext extends BuildContext {

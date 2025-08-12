@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dev_panel_core/flutter_dev_panel_core.dart';
+import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 import 'ui/pages/console_page.dart';
 
 /// Console 日志模块

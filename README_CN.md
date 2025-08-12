@@ -54,21 +54,43 @@
 
 ## 安装
 
-在 `pubspec.yaml` 中添加：
+### 方案1：仅安装核心包（最小化）
 
 ```yaml
 dependencies:
   flutter_dev_panel: ^1.0.0
 ```
 
-或者如果您只想在开发时使用：
+### 方案2：安装特定模块（推荐）
+
+```yaml
+dependencies:
+  flutter_dev_panel: ^1.0.0
+  flutter_dev_panel_console: ^1.0.0    # 日志功能
+  flutter_dev_panel_network: ^1.0.0    # 网络监控
+  # 只添加您需要的模块
+```
+
+### 方案3：安装所有模块
+
+```yaml
+dependencies:
+  flutter_dev_panel: ^1.0.0
+  flutter_dev_panel_console: ^1.0.0
+  flutter_dev_panel_network: ^1.0.0
+  flutter_dev_panel_device: ^1.0.0
+  flutter_dev_panel_performance: ^1.0.0
+```
+
+### 仅在开发环境使用
+
+如果只想在开发时使用：
 
 ```yaml
 dev_dependencies:
   flutter_dev_panel: ^1.0.0
+  # 添加您需要的模块
 ```
-
-注意：主包会自动包含所有核心功能。各个模块包（console、network、device、performance）作为传递依赖被包含。
 
 ## 快速开始
 
@@ -325,18 +347,21 @@ FlutterDevPanel.initialize(
 Flutter Dev Panel 遵循模块化架构：
 
 ```
-flutter_dev_panel/
+flutter_dev_panel/              # 核心框架（必需）
 ├── lib/
-│   ├── core/              # 核心功能
-│   ├── modules/            # 模块接口
-│   └── ui/                 # UI 组件
-├── packages/
-│   ├── flutter_dev_panel_console/     # 控制台模块
-│   ├── flutter_dev_panel_network/     # 网络模块
+│   └── src/
+│       ├── core/               # 核心功能
+│       ├── models/             # 数据模型
+│       └── ui/                 # UI 组件
+├── packages/                   # 可选模块
+│   ├── flutter_dev_panel_console/     # 控制台/日志模块
+│   ├── flutter_dev_panel_network/     # 网络监控模块
 │   ├── flutter_dev_panel_device/      # 设备信息模块
-│   └── flutter_dev_panel_performance/ # 性能模块
-└── example/                            # 示例应用
+│   └── flutter_dev_panel_performance/ # 性能监控模块
+└── example/                    # 示例应用
 ```
+
+每个模块包都依赖于核心 `flutter_dev_panel` 包，可以根据您的需求独立安装。
 
 ## 贡献
 
@@ -378,9 +403,30 @@ flutter test
 - [ ] 数据库查询监控
 - [ ] 状态管理检查
 
-## 相关项目
+## 包结构
 
-- [flutter_dev_panel_console](https://pub.dev/packages/flutter_dev_panel_console)
-- [flutter_dev_panel_network](https://pub.dev/packages/flutter_dev_panel_network)
-- [flutter_dev_panel_device](https://pub.dev/packages/flutter_dev_panel_device)
-- [flutter_dev_panel_performance](https://pub.dev/packages/flutter_dev_panel_performance)
+### 核心包（必需）
+- **flutter_dev_panel** - 核心框架，包含 UI 组件、环境管理和基础设施
+
+### 可选模块包
+- **flutter_dev_panel_console** - 控制台/日志模块，支持高级过滤和日志捕获
+- **flutter_dev_panel_network** - 网络监控，支持 Dio、HTTP 和 GraphQL
+- **flutter_dev_panel_device** - 设备信息和系统详情
+- **flutter_dev_panel_performance** - FPS 监控、内存跟踪和性能指标
+
+## 测试
+
+```bash
+# 运行所有测试
+flutter test
+
+# 测试单个模块
+flutter test packages/flutter_dev_panel_console/test
+flutter test packages/flutter_dev_panel_network/test
+flutter test packages/flutter_dev_panel_device/test
+flutter test packages/flutter_dev_panel_performance/test
+
+# 运行示例应用
+cd example
+flutter run
+```
