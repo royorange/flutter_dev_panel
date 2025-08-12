@@ -24,11 +24,11 @@ export 'src/ui/widgets/modular_monitoring_fab.dart';
 export 'src/ui/widgets/environment_switcher.dart';
 export 'src/ui/widgets/theme_switcher.dart';
 
-// Module exports (these are separate packages)
-export 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
-export 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
-export 'package:flutter_dev_panel_device/flutter_dev_panel_device.dart';
-export 'package:flutter_dev_panel_performance/flutter_dev_panel_performance.dart';
+// Module exports are now separate packages that users install independently:
+// - flutter_dev_panel_console
+// - flutter_dev_panel_network  
+// - flutter_dev_panel_device
+// - flutter_dev_panel_performance
 
 // Import for internal use
 import 'src/flutter_dev_panel_core.dart' as core;

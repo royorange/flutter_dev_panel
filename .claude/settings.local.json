@@ -37,7 +37,14 @@
       "Bash(cp:*)",
       "Bash(chmod:*)",
       "Bash(./test_all.sh)",
-      "Bash(/Users/roy/development/flutter_dev_panel/test_all.sh)"
+      "Bash(/Users/roy/development/flutter_dev_panel/test_all.sh)",
+      "Bash(file=\"packages/flutter_dev_panel_$pkg/pubspec.yaml\")",
+      "Bash(if grep -q \"# To add assets\" \"$file\")",
+      "Bash(then)",
+      "Bash(sed:*)",
+      "Bash(fi)",
+      "Bash(for:*)",
+      "Bash(tail:*)"
     ],
     "deny": []
   }

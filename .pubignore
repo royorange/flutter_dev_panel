@@ -1,0 +1,13 @@
+# 排除子包，它们将单独发布
+packages/
+
+# 排除测试脚本
+test/run_all_tests.sh
+
+# 排除临时文件
+*.log
+.DS_Store
+
+# 排除开发文档
+CLAUDE.md
+GRAPHQL_IMPROVEMENTS.md
