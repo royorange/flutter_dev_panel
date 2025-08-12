@@ -72,25 +72,30 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
     final hadContent = _fabContents.isNotEmpty;
     final hasContent = newContents.isNotEmpty;
     
-    setState(() {
-      _fabContents = newContents;
-    });
-    
-    // 自动展开/收起逻辑
-    if (!_isDragging && !_isManuallyCollapsed) {
-      if (hasContent && !_isExpanded) {
-        // 有内容时自动展开
-        _expand();
-      } else if (!hasContent && _isExpanded) {
-        // 无内容时自动收起
-        _collapse();
+    // 使用 addPostFrameCallback 延迟状态更新，避免在构建过程中触发新的构建
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      
+      setState(() {
+        _fabContents = newContents;
+      });
+      
+      // 自动展开/收起逻辑
+      if (!_isDragging && !_isManuallyCollapsed) {
+        if (hasContent && !_isExpanded) {
+          // 有内容时自动展开
+          _expand();
+        } else if (!hasContent && _isExpanded) {
+          // 无内容时自动收起
+          _collapse();
+        }
       }
-    }
-    
-    // 如果从无内容变为有内容，清除手动收起标志
-    if (!hadContent && hasContent) {
-      _isManuallyCollapsed = false;
-    }
+      
+      // 如果从无内容变为有内容，清除手动收起标志
+      if (!hadContent && hasContent) {
+        _isManuallyCollapsed = false;
+      }
+    });
   }
   
   void _expand() {

@@ -236,9 +236,15 @@ class _ConsolePageState extends State<ConsolePage> {
   /// Build bottom status bar
   Widget _buildStatusBar(BuildContext context) {
     final theme = Theme.of(context);
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
     
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 8,
+        bottom: 8 + bottomPadding,
+      ),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
         border: Border(
@@ -253,33 +259,41 @@ class _ConsolePageState extends State<ConsolePage> {
           final stats = provider.getLogStatistics();
           return Row(
             children: [
-              // Log statistics
-              Row(
-                children: [
-                  _buildStatChip(
-                    context,
-                    count: stats[LogLevel.error] ?? 0,
-                    color: Colors.red,
-                    icon: Icons.error_outline,
+              // Log statistics - 使用 Wrap 防止溢出
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildStatChip(
+                        context,
+                        count: stats[LogLevel.error] ?? 0,
+                        color: Colors.red,
+                        icon: Icons.error_outline,
+                      ),
+                      if (stats[LogLevel.error] != null && stats[LogLevel.error]! > 0)
+                        const SizedBox(width: 8),
+                      _buildStatChip(
+                        context,
+                        count: stats[LogLevel.warning] ?? 0,
+                        color: Colors.orange,
+                        icon: Icons.warning_amber,
+                      ),
+                      if (stats[LogLevel.warning] != null && stats[LogLevel.warning]! > 0)
+                        const SizedBox(width: 8),
+                      _buildStatChip(
+                        context,
+                        count: stats[LogLevel.info] ?? 0,
+                        color: Colors.green,
+                        icon: Icons.info_outline,
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  _buildStatChip(
-                    context,
-                    count: stats[LogLevel.warning] ?? 0,
-                    color: Colors.orange,
-                    icon: Icons.warning_amber,
-                  ),
-                  const SizedBox(width: 8),
-                  _buildStatChip(
-                    context,
-                    count: stats[LogLevel.info] ?? 0,
-                    color: Colors.green,
-                    icon: Icons.info_outline,
-                  ),
-                ],
+                ),
               ),
               
-              const Spacer(),
+              const SizedBox(width: 16),
               
               // Total log count
               Text(
