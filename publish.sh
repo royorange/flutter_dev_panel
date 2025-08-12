@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# Flutter Dev Panel 发布脚本
-# 用于发布主包和所有子包到 pub.dev
+# Flutter Dev Panel Publishing Script
+# For publishing main package and all sub-packages to pub.dev
 
-set -e  # 遇到错误立即退出
+set -e  # Exit on error
 
-# 颜色输出
+# Color output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# 打印带颜色的消息
+# Print colored messages
 print_success() {
     echo -e "${GREEN}✓ $1${NC}"
 }
@@ -24,114 +24,114 @@ print_info() {
     echo -e "${YELLOW}➜ $1${NC}"
 }
 
-# 检查是否有未提交的更改
+# Check for uncommitted changes
 check_git_status() {
     if [[ -n $(git status -s) ]]; then
-        print_error "有未提交的更改，请先提交或暂存"
+        print_error "Uncommitted changes detected. Please commit or stash them first"
         git status -s
         exit 1
     fi
 }
 
-# 发布包的函数
+# Function to publish a package
 publish_package() {
     local package_path=$1
     local package_name=$2
     
-    print_info "准备发布 $package_name..."
+    print_info "Preparing to publish $package_name..."
     
     cd "$package_path"
     
-    # 运行测试
-    print_info "运行测试..."
+    # Run tests
+    print_info "Running tests..."
     if flutter test > /dev/null 2>&1; then
-        print_success "测试通过"
+        print_success "Tests passed"
     else
-        print_error "测试失败，跳过 $package_name"
+        print_error "Tests failed. Skipping $package_name"
         return 1
     fi
     
-    # 分析代码
-    print_info "分析代码..."
-    # 暂时禁用 set -e 以捕获分析结果
+    # Analyze code
+    print_info "Analyzing code..."
+    # Temporarily disable set -e to capture analysis result
     set +e
     dart analyze lib --no-fatal-warnings > /dev/null 2>&1
     local analyze_exit_code=$?
     set -e
     
     if [[ $analyze_exit_code -eq 0 ]]; then
-        print_success "代码分析通过"
+        print_success "Code analysis passed"
     else
-        # 显示分析结果，但只有错误才失败，警告可以继续
+        # Show analysis results, but only fail on errors, warnings are ok
         local analyze_output=$(dart analyze lib 2>&1)
         if echo "$analyze_output" | grep -q "error"; then
-            print_error "代码分析失败（有错误）"
+            print_error "Code analysis failed (errors found)"
             echo "$analyze_output"
             return 1
         else
-            print_info "代码分析通过（有警告）"
-            print_info "警告不影响发布，可以继续"
+            print_info "Code analysis passed (with warnings)"
+            print_info "Warnings don't block publishing, continuing..."
         fi
     fi
     
-    # 干运行检查
-    print_info "运行发布前检查..."
+    # Dry run check
+    print_info "Running pre-publish check..."
     local dry_run_output
     local dry_run_exit_code
     
-    # 暂时禁用 set -e 以捕获退出码
+    # Temporarily disable set -e to capture exit code
     set +e
     dry_run_output=$(flutter pub publish --dry-run 2>&1)
     dry_run_exit_code=$?
     set -e
     
-    # 显示包大小信息
+    # Show package size info
     echo "$dry_run_output" | grep "Total compressed" || true
     
-    # 检查是否有真正的错误
-    # 退出码 65 通常表示有警告但可以发布
+    # Check for real errors
+    # Exit code 65 usually means warnings but publishable
     if echo "$dry_run_output" | grep -q "Package has.*error"; then
-        print_error "发布前检查失败（有错误）"
+        print_error "Pre-publish check failed (errors found)"
         echo "$dry_run_output" | grep -A 10 "error"
         return 1
     elif echo "$dry_run_output" | grep -q "Package has.*warning"; then
-        # 有警告但可以发布（常见于 monorepo 结构）
-        print_info "发布前检查通过（有警告但可以发布）"
-        print_info "警告通常是关于 gitignored 文件，这在 monorepo 中是正常的"
+        # Has warnings but publishable (common in monorepo)
+        print_info "Pre-publish check passed (with warnings)"
+        print_info "Warnings about gitignored files are normal in monorepo"
     elif [[ $dry_run_exit_code -eq 0 ]]; then
-        # 完全没有问题
-        print_success "发布前检查完全通过"
+        # No issues at all
+        print_success "Pre-publish check passed completely"
     else
-        # 其他情况也继续（只要没有明确的错误）
-        print_info "发布前检查完成"
+        # Continue for other cases (as long as no explicit errors)
+        print_info "Pre-publish check completed"
     fi
     
-    # 询问是否发布
+    # Ask whether to publish
     echo ""
-    read -p "是否发布 $package_name 到 pub.dev? [Y/n] " -r
+    read -p "Publish $package_name to pub.dev? [Y/n] " -r
     if [[ $REPLY =~ ^[Nn]$ ]]; then
-        print_info "跳过发布 $package_name"
+        print_info "Skipping $package_name"
     else
-        print_info "发布 $package_name..."
+        print_info "Publishing $package_name..."
         flutter pub publish --force
-        print_success "$package_name 发布成功!"
+        print_success "$package_name published successfully!"
     fi
     
     cd - > /dev/null
     echo ""
 }
 
-# 更新子包依赖的函数
+# Function to update sub-package dependencies
 update_subpackage_dependencies() {
     local package_path=$1
     local main_version=$2
     
-    print_info "更新 $package_path 的依赖..."
+    print_info "Updating dependencies for $package_path..."
     
-    # 备份原始 pubspec.yaml
+    # Backup original pubspec.yaml
     cp "$package_path/pubspec.yaml" "$package_path/pubspec.yaml.bak"
     
-    # 更新依赖：从 path 改为版本号
+    # Update dependencies: from path to version
     if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS
         sed -i '' "s|path: ../..|^$main_version|g" "$package_path/pubspec.yaml"
@@ -140,75 +140,75 @@ update_subpackage_dependencies() {
         sed -i "s|path: ../..|^$main_version|g" "$package_path/pubspec.yaml"
     fi
     
-    # 移除 publish_to: none
+    # Remove publish_to: none
     if [[ "$OSTYPE" == "darwin"* ]]; then
         sed -i '' '/publish_to: none/d' "$package_path/pubspec.yaml"
     else
         sed -i '/publish_to: none/d' "$package_path/pubspec.yaml"
     fi
     
-    print_success "依赖更新完成"
+    print_success "Dependencies updated"
 }
 
-# 恢复子包依赖的函数
+# Function to restore sub-package dependencies
 restore_subpackage_dependencies() {
     local package_path=$1
     
     if [[ -f "$package_path/pubspec.yaml.bak" ]]; then
         mv "$package_path/pubspec.yaml.bak" "$package_path/pubspec.yaml"
-        print_info "已恢复 $package_path 的原始依赖配置"
+        print_info "Restored original dependencies for $package_path"
     fi
 }
 
-# 主流程
+# Main process
 main() {
-    print_info "Flutter Dev Panel 发布脚本"
+    print_info "Flutter Dev Panel Publishing Script"
     echo "================================"
     
-    # 检查当前目录
+    # Check current directory
     if [[ ! -f "pubspec.yaml" ]] || [[ ! -d "packages" ]]; then
-        print_error "请在 flutter_dev_panel 根目录运行此脚本"
+        print_error "Please run this script from flutter_dev_panel root directory"
         exit 1
     fi
     
-    # 检查 Git 状态
-    print_info "检查 Git 状态..."
+    # Check Git status
+    print_info "Checking Git status..."
     check_git_status
-    print_success "Git 状态干净"
+    print_success "Git status clean"
     
-    # 获取主包版本
+    # Get main package version
     MAIN_VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)
-    print_info "主包版本: $MAIN_VERSION"
+    print_info "Main package version: $MAIN_VERSION"
     
     echo ""
-    echo "发布顺序："
-    echo "1. flutter_dev_panel (主包)"
+    echo "Publishing order:"
+    echo "1. flutter_dev_panel (main package)"
     echo "2. flutter_dev_panel_console"
     echo "3. flutter_dev_panel_network"
     echo "4. flutter_dev_panel_device"
     echo "5. flutter_dev_panel_performance"
     echo ""
     
-    read -p "开始发布流程? [Y/n] " -r
+    read -p "Start publishing process? [Y/n] " -r
     if [[ $REPLY =~ ^[Nn]$ ]]; then
-        print_info "发布取消"
+        print_info "Publishing cancelled"
         exit 0
     fi
     
-    # 发布主包
+    # Publish main package
     echo ""
-    print_info "====== 发布主包 ======"
+    print_info "====== Publishing Main Package ======"
     publish_package "." "flutter_dev_panel"
     
-    # 询问是否继续发布子包
+    # Ask whether to continue with sub-packages
     echo ""
-    read -p "主包发布完成，是否继续发布子包? [Y/n] " -r
+    read -p "Main package published. Continue with sub-packages? [Y/n] " -r
     if [[ $REPLY =~ ^[Nn]$ ]]; then
-        print_info "跳过子包发布"
+        print_info "Skipping sub-packages"
         exit 0
     fi
     
-    # 子包列表
+    # Sub-packages list
     SUBPACKAGES=(
         "flutter_dev_panel_console"
         "flutter_dev_panel_network"
@@ -216,39 +216,39 @@ main() {
         "flutter_dev_panel_performance"
     )
     
-    # 更新并发布子包
+    # Update and publish sub-packages
     for package in "${SUBPACKAGES[@]}"; do
         echo ""
-        print_info "====== 处理 $package ======"
+        print_info "====== Processing $package ======"
         
         package_path="packages/$package"
         
-        # 更新依赖
+        # Update dependencies
         update_subpackage_dependencies "$package_path" "$MAIN_VERSION"
         
-        # 发布包
+        # Publish package
         if publish_package "$package_path" "$package"; then
-            print_success "$package 处理完成"
+            print_success "$package processed successfully"
         else
-            print_error "$package 处理失败"
-            # 恢复原始配置
+            print_error "$package processing failed"
+            # Restore original configuration
             restore_subpackage_dependencies "$package_path"
         fi
     done
     
     echo ""
-    print_success "所有包发布流程完成!"
+    print_success "All packages publishing process completed!"
     
-    # 询问是否恢复本地开发配置
+    # Ask whether to restore local development configuration
     echo ""
-    read -p "是否恢复子包的本地开发配置 (path 依赖)? [Y/n] " -r
+    read -p "Restore local development configuration (path dependencies)? [Y/n] " -r
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
         for package in "${SUBPACKAGES[@]}"; do
             restore_subpackage_dependencies "packages/$package"
         done
-        print_success "本地开发配置已恢复"
+        print_success "Local development configuration restored"
     fi
 }
 
-# 运行主流程
+# Run main process
 main
