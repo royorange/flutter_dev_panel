@@ -1,0 +1,147 @@
+name: Publish to pub.dev
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '*-v*'  # For sub-packages like flutter_dev_panel_console-v0.0.2
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to publish'
+        required: true
+        type: choice
+        options:
+          - flutter_dev_panel
+          - flutter_dev_panel_console
+          - flutter_dev_panel_network
+          - flutter_dev_panel_device
+          - flutter_dev_panel_performance
+          - all
+      dry_run:
+        description: 'Dry run only'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+      
+      - name: Setup Pub Credentials
+        run: |
+          mkdir -p $HOME/.config/dart
+          echo '${{ secrets.PUB_CREDENTIALS }}' > $HOME/.config/dart/pub-credentials.json
+        
+      - name: Determine package to publish
+        id: determine_package
+        run: |
+          if [ "${{ github.event_name }}" == "push" ]; then
+            # Extract package name from tag
+            TAG="${{ github.ref_name }}"
+            if [[ $TAG == flutter_dev_panel_* ]]; then
+              PACKAGE=$(echo $TAG | sed 's/-v.*//')
+            elif [[ $TAG == v* ]]; then
+              PACKAGE="flutter_dev_panel"
+            fi
+          else
+            # Use workflow_dispatch input
+            PACKAGE="${{ github.event.inputs.package }}"
+          fi
+          echo "package=$PACKAGE" >> $GITHUB_OUTPUT
+      
+      - name: Publish main package
+        if: steps.determine_package.outputs.package == 'flutter_dev_panel' || steps.determine_package.outputs.package == 'all'
+        run: |
+          echo "Publishing flutter_dev_panel..."
+          flutter pub get
+          flutter test
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            flutter pub publish --dry-run
+          else
+            flutter pub publish --force
+          fi
+      
+      - name: Publish flutter_dev_panel_console
+        if: steps.determine_package.outputs.package == 'flutter_dev_panel_console' || steps.determine_package.outputs.package == 'all'
+        run: |
+          echo "Publishing flutter_dev_panel_console..."
+          cd packages/flutter_dev_panel_console
+          
+          # Update dependency to published version
+          MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
+          sed -i "s|path: ../..|^$MAIN_VERSION|g" pubspec.yaml
+          sed -i '/publish_to: none/d' pubspec.yaml
+          
+          flutter pub get
+          flutter test
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            flutter pub publish --dry-run
+          else
+            flutter pub publish --force
+          fi
+      
+      - name: Publish flutter_dev_panel_network
+        if: steps.determine_package.outputs.package == 'flutter_dev_panel_network' || steps.determine_package.outputs.package == 'all'
+        run: |
+          echo "Publishing flutter_dev_panel_network..."
+          cd packages/flutter_dev_panel_network
+          
+          # Update dependency to published version
+          MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
+          sed -i "s|path: ../..|^$MAIN_VERSION|g" pubspec.yaml
+          sed -i '/publish_to: none/d' pubspec.yaml
+          
+          flutter pub get
+          flutter test
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            flutter pub publish --dry-run
+          else
+            flutter pub publish --force
+          fi
+      
+      - name: Publish flutter_dev_panel_device
+        if: steps.determine_package.outputs.package == 'flutter_dev_panel_device' || steps.determine_package.outputs.package == 'all'
+        run: |
+          echo "Publishing flutter_dev_panel_device..."
+          cd packages/flutter_dev_panel_device
+          
+          # Update dependency to published version
+          MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
+          sed -i "s|path: ../..|^$MAIN_VERSION|g" pubspec.yaml
+          sed -i '/publish_to: none/d' pubspec.yaml
+          
+          flutter pub get
+          flutter test
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            flutter pub publish --dry-run
+          else
+            flutter pub publish --force
+          fi
+      
+      - name: Publish flutter_dev_panel_performance
+        if: steps.determine_package.outputs.package == 'flutter_dev_panel_performance' || steps.determine_package.outputs.package == 'all'
+        run: |
+          echo "Publishing flutter_dev_panel_performance..."
+          cd packages/flutter_dev_panel_performance
+          
+          # Update dependency to published version
+          MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
+          sed -i "s|path: ../..|^$MAIN_VERSION|g" pubspec.yaml
+          sed -i '/publish_to: none/d' pubspec.yaml
+          
+          flutter pub get
+          flutter test
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            flutter pub publish --dry-run
+          else
+            flutter pub publish --force
+          fi
