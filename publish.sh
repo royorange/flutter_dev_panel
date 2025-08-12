@@ -72,14 +72,13 @@ publish_package() {
     
     # 询问是否发布
     echo ""
-    read -p "是否发布 $package_name 到 pub.dev? (y/n) " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    read -p "是否发布 $package_name 到 pub.dev? [Y/n] " -r
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
+        print_info "跳过发布 $package_name"
+    else
         print_info "发布 $package_name..."
         flutter pub publish --force
         print_success "$package_name 发布成功!"
-    else
-        print_info "跳过发布 $package_name"
     fi
     
     cd - > /dev/null
@@ -154,9 +153,8 @@ main() {
     echo "5. flutter_dev_panel_performance"
     echo ""
     
-    read -p "开始发布流程? (y/n) " -n 1 -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    read -p "开始发布流程? [Y/n] " -r
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
         print_info "发布取消"
         exit 0
     fi
@@ -168,9 +166,8 @@ main() {
     
     # 询问是否继续发布子包
     echo ""
-    read -p "主包发布完成，是否继续发布子包? (y/n) " -n 1 -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    read -p "主包发布完成，是否继续发布子包? [Y/n] " -r
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
         print_info "跳过子包发布"
         exit 0
     fi
@@ -208,9 +205,8 @@ main() {
     
     # 询问是否恢复本地开发配置
     echo ""
-    read -p "是否恢复子包的本地开发配置 (path 依赖)? (y/n) " -n 1 -r
-    echo ""
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    read -p "是否恢复子包的本地开发配置 (path 依赖)? [Y/n] " -r
+    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
         for package in "${SUBPACKAGES[@]}"; do
             restore_subpackage_dependencies "packages/$package"
         done
