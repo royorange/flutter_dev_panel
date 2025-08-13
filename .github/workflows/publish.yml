@@ -83,6 +83,8 @@ jobs:
         if: steps.determine_package.outputs.package == 'flutter_dev_panel' || steps.determine_package.outputs.package == 'all'
         run: |
           echo "Publishing flutter_dev_panel..."
+          # Remove example to avoid dependency conflicts
+          rm -rf example
           flutter pub get
           flutter test
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
@@ -96,6 +98,9 @@ jobs:
         run: |
           echo "Publishing flutter_dev_panel_console..."
           cd packages/flutter_dev_panel_console
+          
+          # Remove example to avoid dependency conflicts
+          rm -rf example
           
           # Update dependency to published version
           MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
@@ -116,6 +121,9 @@ jobs:
           echo "Publishing flutter_dev_panel_network..."
           cd packages/flutter_dev_panel_network
           
+          # Remove example to avoid dependency conflicts
+          rm -rf example
+          
           # Update dependency to published version
           MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
           sed -i "s|path: ../..|^$MAIN_VERSION|g" pubspec.yaml
@@ -135,6 +143,9 @@ jobs:
           echo "Publishing flutter_dev_panel_device..."
           cd packages/flutter_dev_panel_device
           
+          # Remove example to avoid dependency conflicts
+          rm -rf example
+          
           # Update dependency to published version
           MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
           sed -i "s|path: ../..|^$MAIN_VERSION|g" pubspec.yaml
@@ -153,6 +164,9 @@ jobs:
         run: |
           echo "Publishing flutter_dev_panel_performance..."
           cd packages/flutter_dev_panel_performance
+          
+          # Remove example to avoid dependency conflicts
+          rm -rf example
           
           # Update dependency to published version
           MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
