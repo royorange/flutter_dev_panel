@@ -81,6 +81,25 @@ void main() {
     ),
   );
 }
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    // Listen to theme changes from dev panel
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeManager.instance.themeMode,
+      builder: (context, themeMode, child) {
+        return MaterialApp(
+          title: 'Flutter Demo',
+          theme: ThemeData.light(),
+          darkTheme: ThemeData.dark(),
+          themeMode: themeMode,  // Apply theme from dev panel
+          home: MyHomePage(),
+        );
+      },
+    );
+  }
+}
 ```
 
 ## Usage
