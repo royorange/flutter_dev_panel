@@ -421,10 +421,6 @@ flutter_dev_panel/              # 核心框架（必需）
 
 每个模块包都依赖于核心 `flutter_dev_panel` 包，可以根据您的需求独立安装。
 
-## 贡献
-
-我们欢迎贡献！详情请参阅我们的[贡献指南](CONTRIBUTING.md)。
-
 ### 开发设置
 
 1. 克隆仓库
@@ -440,26 +436,6 @@ flutter test
 ## 许可证
 
 该项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
-
-## 支持
-
-- **问题反馈**: [GitHub Issues](https://github.com/yourusername/flutter_dev_panel/issues)
-- **讨论**: [GitHub Discussions](https://github.com/yourusername/flutter_dev_panel/discussions)
-- **文档**: [API 文档](https://pub.dev/documentation/flutter_dev_panel/latest/)
-
-## 致谢
-
-特别感谢所有帮助改进此项目的贡献者。
-
-## 路线图
-
-- [ ] 自定义主题支持
-- [ ] 导出/导入配置
-- [ ] 网络请求重放
-- [ ] 性能分析导出
-- [ ] WebSocket 监控
-- [ ] 数据库查询监控
-- [ ] 状态管理检查
 
 ## 包结构
 
