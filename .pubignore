@@ -19,5 +19,5 @@ CLAUDE.md
 GRAPHQL_IMPROVEMENTS.md
 README_CN.md
 
-# 排除example的测试目录（空的）
-example/test/
+# 排除example目录（发布时不需要）
+example/
