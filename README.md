@@ -82,10 +82,10 @@ void main() {
   );
 }
 
-// Option 1: Simple integration - Dev panel controls theme
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    // Listen to theme changes from dev panel
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeManager.instance.themeMode,
       builder: (context, themeMode, child) {
@@ -93,58 +93,10 @@ class MyApp extends StatelessWidget {
           title: 'Flutter Demo',
           theme: ThemeData.light(),
           darkTheme: ThemeData.dark(),
-          themeMode: themeMode,  // Dev panel controls theme
+          themeMode: themeMode,  // Apply theme from dev panel
           home: MyHomePage(),
         );
       },
-    );
-  }
-}
-
-// Option 2: Sync with existing theme management
-class MyApp extends StatefulWidget {
-  @override
-  _MyAppState createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  late ThemeMode _themeMode;
-  
-  @override
-  void initState() {
-    super.initState();
-    // Initialize with your app's saved theme preference
-    _themeMode = MyThemePreferences.getThemeMode();
-    
-    // Sync dev panel with app theme
-    ThemeManager.instance.setThemeMode(_themeMode);
-    
-    // Listen to dev panel theme changes
-    ThemeManager.instance.themeMode.addListener(_onThemeChanged);
-  }
-  
-  void _onThemeChanged() {
-    setState(() {
-      _themeMode = ThemeManager.instance.themeMode.value;
-      // Save to your app's preferences
-      MyThemePreferences.saveThemeMode(_themeMode);
-    });
-  }
-  
-  @override
-  void dispose() {
-    ThemeManager.instance.themeMode.removeListener(_onThemeChanged);
-    super.dispose();
-  }
-  
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
-      themeMode: _themeMode,
-      home: MyHomePage(),
     );
   }
 }
@@ -199,6 +151,64 @@ FlutterDevPanel.initialize(
   modules: [...],
 );
 ```
+
+## Theme Integration
+
+If your app already has theme management, you can sync it with the dev panel:
+
+```dart
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late ThemeMode _themeMode;
+  
+  @override
+  void initState() {
+    super.initState();
+    // Load your app's saved theme preference
+    _themeMode = MyThemePreferences.getThemeMode();
+    
+    // Sync dev panel with your app's theme
+    ThemeManager.instance.setThemeMode(_themeMode);
+    
+    // Listen to dev panel theme changes
+    ThemeManager.instance.themeMode.addListener(_onThemeChanged);
+  }
+  
+  void _onThemeChanged() {
+    setState(() {
+      _themeMode = ThemeManager.instance.themeMode.value;
+      // Save to your app's preferences
+      MyThemePreferences.saveThemeMode(_themeMode);
+    });
+  }
+  
+  @override
+  void dispose() {
+    ThemeManager.instance.themeMode.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      themeMode: _themeMode,
+      home: MyHomePage(),
+    );
+  }
+}
+```
+
+This approach:
+- Loads your existing theme preference on startup
+- Syncs the dev panel with your app's current theme
+- Updates your app's preferences when changed via dev panel
+- Maintains consistency between your app and dev panel themes
 
 ## License
 
