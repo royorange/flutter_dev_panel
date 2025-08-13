@@ -83,7 +83,10 @@ jobs:
         if: steps.determine_package.outputs.package == 'flutter_dev_panel' || steps.determine_package.outputs.package == 'all'
         run: |
           echo "Publishing flutter_dev_panel..."
-          # Skip flutter pub get, go directly to test (like local script)
+          # Remove example first to avoid dependency conflicts
+          rm -rf example
+          # Now safe to get dependencies and test
+          flutter pub get
           flutter test
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
             flutter pub publish --dry-run
