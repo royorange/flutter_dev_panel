@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -69,8 +70,14 @@ class ThemeManager extends ChangeNotifier {
     return _instance!;
   }
   
+  // ValueNotifier for simpler integration
+  final ValueNotifier<ThemeMode> themeMode = ValueNotifier(ThemeMode.system);
+  
   ThemeManager._() {
-    _loadTheme();
+    // 只在调试模式下加载主题
+    if (kDebugMode) {
+      _loadTheme();
+    }
   }
   
   // Current theme configuration
@@ -117,6 +124,7 @@ class ThemeManager extends ChangeNotifier {
       if (themeJson != null) {
         final themeData = jsonDecode(themeJson) as Map<String, dynamic>;
         _currentTheme = ThemeConfig.fromJson(themeData);
+        themeMode.value = _currentTheme.mode;  // 同步到ValueNotifier
         notifyListeners();
       }
     } catch (e) {
@@ -136,8 +144,12 @@ class ThemeManager extends ChangeNotifier {
   
   /// Switch theme
   void switchTheme(ThemeConfig theme) {
+    // 生产环境下不切换主题
+    if (!kDebugMode) return;
+    
     if (_currentTheme.name != theme.name) {
       _currentTheme = theme;
+      themeMode.value = theme.mode;  // 更新ValueNotifier
       _saveTheme();
       notifyListeners();
     }
@@ -145,11 +157,32 @@ class ThemeManager extends ChangeNotifier {
   
   /// Switch by theme mode
   void switchThemeMode(ThemeMode mode) {
+    // 生产环境下不切换主题
+    if (!kDebugMode) return;
+    
     final theme = predefinedThemes.firstWhere(
       (t) => t.mode == mode,
       orElse: () => predefinedThemes.first,
     );
     switchTheme(theme);
+  }
+  
+  /// Set theme mode (for external app sync)
+  void setThemeMode(ThemeMode mode) {
+    // 生产环境下不设置主题
+    if (!kDebugMode) return;
+    
+    themeMode.value = mode;
+    // 找到对应的theme配置
+    final theme = predefinedThemes.firstWhere(
+      (t) => t.mode == mode,
+      orElse: () => predefinedThemes.first,
+    );
+    if (_currentTheme.name != theme.name) {
+      _currentTheme = theme;
+      _saveTheme();
+      notifyListeners();
+    }
   }
   
   /// Add custom theme
@@ -160,6 +193,9 @@ class ThemeManager extends ChangeNotifier {
     Brightness? brightness,
     Map<String, dynamic>? customProperties,
   }) {
+    // 生产环境下不添加自定义主题
+    if (!kDebugMode) return;
+    
     // Remove existing theme with same name
     _customThemes.removeWhere((t) => t.name == name);
     
