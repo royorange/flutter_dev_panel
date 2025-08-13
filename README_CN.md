@@ -98,113 +98,177 @@ dev_dependencies:
 
 ## 快速开始
 
-### 1. 基础用法（最简单）
-
 ```dart
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
+// 导入您需要的模块
+import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
+import 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
 
 void main() {
-  // 初始化开发面板（在 Release 模式自动禁用）
+  // 初始化环境配置
+  EnvironmentManager.instance.initialize(
+    environments: [
+      const EnvironmentConfig(
+        name: 'Development',
+        variables: {
+          'api_url': 'https://dev.api.example.com',
+          'debug': true,
+        },
+        isDefault: true,
+      ),
+      const EnvironmentConfig(
+        name: 'Production',
+        variables: {
+          'api_url': 'https://api.example.com',
+          'debug': false,
+        },
+      ),
+    ],
+  );
+
+  // 使用选定的模块初始化开发面板
   FlutterDevPanel.initialize(
     modules: [
       ConsoleModule(),
       NetworkModule(),
-      DeviceModule(),
-      PerformanceModule(),
+      // 根据需要添加更多模块
     ],
   );
-  
-  runApp(MyApp());
+
+  runApp(
+    DevPanelWrapper(
+      child: MyApp(),
+    ),
+  );
 }
-```
 
-### 2. 高级用法（配置环境）
-
-```dart
-import 'package:flutter_dev_panel/flutter_dev_panel.dart';
-
-void main() {
-  runZonedGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
-    
-    // 初始化环境配置
-    EnvironmentManager.instance.initialize(
-      environments: [
-        const EnvironmentConfig(
-          name: 'Development',
-          variables: {
-            'api_url': 'https://dev-api.example.com',
-            'debug': true,
-          },
-          isDefault: true,
-        ),
-        const EnvironmentConfig(
-          name: 'Production',
-          variables: {
-            'api_url': 'https://api.example.com',
-            'debug': false,
-          },
-        ),
-      ],
-    );
-    
-    // 初始化 Flutter Dev Panel
-    FlutterDevPanel.initialize(
-      config: const DevPanelConfig(
-        enabled: true,
-        triggerModes: {TriggerMode.fab, TriggerMode.shake},
-        showInProduction: false,
-      ),
-      modules: [
-        const ConsoleModule(),
-        NetworkModule(),
-        const DeviceModule(),
-        const PerformanceModule(),
-      ],
-      enableLogCapture: true,
-    );
-    
-    runApp(MyApp());
-  }, (error, stack) {
-    DevLogger.instance.error('未捕获的错误', 
-      error: error.toString(), 
-      stackTrace: stack.toString()
-    );
-  });
-}
-```
-
-### 3. 包装您的应用
-
-```dart
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return DevPanelWrapper(
-      child: MaterialApp(
-        home: YourHomePage(),
-      ),
+    // 监听开发面板的主题变化
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeManager.instance.themeMode,
+      builder: (context, themeMode, child) {
+        return MaterialApp(
+          title: 'Flutter Demo',
+          theme: ThemeData.light(),
+          darkTheme: ThemeData.dark(),
+          themeMode: themeMode,  // 应用开发面板的主题
+          home: MyHomePage(),
+        );
+      },
     );
   }
 }
 ```
 
-### 4. 配置网络监控（可选）
+## 使用
 
-对于 Dio：
+### 访问面板
+- **悬浮按钮**: 点击 FAB（默认）
+- **摇一摇手势**: 摇动设备
+- **程序化调用**: `FlutterDevPanel.open(context)`
+
+### 获取环境变量
+```dart
+final apiUrl = EnvironmentManager.instance.getVariable<String>('api_url');
+final isDebug = EnvironmentManager.instance.getVariable<bool>('debug');
+```
+
+### 网络监控设置
+
+对于 **Dio**:
 ```dart
 final dio = Dio();
-NetworkModule.attachToDio(dio);
+dio.interceptors.add(NetworkInterceptor.dio());
 ```
 
-对于 GraphQL：
+对于 **HTTP**:
+```dart
+final client = NetworkInterceptor.http(http.Client());
+```
+
+对于 **GraphQL**:
 ```dart
 final graphQLClient = GraphQLClient(
-  link: HttpLink('https://api.example.com/graphql'),
+  link: NetworkInterceptor.graphQL(httpLink),
   cache: GraphQLCache(),
 );
-final monitoredClient = NetworkModule.attachToGraphQL(graphQLClient);
 ```
+
+## 配置
+
+```dart
+FlutterDevPanel.initialize(
+  config: const DevPanelConfig(
+    enabled: true,  // 启用/禁用面板
+    showInProduction: false,  // 在生产构建中隐藏
+    triggerModes: {
+      TriggerMode.fab,
+      TriggerMode.shake,
+    },
+  ),
+  modules: [...],
+);
+```
+
+## 主题集成
+
+如果您的应用已有主题管理，可以与开发面板同步：
+
+```dart
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late ThemeMode _themeMode;
+  
+  @override
+  void initState() {
+    super.initState();
+    // 加载应用保存的主题偏好
+    _themeMode = MyThemePreferences.getThemeMode();
+    
+    // 将开发面板与应用主题同步
+    ThemeManager.instance.setThemeMode(_themeMode);
+    
+    // 监听开发面板主题变化
+    ThemeManager.instance.themeMode.addListener(_onThemeChanged);
+  }
+  
+  void _onThemeChanged() {
+    setState(() {
+      _themeMode = ThemeManager.instance.themeMode.value;
+      // 保存到应用偏好设置
+      MyThemePreferences.saveThemeMode(_themeMode);
+    });
+  }
+  
+  @override
+  void dispose() {
+    ThemeManager.instance.themeMode.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      themeMode: _themeMode,
+      home: MyHomePage(),
+    );
+  }
+}
+```
+
+这种方法：
+- 启动时加载现有主题偏好
+- 将开发面板与应用当前主题同步
+- 通过开发面板更改时更新应用偏好设置
+- 保持应用和开发面板主题的一致性
 
 ## 模块配置
 
@@ -233,16 +297,6 @@ DevLogger.instance.updateConfig(
 
 无需额外配置。
 
-## 访问开发面板
-
-有三种方式打开开发面板：
-
-1. **悬浮按钮**: 点击悬浮调试按钮
-2. **摇一摇手势**: 摇动您的设备
-3. **程序化调用**: 
-```dart
-FlutterDevPanel.open(context);
-```
 
 ## 环境管理
 
