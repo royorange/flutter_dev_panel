@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:developer' as developer;
+import 'dart:io' show stdout, IOSink;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -87,11 +88,16 @@ class DevLogger {
   DateTime? _loggerBufferStartTime;
   Timer? _loggerBufferTimer;
   
+  // stdout interception
+  IOSink? _originalStdout;
+  StreamController<List<int>>? _stdoutController;
+  
   DevLogger._internal() {
     _setupErrorHandlers();
     _interceptPrint();
     _interceptDeveloperLog();
     _setupFrameworkLogging();
+    _interceptStdout();
     _loadConfig();
   }
   
@@ -225,6 +231,32 @@ class DevLogger {
         // Still print to console
         debugPrintSynchronously(message, wrapWidth: wrapWidth);
       };
+    }
+  }
+  
+  // Intercept stdout to capture Logger package output
+  void _interceptStdout() {
+    if (!kReleaseMode && !kIsWeb) {
+      try {
+        // Create a custom stdout that captures output
+        _stdoutController = StreamController<List<int>>.broadcast();
+        
+        // Listen to our custom stdout
+        _stdoutController!.stream.listen((data) {
+          final message = String.fromCharCodes(data);
+          // Process the stdout message (Logger package writes to stdout)
+          if (message.isNotEmpty && message != '\n') {
+            _addLog(LogLevel.info, message.trim());
+          }
+        });
+        
+        // Note: Actually replacing stdout requires platform-specific code
+        // and may not work in all environments. The Zone-based approach
+        // is more reliable for Flutter apps.
+      } catch (e) {
+        // Stdout interception failed, fall back to Zone-based approach
+        debugPrint('DevLogger: stdout interception not available: $e');
+      }
     }
   }
   

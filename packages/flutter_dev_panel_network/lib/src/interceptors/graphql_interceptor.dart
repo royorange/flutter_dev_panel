@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:gql/ast.dart' show OperationDefinitionNode, OperationType;
+import 'package:gql/language.dart' show printNode;
 import '../models/network_request.dart';
 import '../network_monitor_controller.dart';
 import 'base_interceptor.dart';
@@ -42,9 +43,34 @@ class GraphQLInterceptor extends Link {
     }
     
     // 获取请求体
+    // 使用 gql 包的 printNode 方法来正确序列化 DocumentNode
+    String? queryString;
+    String? operationName = operation.operationName;
+    
+    try {
+      // 使用 printNode 来序列化 DocumentNode
+      queryString = printNode(operation.document);
+      
+      // 如果 operationName 为空，尝试从 document 中提取
+      if ((operationName == null || operationName.isEmpty) && 
+          operation.document.definitions.isNotEmpty) {
+        final firstDef = operation.document.definitions.first;
+        if (firstDef is OperationDefinitionNode) {
+          operationName = firstDef.name?.value;
+        }
+      }
+    } catch (e) {
+      // 如果 printNode 失败，尝试备用方法
+      try {
+        queryString = operation.document.span?.text;
+      } catch (_) {
+        queryString = 'GraphQL ${_getOperationType(operation)} (unable to serialize)';
+      }
+    }
+    
     final requestBody = {
-      'operationName': operation.operationName,
-      'query': operation.document.span?.text ?? operation.document.toString(),
+      'operationName': operationName,
+      'query': queryString ?? 'Unknown Query',
       'variables': variables,
     };
     
