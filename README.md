@@ -168,8 +168,38 @@ class MyApp extends StatelessWidget {
 
 ### Access the Panel
 - **Floating Button**: Tap the FAB (default)
-- **Shake Gesture**: Shake the device
+- **Shake Gesture**: Shake the device (mobile only)
 - **Programmatic**: `FlutterDevPanel.open(context)`
+
+### Integration Methods
+
+#### Standard MaterialApp
+```dart
+MaterialApp(
+  home: DevPanelWrapper(
+    child: MyHomePage(),
+  ),
+)
+```
+
+#### Using Builder Pattern (Supports GetX/Auto Route/etc.)
+```dart
+// Works with MaterialApp, GetMaterialApp, etc.
+MaterialApp(
+  builder: (context, child) {
+    return DevPanelWrapper(
+      child: child ?? const SizedBox.shrink(),
+    );
+  },
+  home: MyHomePage(),
+)
+```
+
+The builder pattern can be used for:
+- GetX (`GetMaterialApp`)
+- Auto Route navigation
+- Apps with complex navigation setup
+- Global overlay requirements
 
 ### Get Environment Variables
 ```dart

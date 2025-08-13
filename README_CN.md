@@ -168,8 +168,38 @@ class MyApp extends StatelessWidget {
 
 ### 访问面板
 - **悬浮按钮**: 点击 FAB（默认）
-- **摇一摇手势**: 摇动设备
+- **摇一摇手势**: 摇动设备（仅移动端）
 - **程序化调用**: `FlutterDevPanel.open(context)`
+
+### 集成方式
+
+#### 标准 MaterialApp
+```dart
+MaterialApp(
+  home: DevPanelWrapper(
+    child: MyHomePage(),
+  ),
+)
+```
+
+#### 使用 Builder 模式（支持 GetX/Auto Route 等）
+```dart
+// 适用于 MaterialApp、GetMaterialApp 等
+MaterialApp(
+  builder: (context, child) {
+    return DevPanelWrapper(
+      child: child ?? const SizedBox.shrink(),
+    );
+  },
+  home: MyHomePage(),
+)
+```
+
+Builder 模式可用于：
+- GetX (`GetMaterialApp`)
+- Auto Route 导航
+- 复杂导航设置的应用
+- 全局遮罩层需求
 
 ### 获取环境变量
 ```dart

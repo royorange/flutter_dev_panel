@@ -48,12 +48,12 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
       _isPanelOpen = true;
     });
 
-    // Use the provided context (from FAB) or fallback to widget context
+    // Use provided context (from FAB) or fallback to widget context
     final navContext = fabContext ?? context;
     
-    // Check if we have a valid Navigator in the context
-    final navigator = Navigator.maybeOf(navContext);
-    if (navigator == null) {
+    // Check if we have a valid Navigator
+    final navigatorState = Navigator.maybeOf(navContext);
+    if (navigatorState == null) {
       debugPrint('DevPanel: No Navigator found in context');
       setState(() {
         _isPanelOpen = false;
@@ -129,12 +129,17 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
           result = Stack(
             children: [
               result,
-              Builder(
-                builder: (fabContext) {
-                  return ModularMonitoringFab(
-                    onTap: () => _openPanel(fabContext),
-                  );
-                },
+              // Use Overlay to ensure FAB is above everything and has proper context
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: Builder(
+                  builder: (fabContext) {
+                    return ModularMonitoringFab(
+                      onTap: () => _openPanel(fabContext),
+                    );
+                  },
+                ),
               ),
             ],
           );
