@@ -1,14 +1,13 @@
-name: Publish to pub.dev
+name: Publish
 
 on:
   push:
     tags:
       - 'v*'
-      - '*-v*'  # For sub-packages like flutter_dev_panel_console-v0.0.2
-    branches:
-      - release/**  # Optional: trigger on release branches
-  release:
-    types: [published]  # Optional: trigger when GitHub Release is created
+      - 'console-v*'
+      - 'device-v*'
+      - 'network-v*'
+      - 'performance-v*'
   workflow_dispatch:
     inputs:
       package:
