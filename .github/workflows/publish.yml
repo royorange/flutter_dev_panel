@@ -102,8 +102,13 @@ jobs:
           
           # Update dependency to published version
           MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
-          sed -i "s|path: ../..|^$MAIN_VERSION|g" pubspec.yaml
-          sed -i '/publish_to: none/d' pubspec.yaml
+          echo "Main package version: $MAIN_VERSION"
+          
+          # Create temp file and replace
+          cp pubspec.yaml pubspec.yaml.bak
+          cat pubspec.yaml.bak | sed "s|path: ../..|^$MAIN_VERSION|g" | grep -v "publish_to: none" > pubspec.yaml
+          
+          echo "Updated dependencies in pubspec.yaml"
           
           # Skip tests in CI
           echo "Skipping tests in CI due to monorepo structure"
@@ -121,8 +126,13 @@ jobs:
           
           # Update dependency to published version
           MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
-          sed -i "s|path: ../..|^$MAIN_VERSION|g" pubspec.yaml
-          sed -i '/publish_to: none/d' pubspec.yaml
+          echo "Main package version: $MAIN_VERSION"
+          
+          # Create temp file and replace
+          cp pubspec.yaml pubspec.yaml.bak
+          cat pubspec.yaml.bak | sed "s|path: ../..|^$MAIN_VERSION|g" | grep -v "publish_to: none" > pubspec.yaml
+          
+          echo "Updated dependencies in pubspec.yaml"
           
           # Skip tests in CI
           echo "Skipping tests in CI due to monorepo structure"
@@ -140,8 +150,13 @@ jobs:
           
           # Update dependency to published version
           MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
-          sed -i "s|path: ../..|^$MAIN_VERSION|g" pubspec.yaml
-          sed -i '/publish_to: none/d' pubspec.yaml
+          echo "Main package version: $MAIN_VERSION"
+          
+          # Create temp file and replace
+          cp pubspec.yaml pubspec.yaml.bak
+          cat pubspec.yaml.bak | sed "s|path: ../..|^$MAIN_VERSION|g" | grep -v "publish_to: none" > pubspec.yaml
+          
+          echo "Updated dependencies in pubspec.yaml"
           
           # Skip tests in CI
           echo "Skipping tests in CI due to monorepo structure"
@@ -159,8 +174,13 @@ jobs:
           
           # Update dependency to published version
           MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
-          sed -i "s|path: ../..|^$MAIN_VERSION|g" pubspec.yaml
-          sed -i '/publish_to: none/d' pubspec.yaml
+          echo "Main package version: $MAIN_VERSION"
+          
+          # Create temp file and replace
+          cp pubspec.yaml pubspec.yaml.bak
+          cat pubspec.yaml.bak | sed "s|path: ../..|^$MAIN_VERSION|g" | grep -v "publish_to: none" > pubspec.yaml
+          
+          echo "Updated dependencies in pubspec.yaml"
           
           # Skip tests in CI
           echo "Skipping tests in CI due to monorepo structure"
