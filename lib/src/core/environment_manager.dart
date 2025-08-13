@@ -69,13 +69,23 @@ class EnvironmentManager extends ChangeNotifier {
   static const String _currentEnvKey = 'dev_panel_current_env';
 
   /// Initialize with environments from multiple sources
-  /// Priority: .env files > code configuration > saved configuration
+  /// Priority: --dart-define > .env files > code configuration > saved configuration
   Future<void> initialize({
     List<EnvironmentConfig>? environments,
     String? defaultEnvironment,
     bool loadFromEnvFiles = true,
+    bool loadFromDartDefine = true,
   }) async {
-    // Load from .env files if enabled
+    // 1. Load from --dart-define (highest priority)
+    Map<String, dynamic>? dartDefineVars;
+    if (loadFromDartDefine) {
+      dartDefineVars = _loadFromDartDefine();
+      if (dartDefineVars.isNotEmpty) {
+        debugPrint('Loaded ${dartDefineVars.length} variables from --dart-define');
+      }
+    }
+    
+    // 2. Load from .env files (second priority)
     List<EnvironmentConfig>? envFileConfigs;
     if (loadFromEnvFiles) {
       try {
@@ -103,11 +113,14 @@ class EnvironmentManager extends ChangeNotifier {
       debugPrint('Failed to load saved environments: $e');
     }
     
-    // Merge all sources
-    final mergedEnvs = EnvLoader.mergeEnvironments(
-      fromEnvFiles: envFileConfigs,
-      fromCode: environments,
-      fromStorage: savedConfigs,
+    // Merge all sources with dart-define overrides
+    final mergedEnvs = _mergeWithDartDefine(
+      EnvLoader.mergeEnvironments(
+        fromEnvFiles: envFileConfigs,
+        fromCode: environments,
+        fromStorage: savedConfigs,
+      ),
+      dartDefineVars,
     );
     
     if (mergedEnvs.isNotEmpty) {
@@ -317,5 +330,62 @@ class EnvironmentManager extends ChangeNotifier {
     _currentEnvironment = null;
     _saveEnvironments();
     notifyListeners();
+  }
+  
+  /// Load variables from --dart-define
+  Map<String, dynamic> _loadFromDartDefine() {
+    final vars = <String, dynamic>{};
+    
+    // Try to get ENV first to determine which environment we're in
+    const envName = String.fromEnvironment('ENV', defaultValue: '');
+    
+    // Common environment variables that might be passed via --dart-define
+    const commonKeys = [
+      'API_URL', 'API_KEY', 'API_TOKEN',
+      'BASE_URL', 'SERVER_URL',
+      'DEBUG', 'DEBUG_MODE',
+      'LOG_LEVEL',
+      'TIMEOUT', 'API_TIMEOUT',
+      'ENABLE_ANALYTICS', 'ENABLE_CRASH_REPORTING',
+    ];
+    
+    for (final key in commonKeys) {
+      const value = String.fromEnvironment('', defaultValue: '');
+      // Try to get the actual value
+      final actualValue = String.fromEnvironment(key, defaultValue: '');
+      if (actualValue.isNotEmpty) {
+        vars[key.toLowerCase()] = actualValue;
+      }
+    }
+    
+    // Also check for any custom keys with a prefix (e.g., APP_*)
+    // Note: This is limited because we can't enumerate all --dart-define keys
+    // We have to know the keys in advance
+    
+    return vars;
+  }
+  
+  /// Merge environments with dart-define overrides
+  List<EnvironmentConfig> _mergeWithDartDefine(
+    List<EnvironmentConfig> environments,
+    Map<String, dynamic>? dartDefineVars,
+  ) {
+    if (dartDefineVars == null || dartDefineVars.isEmpty) {
+      return environments;
+    }
+    
+    // Apply dart-define overrides to all environments
+    return environments.map((env) {
+      final mergedVars = Map<String, dynamic>.from(env.variables);
+      
+      // Override with dart-define values (highest priority)
+      dartDefineVars.forEach((key, value) {
+        // Use both lowercase and original case for flexibility
+        mergedVars[key] = value;
+        mergedVars[key.toLowerCase()] = value;
+      });
+      
+      return env.copyWith(variables: mergedVars);
+    }).toList();
   }
 }
