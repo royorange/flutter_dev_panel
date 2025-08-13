@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 import 'package:dio/dio.dart';
@@ -38,18 +39,28 @@ class NetworkModule extends DevModule {
   }
 
   static void attachToDio(Dio dio) {
-    dio.interceptors.add(createInterceptor());
+    // 只在调试模式下添加拦截器
+    if (kDebugMode) {
+      dio.interceptors.add(createInterceptor());
+    }
   }
 
   static void attachToMultipleDio(List<Dio> dioInstances) {
-    final interceptor = createInterceptor();
-    for (final dio in dioInstances) {
-      dio.interceptors.add(interceptor);
+    // 只在调试模式下添加拦截器
+    if (kDebugMode) {
+      final interceptor = createInterceptor();
+      for (final dio in dioInstances) {
+        dio.interceptors.add(interceptor);
+      }
     }
   }
   
   // ============ http 包集成 ============
   static http.Client createHttpClient({http.Client? innerClient}) {
+    // 生产模式下返回原始客户端
+    if (!kDebugMode) {
+      return innerClient ?? http.Client();
+    }
     return MonitoredHttpClient(
       client: innerClient,
       controller: controller,
@@ -57,6 +68,10 @@ class NetworkModule extends DevModule {
   }
   
   static http.Client wrapHttpClient(http.Client client) {
+    // 生产模式下返回原始客户端
+    if (!kDebugMode) {
+      return client;
+    }
     return createHttpClient(innerClient: client);
   }
   
@@ -64,6 +79,11 @@ class NetworkModule extends DevModule {
   /// 附加到现有的GraphQL客户端（最简单的方式）
   /// endpoint 参数可选，用于在监控面板中显示请求地址
   static gql.GraphQLClient attachToGraphQL(gql.GraphQLClient client, {String? endpoint}) {
+    // 生产模式下返回原始客户端
+    if (!kDebugMode) {
+      return client;
+    }
+    
     final interceptor = GraphQLInterceptor(
       controller: controller,
       endpoint: endpoint,
@@ -96,6 +116,10 @@ class NetworkModule extends DevModule {
   
   /// 包装现有的GraphQL Link
   static gql.Link wrapGraphQLLink(gql.Link link) {
+    // 生产模式下返回原始link
+    if (!kDebugMode) {
+      return link;
+    }
     return MonitoredGraphQLClient.wrapLink(link, controller: controller);
   }
   
