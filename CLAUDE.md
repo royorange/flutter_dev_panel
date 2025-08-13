@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Flutter Dev Panel - 模块化Flutter调试面板
 
 ## 项目概述
-一个零侵入、模块化的Flutter调试面板插件，开发者可按需加载功能模块。遵循Firebase等行业标准的模块化架构模式。
+一个零侵入、模块化的Flutter调试面板插件，开发者可按需加载功能模块或者继承 DevModule 实现自定义模块。
 
 ## 架构设计
 
@@ -79,8 +79,8 @@ try {
 
 ### 避免
 - ❌ 包含mock数据或示例URL
-- ❌ 环境配置内置默认值（由用户定义）
-- ❌ 使用外部状态管理库（如GetX）
+- ❌ 生成环境等配置内置默认值（由用户定义）
+- ❌ 使用外部库（如GetX）
 - ❌ 在生产代码中使用 `print`
 
 ### 最佳实践
