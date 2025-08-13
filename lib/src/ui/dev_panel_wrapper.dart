@@ -39,7 +39,7 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
     }
   }
 
-  void _openPanel() {
+  void _openPanel([BuildContext? fabContext]) {
     if (!controller.shouldShowInProduction() || _isPanelOpen) {
       return;
     }
@@ -48,8 +48,21 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
       _isPanelOpen = true;
     });
 
+    // Use the provided context (from FAB) or fallback to widget context
+    final navContext = fabContext ?? context;
+    
+    // Check if we have a valid Navigator in the context
+    final navigator = Navigator.maybeOf(navContext);
+    if (navigator == null) {
+      debugPrint('DevPanel: No Navigator found in context');
+      setState(() {
+        _isPanelOpen = false;
+      });
+      return;
+    }
+
     showModalBottomSheet(
-      context: context,
+      context: navContext,
       isScrollControlled: true,
       useSafeArea: true,
       isDismissible: true,
@@ -81,9 +94,11 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
         );
       },
     ).whenComplete(() {
-      setState(() {
-        _isPanelOpen = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isPanelOpen = false;
+        });
+      }
     });
   }
 
@@ -114,8 +129,12 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
           result = Stack(
             children: [
               result,
-              ModularMonitoringFab(
-                onTap: _openPanel,
+              Builder(
+                builder: (fabContext) {
+                  return ModularMonitoringFab(
+                    onTap: () => _openPanel(fabContext),
+                  );
+                },
               ),
             ],
           );

@@ -78,8 +78,17 @@ class FlutterDevPanel {
   }
   
   /// 打开开发面板（需要BuildContext）
+  /// 
+  /// 注意：context 必须在 MaterialApp/CupertinoApp 内部
   static void open(BuildContext context) {
     if (kDebugMode && _initialized) {
+      // 检查 Navigator 是否可用
+      final navigator = Navigator.maybeOf(context);
+      if (navigator == null) {
+        debugPrint('DevPanel: Cannot open - No Navigator found in context. '
+            'Make sure to call this from within MaterialApp/CupertinoApp.');
+        return;
+      }
       core.FlutterDevPanelCore.instance.open(context);
     }
   }

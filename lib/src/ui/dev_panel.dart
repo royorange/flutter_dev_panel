@@ -14,9 +14,40 @@ class DevPanel extends StatefulWidget {
   State<DevPanel> createState() => _DevPanelState();
 }
 
-class _DevPanelState extends State<DevPanel> {
+class _DevPanelState extends State<DevPanel> with SingleTickerProviderStateMixin {
   final controller = DevPanelController.instance;
   final moduleRegistry = ModuleRegistry.instance;
+  TabController? _tabController;
+  static int _lastTabIndex = 0;  // 静态变量保存上次选中的 tab
+  
+  @override
+  void initState() {
+    super.initState();
+    _initTabController();
+  }
+  
+  void _initTabController() {
+    final modules = moduleRegistry.getEnabledModules();
+    if (modules.isNotEmpty) {
+      _tabController?.dispose();
+      _tabController = TabController(
+        length: modules.length,
+        vsync: this,
+        initialIndex: _lastTabIndex.clamp(0, modules.length - 1),
+      );
+      _tabController!.addListener(() {
+        if (!_tabController!.indexIsChanging) {
+          _lastTabIndex = _tabController!.index;
+        }
+      });
+    }
+  }
+  
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,9 +77,12 @@ class _DevPanelState extends State<DevPanel> {
           );
         }
 
-        return DefaultTabController(
-          length: modules.length,
-          child: Scaffold(
+        // Update tab controller if modules changed
+        if (_tabController == null || _tabController!.length != modules.length) {
+          _initTabController();
+        }
+        
+        return Scaffold(
             appBar: AppBar(
               title: const Text('Dev Panel'),
               leading: IconButton(
@@ -85,6 +119,7 @@ class _DevPanelState extends State<DevPanel> {
                     Material(
                       color: Theme.of(context).colorScheme.surface,
                       child: TabBar(
+                        controller: _tabController,
                         isScrollable: true,
                         tabAlignment: TabAlignment.start,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -102,6 +137,7 @@ class _DevPanelState extends State<DevPanel> {
                     // Module content
                     Expanded(
                       child: TabBarView(
+                        controller: _tabController,
                         children: modules.map((module) {
                           return module.buildPage(context);
                         }).toList(),
@@ -111,8 +147,7 @@ class _DevPanelState extends State<DevPanel> {
                 );
               },
             ),
-          ),
-        );
+          );
       },
     );
   }

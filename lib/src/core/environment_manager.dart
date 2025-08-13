@@ -74,18 +74,8 @@ class EnvironmentManager extends ChangeNotifier {
     List<EnvironmentConfig>? environments,
     String? defaultEnvironment,
     bool loadFromEnvFiles = true,
-    bool loadFromDartDefine = true,
   }) async {
-    // 1. Load from --dart-define (highest priority)
-    Map<String, dynamic>? dartDefineVars;
-    if (loadFromDartDefine) {
-      dartDefineVars = _loadFromDartDefine();
-      if (dartDefineVars.isNotEmpty) {
-        debugPrint('Loaded ${dartDefineVars.length} variables from --dart-define');
-      }
-    }
-    
-    // 2. Load from .env files (second priority)
+    // 1. Load from .env files first
     List<EnvironmentConfig>? envFileConfigs;
     if (loadFromEnvFiles) {
       try {
@@ -113,15 +103,27 @@ class EnvironmentManager extends ChangeNotifier {
       debugPrint('Failed to load saved environments: $e');
     }
     
-    // Merge all sources with dart-define overrides
-    final mergedEnvs = _mergeWithDartDefine(
-      EnvLoader.mergeEnvironments(
-        fromEnvFiles: envFileConfigs,
-        fromCode: environments,
-        fromStorage: savedConfigs,
-      ),
-      dartDefineVars,
+    // Merge environments from all sources
+    final baseEnvs = EnvLoader.mergeEnvironments(
+      fromEnvFiles: envFileConfigs,
+      fromCode: environments,
+      fromStorage: savedConfigs,
     );
+    
+    // Collect all unique keys from all merged environments
+    final allKeys = <String>{};
+    for (final env in baseEnvs) {
+      allKeys.addAll(env.variables.keys);
+    }
+    
+    // Load from --dart-define (highest priority) using discovered keys
+    final dartDefineVars = _loadFromDartDefine(allKeys.toList());
+    if (dartDefineVars.isNotEmpty) {
+      debugPrint('Loaded ${dartDefineVars.length} variables from --dart-define');
+    }
+    
+    // Apply dart-define overrides
+    final mergedEnvs = _mergeWithDartDefine(baseEnvs, dartDefineVars);
     
     if (mergedEnvs.isNotEmpty) {
       _environments.clear();
@@ -333,36 +335,58 @@ class EnvironmentManager extends ChangeNotifier {
   }
   
   /// Load variables from --dart-define
-  Map<String, dynamic> _loadFromDartDefine() {
+  /// 
+  /// Due to Dart's compile-time constant limitation, we must know
+  /// the key names in advance. We check all keys defined in your
+  /// environment configurations.
+  Map<String, dynamic> _loadFromDartDefine(List<String> keysToCheck) {
     final vars = <String, dynamic>{};
     
-    // Try to get ENV first to determine which environment we're in
-    const envName = String.fromEnvironment('ENV', defaultValue: '');
-    
-    // Common environment variables that might be passed via --dart-define
-    const commonKeys = [
-      'API_URL', 'API_KEY', 'API_TOKEN',
-      'BASE_URL', 'SERVER_URL',
-      'DEBUG', 'DEBUG_MODE',
-      'LOG_LEVEL',
-      'TIMEOUT', 'API_TIMEOUT',
-      'ENABLE_ANALYTICS', 'ENABLE_CRASH_REPORTING',
-    ];
-    
-    for (final key in commonKeys) {
-      const value = String.fromEnvironment('', defaultValue: '');
-      // Try to get the actual value
-      final actualValue = String.fromEnvironment(key, defaultValue: '');
-      if (actualValue.isNotEmpty) {
-        vars[key.toLowerCase()] = actualValue;
+    // Check each key from the environment configurations
+    for (final key in keysToCheck) {
+      // Try multiple variations of the key
+      final variations = [
+        key,  // Original key
+        key.toUpperCase(),  // UPPERCASE
+        key.toLowerCase(),  // lowercase
+        key.replaceAll('_', '-'),  // dash-case
+        key.replaceAll('-', '_'),  // snake_case
+      ];
+      
+      for (final variant in variations) {
+        final value = String.fromEnvironment(variant, defaultValue: '');
+        if (value.isNotEmpty) {
+          // Store with the original key name from config
+          vars[key] = _parseValue(value);
+          // Also store with lowercase for case-insensitive access
+          vars[key.toLowerCase()] = _parseValue(value);
+          break;  // Found a value, stop checking variations
+        }
       }
     }
     
-    // Also check for any custom keys with a prefix (e.g., APP_*)
-    // Note: This is limited because we can't enumerate all --dart-define keys
-    // We have to know the keys in advance
-    
     return vars;
+  }
+  
+  /// Parse string value to appropriate type
+  dynamic _parseValue(String value) {
+    // Try to parse as bool
+    if (value.toLowerCase() == 'true' || value == '1' || value.toLowerCase() == 'yes') {
+      return true;
+    }
+    if (value.toLowerCase() == 'false' || value == '0' || value.toLowerCase() == 'no') {
+      return false;
+    }
+    
+    // Try to parse as number
+    final intValue = int.tryParse(value);
+    if (intValue != null) return intValue;
+    
+    final doubleValue = double.tryParse(value);
+    if (doubleValue != null) return doubleValue;
+    
+    // Return as string
+    return value;
   }
   
   /// Merge environments with dart-define overrides
