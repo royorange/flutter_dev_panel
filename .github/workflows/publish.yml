@@ -52,7 +52,7 @@ jobs:
             # Extract package name from tag
             TAG="${{ github.ref_name }}"
             
-            # Map short tags to full package names
+            # Map tags to full package names
             case $TAG in
               v*)
                 PACKAGE="flutter_dev_panel"
@@ -66,7 +66,7 @@ jobs:
               device-v*)
                 PACKAGE="flutter_dev_panel_device"
                 ;;
-              perf-v*)
+              performance-v*)
                 PACKAGE="flutter_dev_panel_performance"
                 ;;
               *)

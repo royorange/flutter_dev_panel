@@ -26,8 +26,12 @@ git tag v0.0.2
 git push origin v0.0.2
 
 # For sub-packages
-git tag flutter_dev_panel_console-v0.0.2
-git push origin flutter_dev_panel_console-v0.0.2
+git tag console-v0.0.2
+git push origin console-v0.0.2
+
+# Or for performance package
+git tag performance-v0.0.2
+git push origin performance-v0.0.2
 ```
 
 #### Option 2: Manual Publishing

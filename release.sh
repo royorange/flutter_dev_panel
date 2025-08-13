@@ -119,12 +119,24 @@ release_package() {
         print_success "Changes committed"
     fi
     
-    # Create tag
-    if [[ "$package_name" == "flutter_dev_panel" ]]; then
-        tag_name="v$new_version"
-    else
-        tag_name="$package_name-v$new_version"
-    fi
+    # Create tag with shorter prefix
+    case "$package_name" in
+        "flutter_dev_panel")
+            tag_name="v$new_version"
+            ;;
+        "flutter_dev_panel_console")
+            tag_name="console-v$new_version"
+            ;;
+        "flutter_dev_panel_network")
+            tag_name="network-v$new_version"
+            ;;
+        "flutter_dev_panel_device")
+            tag_name="device-v$new_version"
+            ;;
+        "flutter_dev_panel_performance")
+            tag_name="performance-v$new_version"
+            ;;
+    esac
     
     read -p "Create tag '$tag_name' and push? [Y/n] " -r
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
