@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
@@ -35,9 +37,15 @@ class _ShakeDetectorState extends State<ShakeDetector> {
   }
 
   void _startListening() {
-    _streamSubscription = userAccelerometerEventStream(
-      samplingPeriod: const Duration(milliseconds: 100),
-    ).listen((UserAccelerometerEvent event) {
+    // Skip shake detection on desktop platforms
+    if (!kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {
+      return;
+    }
+    
+    try {
+      _streamSubscription = userAccelerometerEventStream(
+        samplingPeriod: const Duration(milliseconds: 100),
+      ).listen((UserAccelerometerEvent event) {
       final double acceleration = sqrt(
         event.x * event.x + event.y * event.y + event.z * event.z,
       );
@@ -59,10 +67,26 @@ class _ShakeDetectorState extends State<ShakeDetector> {
           _lastShakeTime = now;
         }
       }
-    }, onError: (dynamic error) {
-      // 处理错误，某些设备可能不支持加速度传感器
-      debugPrint('ShakeDetector error: $error');
-    });
+      }, onError: (dynamic error) {
+        // Silently handle errors - expected on platforms without accelerometer
+        // Only log in debug mode to avoid cluttering the console
+        if (kDebugMode) {
+          // Check if it's a platform-specific error
+          if (error.toString().contains('MissingPluginException') ||
+              error.toString().contains('No implementation found')) {
+            // This is expected on desktop/web, don't log
+          } else {
+            // Unexpected error, worth logging
+            debugPrint('ShakeDetector: Unexpected error - $error');
+          }
+        }
+      });
+    } catch (e) {
+      // Initialization failed - this is normal on unsupported platforms
+      if (kDebugMode && !e.toString().contains('MissingPluginException')) {
+        debugPrint('ShakeDetector: Could not initialize - $e');
+      }
+    }
   }
 
   @override
