@@ -1,10 +1,10 @@
 # Changelog
 
+## 0.0.2
+
+* Fixed Flutter version requirement to 3.10.0
+* Updated documentation
+
 ## 0.0.1
 
 * Initial release
-* Device information module for Flutter Dev Panel
-* Display device model, screen size, and system version
-* PPI calculation and display
-* Memory usage monitoring
-* Device-specific information display
