@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*'
       - '*-v*'  # For sub-packages like flutter_dev_panel_console-v0.0.2
+    branches:
+      - release/**  # Optional: trigger on release branches
+  release:
+    types: [published]  # Optional: trigger when GitHub Release is created
   workflow_dispatch:
     inputs:
       package:
@@ -47,11 +51,29 @@ jobs:
           if [ "${{ github.event_name }}" == "push" ]; then
             # Extract package name from tag
             TAG="${{ github.ref_name }}"
-            if [[ $TAG == flutter_dev_panel_* ]]; then
-              PACKAGE=$(echo $TAG | sed 's/-v.*//')
-            elif [[ $TAG == v* ]]; then
-              PACKAGE="flutter_dev_panel"
-            fi
+            
+            # Map short tags to full package names
+            case $TAG in
+              v*)
+                PACKAGE="flutter_dev_panel"
+                ;;
+              console-v*)
+                PACKAGE="flutter_dev_panel_console"
+                ;;
+              network-v*)
+                PACKAGE="flutter_dev_panel_network"
+                ;;
+              device-v*)
+                PACKAGE="flutter_dev_panel_device"
+                ;;
+              perf-v*)
+                PACKAGE="flutter_dev_panel_performance"
+                ;;
+              *)
+                echo "Unknown tag format: $TAG"
+                exit 1
+                ;;
+            esac
           else
             # Use workflow_dispatch input
             PACKAGE="${{ github.event.inputs.package }}"
