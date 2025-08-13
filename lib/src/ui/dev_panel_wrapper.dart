@@ -48,13 +48,43 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
       _isPanelOpen = true;
     });
 
-    // Use provided context (from FAB) or fallback to widget context
-    final navContext = fabContext ?? context;
+    // For GetX and builder pattern, we need to find the Navigator carefully
+    BuildContext? navigatorContext;
     
-    // Check if we have a valid Navigator
-    final navigatorState = Navigator.maybeOf(navContext);
-    if (navigatorState == null) {
-      debugPrint('DevPanel: No Navigator found in context');
+    // Strategy 1: Try the provided context
+    if (fabContext != null && Navigator.maybeOf(fabContext) != null) {
+      navigatorContext = fabContext;
+    }
+    // Strategy 2: Try the widget's context
+    else if (Navigator.maybeOf(context) != null) {
+      navigatorContext = context;
+    }
+    // Strategy 3: Use the root navigator for GetX apps
+    else {
+      try {
+        // For GetX, we can use Get.context which provides the navigator context
+        // This works because GetMaterialApp sets up a global navigator key
+        final rootContext = WidgetsBinding.instance.rootElement;
+        if (rootContext != null) {
+          // Find the first context with a Navigator
+          void findNavigator(Element element) {
+            if (navigatorContext == null) {
+              if (Navigator.maybeOf(element) != null) {
+                navigatorContext = element;
+              } else {
+                element.visitChildren(findNavigator);
+              }
+            }
+          }
+          rootContext.visitChildren(findNavigator);
+        }
+      } catch (e) {
+        debugPrint('DevPanel: Error finding navigator - $e');
+      }
+    }
+    
+    if (navigatorContext == null) {
+      debugPrint('DevPanel: No Navigator found. Make sure DevPanelWrapper is used correctly');
       setState(() {
         _isPanelOpen = false;
       });
@@ -62,7 +92,7 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
     }
 
     showModalBottomSheet(
-      context: navContext,
+      context: navigatorContext!,  // We've already checked it's not null
       isScrollControlled: true,
       useSafeArea: true,
       isDismissible: true,
@@ -129,17 +159,13 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
           result = Stack(
             children: [
               result,
-              // Use Overlay to ensure FAB is above everything and has proper context
-              Positioned(
-                right: 16,
-                bottom: 16,
-                child: Builder(
-                  builder: (fabContext) {
-                    return ModularMonitoringFab(
-                      onTap: () => _openPanel(fabContext),
-                    );
-                  },
-                ),
+              // ModularMonitoringFab already has its own Positioned widget
+              Builder(
+                builder: (fabContext) {
+                  return ModularMonitoringFab(
+                    onTap: () => _openPanel(fabContext),
+                  );
+                },
               ),
             ],
           );
