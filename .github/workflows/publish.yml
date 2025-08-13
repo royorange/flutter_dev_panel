@@ -83,9 +83,7 @@ jobs:
         if: steps.determine_package.outputs.package == 'flutter_dev_panel' || steps.determine_package.outputs.package == 'all'
         run: |
           echo "Publishing flutter_dev_panel..."
-          # Remove example to avoid dependency conflicts
-          rm -rf example
-          flutter pub get
+          # Skip flutter pub get, go directly to test (like local script)
           flutter test
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
             flutter pub publish --dry-run
@@ -99,15 +97,10 @@ jobs:
           echo "Publishing flutter_dev_panel_console..."
           cd packages/flutter_dev_panel_console
           
-          # Remove example to avoid dependency conflicts
-          rm -rf example
-          
           # Update dependency to published version
           MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
           sed -i "s|path: ../..|^$MAIN_VERSION|g" pubspec.yaml
           sed -i '/publish_to: none/d' pubspec.yaml
-          
-          flutter pub get
           flutter test
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
             flutter pub publish --dry-run
@@ -121,15 +114,10 @@ jobs:
           echo "Publishing flutter_dev_panel_network..."
           cd packages/flutter_dev_panel_network
           
-          # Remove example to avoid dependency conflicts
-          rm -rf example
-          
           # Update dependency to published version
           MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
           sed -i "s|path: ../..|^$MAIN_VERSION|g" pubspec.yaml
           sed -i '/publish_to: none/d' pubspec.yaml
-          
-          flutter pub get
           flutter test
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
             flutter pub publish --dry-run
@@ -143,15 +131,10 @@ jobs:
           echo "Publishing flutter_dev_panel_device..."
           cd packages/flutter_dev_panel_device
           
-          # Remove example to avoid dependency conflicts
-          rm -rf example
-          
           # Update dependency to published version
           MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
           sed -i "s|path: ../..|^$MAIN_VERSION|g" pubspec.yaml
           sed -i '/publish_to: none/d' pubspec.yaml
-          
-          flutter pub get
           flutter test
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
             flutter pub publish --dry-run
@@ -165,15 +148,10 @@ jobs:
           echo "Publishing flutter_dev_panel_performance..."
           cd packages/flutter_dev_panel_performance
           
-          # Remove example to avoid dependency conflicts
-          rm -rf example
-          
           # Update dependency to published version
           MAIN_VERSION=$(grep "^version:" ../../pubspec.yaml | cut -d' ' -f2)
           sed -i "s|path: ../..|^$MAIN_VERSION|g" pubspec.yaml
           sed -i '/publish_to: none/d' pubspec.yaml
-          
-          flutter pub get
           flutter test
           if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
             flutter pub publish --dry-run
