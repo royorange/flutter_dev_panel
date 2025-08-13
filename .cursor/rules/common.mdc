@@ -1,0 +1,6 @@
+---
+alwaysApply: true
+---
+
+## Git 规范
+- commit格式符合 Conventional Commits, 仅用标准的前缀
