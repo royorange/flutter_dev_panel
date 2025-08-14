@@ -1,34 +1,34 @@
 import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
-// import 'package:logger/logger.dart';
+import 'package:logger/logger.dart';
 
 /// Example of integrating Logger package with Flutter Dev Panel
-/// 
-/// This example shows how to use DevPanelLoggerOutput to capture
-/// Logger package output in the Dev Panel console.
 void main() {
-  // Simple usage - automatically uses ConsoleOutput internally
-  // final logger = Logger(
-  //   output: createDevPanelLoggerOutput(),
-  //   printer: PrettyPrinter(
-  //     methodCount: 2,
-  //     errorMethodCount: 8,
-  //     lineLength: 120,
-  //     colors: true,
-  //     printEmojis: true,
-  //     printTime: false,
-  //   ),
-  // );
+  // Simple usage - zero configuration
+  final logger = Logger(
+    output: DevPanelLoggerOutput(), // That's it!
+    printer: PrettyPrinter(
+      methodCount: 2,
+      errorMethodCount: 8,
+      lineLength: 120,
+      colors: true,
+      printEmojis: true,
+      dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+    ),
+  );
   
-  // Advanced usage - with custom base output
-  // final logger = Logger(
-  //   output: createDevPanelLoggerOutput(
-  //     baseOutput: MultiOutput([
-  //       ConsoleOutput(),
-  //       FileOutput(file: File('log.txt')),
-  //     ]),
-  //   ),
-  //   printer: PrettyPrinter(),
-  // );
+  // Alternative: Use extension method
+  final logger2 = Logger(
+    output: ConsoleOutput().withDevPanel(), // Extension method
+    printer: PrettyPrinter(),
+  );
+  
+  // Advanced: With custom base output
+  final logger3 = Logger(
+    output: DevPanelLoggerOutput(
+      baseOutput: ConsoleOutput(), // Or any LogOutput
+    ),
+    printer: PrettyPrinter(),
+  );
   
   // Usage examples
   // logger.v("Verbose log");

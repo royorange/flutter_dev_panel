@@ -53,35 +53,56 @@ The console module automatically captures:
 
 ## Logger Package Integration
 
-For better integration with the [logger](https://pub.dev/packages/logger) package:
+Flutter Dev Panel Console now includes built-in support for the [logger](https://pub.dev/packages/logger) package with zero configuration needed!
+
+### Simple Usage
 
 ```dart
 import 'package:logger/logger.dart';
 import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
 
 final logger = Logger(
-  output: createDevPanelLoggerOutput(), // That's it!
+  output: DevPanelLoggerOutput(), // That's it!
   printer: PrettyPrinter(),
 );
 
-// Use logger as normal
+// Use logger as normal - logs appear in both console AND Dev Panel!
 logger.i("Info message");
 logger.e("Error message", error: exception, stackTrace: stack);
+```
 
-// With custom base output:
+### Using Extension Method
+
+```dart
 final logger = Logger(
-  output: createDevPanelLoggerOutput(
-    baseOutput: FileOutput(), // Your custom output
-  ),
+  output: ConsoleOutput().withDevPanel(), // Add Dev Panel capture to any LogOutput
+  printer: PrettyPrinter(),
 );
 ```
 
+### Advanced Usage
+
+```dart
+// With custom base output
+final logger = Logger(
+  output: DevPanelLoggerOutput(
+    baseOutput: MultiOutput([
+      ConsoleOutput(),
+      FileOutput(),
+    ]),
+  ),
+);
+
+// Or wrap any existing LogOutput
+final logger = Logger(
+  output: FileOutput().withDevPanel(),
+);
+
 Features:
-- **No dependency**: Works without adding logger to your pubspec
+- **Type-safe**: Properly extends LogOutput
 - **Debug mode**: Logs appear in both console AND Dev Panel
 - **Release mode**: Only outputs to console (zero overhead)
-- **Automatic**: No need to specify ConsoleOutput, it's handled internally
-- **Customizable**: Can pass custom LogOutput if needed
+- **Customizable**: Can pass any LogOutput as base
 
 ## Configuration
 

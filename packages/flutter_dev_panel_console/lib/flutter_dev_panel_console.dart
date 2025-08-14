@@ -5,4 +5,5 @@ export 'src/models/log_entry.dart';
 export 'src/providers/console_provider.dart';
 
 // Logger package integration
-export 'src/integrations/logger_output.dart' show createDevPanelLoggerOutput;
+export 'src/integrations/dev_panel_logger_output.dart' 
+    show DevPanelLoggerOutput, DevPanelLoggerExtension;
