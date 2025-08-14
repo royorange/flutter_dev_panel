@@ -27,19 +27,39 @@ dependencies:
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
 
-void main() {
-  FlutterDevPanel.initialize(
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Your initialization code...
+  
+  // Use FlutterDevPanel.init for automatic print interception
+  await FlutterDevPanel.init(
+    () => runApp(const MyApp()),
     modules: [
-      ConsoleModule(),
+      ConsoleModule(
+        logConfig: const LogCaptureConfig(
+          maxLogs: 1000,              // Optional: customize log settings
+          autoScroll: true,
+          combineLoggerOutput: true,
+        ),
+      ),
       // Other modules...
     ],
   );
+}
 
-  runApp(
-    DevPanelWrapper(
-      child: MyApp(),
-    ),
-  );
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      builder: (context, child) {
+        return DevPanelWrapper(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+      home: MyHomePage(),
+    );
+  }
 }
 ```
 
@@ -53,53 +73,107 @@ The console module automatically captures:
 
 ## Logger Package Integration
 
-Flutter Dev Panel Console now includes built-in support for the [logger](https://pub.dev/packages/logger) package with zero configuration needed!
+Flutter Dev Panel automatically captures output from the [logger](https://pub.dev/packages/logger) package when using `ConsoleOutput`!
 
-### Simple Usage
+### Automatic Capture with FlutterDevPanel.init (Simplest)
+
+```dart
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Use FlutterDevPanel.init to automatically set up Zone
+  await FlutterDevPanel.init(
+    () => runApp(const MyApp()),
+    modules: [
+      ConsoleModule(), // Use default config
+      // Or with custom config:
+      // ConsoleModule(
+      //   logConfig: const LogCaptureConfig(maxLogs: 500),
+      // ),
+    ],
+  );
+}
+
+// Then Logger output is automatically captured:
+final logger = Logger(
+  printer: PrettyPrinter(),
+  // output: ConsoleOutput(), // Default, uses print() internally
+);
+
+logger.i("Info message"); // Automatically captured!
+logger.e("Error message"); // Automatically captured!
+```
+
+### Manual Zone Setup (Alternative)
+
+If you prefer to set up the Zone manually:
+
+```dart
+void main() {
+  runZonedGuarded(() {
+    // Initialize Dev Panel first
+    FlutterDevPanel.initialize(
+      modules: [
+        ConsoleModule(
+          logConfig: const LogCaptureConfig(
+            maxLogs: 1000,
+            autoScroll: true,
+          ),
+        ),
+      ],
+    );
+    
+    // Your app initialization
+    runApp(MyApp());
+  }, (error, stack) {
+    // Error handling
+    FlutterDevPanel.logError('Uncaught error', error: error, stackTrace: stack);
+  }, zoneSpecification: ZoneSpecification(
+    print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
+      FlutterDevPanel.log(line); // Use the unified API
+      parent.print(zone, line); // Still print to console
+    },
+  ));
+}
+```
+
+### Why it works
+
+- `ConsoleOutput` (Logger's default) uses `print()` internally
+- Dev Panel intercepts `print()` statements via Zone
+- Logger's formatted output is automatically captured and displayed
+
+### Advanced: Custom capture for other LogOutputs
+
+If you use `FileOutput` or custom LogOutput, you can manually capture:
 
 ```dart
 import 'package:logger/logger.dart';
 import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
 
-final logger = Logger(
-  output: DevPanelLoggerOutput(), // That's it!
-  printer: PrettyPrinter(),
-);
+class DevPanelLogOutput extends LogOutput {
+  final LogOutput baseOutput;
+  
+  DevPanelLogOutput({LogOutput? baseOutput}) 
+    : baseOutput = baseOutput ?? ConsoleOutput();
+  
+  @override
+  void output(OutputEvent event) {
+    baseOutput.output(event);
+    DevPanelLogger.capture(event); // Manual capture
+  }
+  
+  @override
+  Future<void> destroy() async {
+    await baseOutput.destroy();
+  }
+}
 
-// Use logger as normal - logs appear in both console AND Dev Panel!
-logger.i("Info message");
-logger.e("Error message", error: exception, stackTrace: stack);
-```
-
-### Using Extension Method
-
-```dart
-final logger = Logger(
-  output: ConsoleOutput().withDevPanel(), // Add Dev Panel capture to any LogOutput
-  printer: PrettyPrinter(),
-);
-```
-
-### Advanced Usage
-
-```dart
-// With custom base output
-final logger = Logger(
-  output: DevPanelLoggerOutput(
-    baseOutput: MultiOutput([
-      ConsoleOutput(),
-      FileOutput(),
-    ]),
-  ),
-);
-
-// Or wrap any existing LogOutput
-final logger = Logger(
-  output: FileOutput().withDevPanel(),
-);
 
 Features:
-- **Type-safe**: Properly extends LogOutput
+- **No dependency**: Console module doesn't depend on logger package
+- **No version conflicts**: Works with any logger version
+- **Zero overhead**: No extra packages for non-logger users
 - **Debug mode**: Logs appear in both console AND Dev Panel
 - **Release mode**: Only outputs to console (zero overhead)
 - **Customizable**: Can pass any LogOutput as base
@@ -107,12 +181,25 @@ Features:
 ## Configuration
 
 ```dart
-// Configure log capture settings
-DevLogger.instance.updateConfig(
-  maxLogs: 500,        // Maximum logs to keep
-  autoScroll: true,    // Auto-scroll to latest log
-  pauseOnError: true,  // Pause auto-scroll on error
+// Configure via ConsoleModule initialization
+await FlutterDevPanel.init(
+  () => runApp(MyApp()),
+  modules: [
+    ConsoleModule(
+      logConfig: const LogCaptureConfig(
+        maxLogs: 1000,              // Maximum logs to keep (default: 1000)
+        autoScroll: true,           // Auto-scroll to latest log (default: true)
+        combineLoggerOutput: true,  // Combine Logger package multi-line output (default: true)
+      ),
+    ),
+  ],
+  config: const DevPanelConfig(
+    enableLogCapture: true,  // Enable print interception (default: true)
+  ),
 );
+
+// Or simply use defaults
+ConsoleModule()  // Default: maxLogs=1000, autoScroll=true, combineLoggerOutput=true
 ```
 
 ## License

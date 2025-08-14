@@ -15,10 +15,6 @@ dependencies:
     path: ../..
   
   intl: ^0.19.0
-  
-  # Optional dependency for Logger integration
-  # Users who use Logger already have this, so no extra download
-  logger: ^2.0.0
 
 dev_dependencies:
   flutter_test:

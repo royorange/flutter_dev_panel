@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 enum TriggerMode {
   fab,
   shake,
-  manual,
 }
 
 class DevPanelConfig {
@@ -14,6 +13,7 @@ class DevPanelConfig {
   final ThemeData? lightTheme;
   final ThemeData? darkTheme;
   final ThemeMode themeMode;
+  final bool enableLogCapture;
 
   const DevPanelConfig({
     this.enabled = true,
@@ -23,6 +23,7 @@ class DevPanelConfig {
     this.lightTheme,
     this.darkTheme,
     this.themeMode = ThemeMode.system,
+    this.enableLogCapture = true,
   });
 
   DevPanelConfig copyWith({
@@ -33,6 +34,7 @@ class DevPanelConfig {
     ThemeData? lightTheme,
     ThemeData? darkTheme,
     ThemeMode? themeMode,
+    bool? enableLogCapture,
   }) {
     return DevPanelConfig(
       enabled: enabled ?? this.enabled,
@@ -42,6 +44,7 @@ class DevPanelConfig {
       lightTheme: lightTheme ?? this.lightTheme,
       darkTheme: darkTheme ?? this.darkTheme,
       themeMode: themeMode ?? this.themeMode,
+      enableLogCapture: enableLogCapture ?? this.enableLogCapture,
     );
   }
 }

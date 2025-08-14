@@ -616,24 +616,6 @@ class LogCaptureConfig {
     this.combineLoggerOutput = true,
   });
   
-  /// Create a minimal config
-  const LogCaptureConfig.minimal()
-    : maxLogs = 500,
-      autoScroll = true,
-      combineLoggerOutput = true;
-  
-  /// Create a full config
-  const LogCaptureConfig.full()
-    : maxLogs = 5000,
-      autoScroll = true,
-      combineLoggerOutput = true;
-  
-  /// Create a balanced config for development
-  const LogCaptureConfig.development()
-    : maxLogs = 1000,
-      autoScroll = true,
-      combineLoggerOutput = true;
-  
   LogCaptureConfig copyWith({
     int? maxLogs,
     bool? autoScroll,

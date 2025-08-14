@@ -4,8 +4,11 @@ import 'ui/pages/console_page.dart';
 
 /// Console 日志模块
 class ConsoleModule extends DevModule {
-  const ConsoleModule()
-      : super(
+  final LogCaptureConfig? logConfig;
+  
+  const ConsoleModule({
+    this.logConfig,
+  }) : super(
           id: 'console',
           name: 'Console',
           description: '查看应用日志和错误信息',
@@ -84,8 +87,10 @@ class ConsoleModule extends DevModule {
 
   @override
   Future<void> initialize() async {
-    // DevLogger 已经在 core 中初始化
-    // 这里可以添加额外的初始化逻辑
+    // 如果提供了配置，更新 DevLogger 配置
+    if (logConfig != null) {
+      DevLogger.instance.updateConfig(logConfig!);
+    }
     DevLogger.log('Console module initialized');
   }
 

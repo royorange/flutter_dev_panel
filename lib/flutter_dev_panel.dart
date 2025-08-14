@@ -1,5 +1,6 @@
 library flutter_dev_panel;
 
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -34,6 +35,7 @@ export 'src/ui/widgets/theme_switcher.dart';
 import 'src/flutter_dev_panel_core.dart' as core;
 import 'src/models/dev_panel_config.dart';
 import 'src/models/dev_module.dart';
+import 'src/core/dev_logger.dart' as core;
 
 /// Flutter开发面板的主入口类
 /// 提供更简洁的API访问方式
@@ -106,4 +108,287 @@ class FlutterDevPanel {
       core.FlutterDevPanelCore.instance.reset();
     }
   }
+  
+  /// 初始化并运行应用（类似 Sentry 的模式）
+  /// 
+  /// 这个方法会自动设置 Zone 来拦截所有 print 语句。
+  /// 
+  /// 示例 1 - 最简单使用（使用所有默认值）:
+  /// ```dart
+  /// void main() async {
+  ///   await FlutterDevPanel.init(
+  ///     () => runApp(const MyApp()),
+  ///   );
+  /// }
+  /// ```
+  /// 
+  /// 示例 2 - 带模块和配置:
+  /// ```dart
+  /// void main() async {
+  ///   await FlutterDevPanel.init(
+  ///     () => runApp(const MyApp()),
+  ///     modules: [ConsoleModule()],
+  ///     config: const DevPanelConfig(
+  ///       triggerModes: {TriggerMode.fab},
+  ///     ),
+  ///   );
+  /// }
+  /// ```
+  /// 
+  /// 示例 3 - 与 Sentry 配合使用:
+  /// ```dart
+  /// void main() async {
+  ///   await SentryFlutter.init(
+  ///     (options) {
+  ///       options.dsn = 'your-dsn';
+  ///     },
+  ///     appRunner: () async {
+  ///       await FlutterDevPanel.init(
+  ///         () => runApp(const MyApp()),
+  ///         modules: [ConsoleModule()],
+  ///       );
+  ///     },
+  ///   );
+  /// }
+  /// ```
+  static Future<void> init(
+    void Function() appRunner, {
+    DevPanelConfig config = const DevPanelConfig(),
+    List<DevModule> modules = const [],
+    void Function(Object error, StackTrace stack)? onError,
+  }) async {
+    if (!kDebugMode) {
+      // 在 Release 模式下，直接运行应用
+      appRunner();
+      return;
+    }
+    
+    // 初始化 Dev Panel
+    if (!_initialized) {
+      _initialized = true;
+      core.FlutterDevPanelCore.instance.initialize(
+        config: config,
+        modules: modules,
+        enableLogCapture: config.enableLogCapture,
+      );
+    }
+    
+    // 检查是否已经在 Zone 中
+    final currentZone = Zone.current;
+    final hasPrintInterception = currentZone[#_devPanelPrintIntercepted] == true;
+    
+    if (hasPrintInterception) {
+      // 已经在拦截 print 的 Zone 中，直接运行
+      appRunner();
+    } else if (!config.enableLogCapture) {
+      // 不需要拦截 print，直接运行
+      appRunner();
+    } else {
+      // 创建新的 Zone 来拦截 print
+      await runZonedGuarded(
+        () async {
+          appRunner();
+        },
+        (error, stack) {
+          // 捕获未处理的错误到 Dev Panel
+          core.DevLogger.instance.error(
+            'Uncaught Error',
+            error: error.toString(),
+            stackTrace: stack.toString(),
+          );
+          
+          // 调用用户的错误处理器（如果提供）
+          onError?.call(error, stack);
+        },
+        zoneSpecification: ZoneSpecification(
+          print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
+            // 捕获 print 到 Dev Panel
+            core.DevLogger.instance.info(line);
+            // 仍然输出到控制台
+            parent.print(zone, line);
+          },
+        ),
+        zoneValues: {
+          #_devPanelPrintIntercepted: true,
+        },
+      );
+    }
+  }
+  
+  /// 使用自动 print 拦截运行应用（向后兼容）
+  /// 
+  /// @deprecated 请使用 FlutterDevPanel.init 代替
+  static void runApp(
+    Widget app, {
+    DevPanelConfig config = const DevPanelConfig(),
+    List<DevModule> modules = const [],
+    bool enableLogCapture = true,
+    void Function(Object error, StackTrace stack)? onError,
+  }) {
+    // 如果提供了 enableLogCapture 参数，更新 config
+    final finalConfig = enableLogCapture != config.enableLogCapture
+        ? config.copyWith(enableLogCapture: enableLogCapture)
+        : config;
+    
+    init(
+      () => runApp(app),
+      config: finalConfig,
+      modules: modules,
+      onError: onError,
+    );
+  }
+  
+  /// 在 Zone 中运行代码并拦截 print
+  /// 
+  /// 这个方法让你可以先完成所有初始化，然后再运行应用。
+  /// 
+  /// 示例:
+  /// ```dart
+  /// void main() async {
+  ///   await FlutterDevPanel.runWithZone(() async {
+  ///     WidgetsFlutterBinding.ensureInitialized();
+  ///     
+  ///     // 你的初始化代码...
+  ///     await initHiveForFlutter();
+  ///     await Get.putAsync(() => StorageService().init());
+  ///     
+  ///     // 初始化 Dev Panel
+  ///     FlutterDevPanel.initialize(
+  ///       modules: [ConsoleModule()],
+  ///     );
+  ///     
+  ///     // 最后运行应用
+  ///     runApp(const MyApp());
+  ///   });
+  /// }
+  /// ```
+  static Future<void> runWithZone(
+    Future<void> Function() body, {
+    void Function(Object error, StackTrace stack)? onError,
+  }) async {
+    if (!kDebugMode) {
+      // 在 Release 模式下，直接运行
+      await body();
+      return;
+    }
+    
+    await runZonedGuarded(
+      body,
+      (error, stack) {
+        // 捕获未处理的错误到 Dev Panel
+        core.DevLogger.instance.error(
+          'Uncaught Error',
+          error: error.toString(),
+          stackTrace: stack.toString(),
+        );
+        
+        // 调用用户的错误处理器（如果提供）
+        onError?.call(error, stack);
+      },
+      zoneSpecification: ZoneSpecification(
+        print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
+          // 捕获 print 到 Dev Panel
+          core.DevLogger.instance.info(line);
+          // 仍然输出到控制台
+          parent.print(zone, line);
+        },
+      ),
+    );
+  }
+  
+  /// 创建一个用于 print 拦截的 ZoneSpecification
+  /// 
+  /// 这个方法提供更灵活的集成方式，让用户可以自己控制 Zone。
+  /// 适合与 Sentry、Firebase Crashlytics 等第三方库配合使用。
+  /// 
+  /// 示例 1 - 与 runZonedGuarded 配合:
+  /// ```dart
+  /// void main() {
+  ///   runZonedGuarded(() {
+  ///     FlutterDevPanel.initialize(modules: [ConsoleModule()]);
+  ///     runApp(MyApp());
+  ///   }, (error, stack) {
+  ///     // 你的错误处理
+  ///     Sentry.captureException(error, stackTrace: stack);
+  ///   }, zoneSpecification: FlutterDevPanel.createZoneSpecification());
+  /// }
+  /// ```
+  /// 
+  /// 示例 2 - 合并多个 ZoneSpecification:
+  /// ```dart
+  /// void main() {
+  ///   final devPanelSpec = FlutterDevPanel.createZoneSpecification();
+  ///   final sentrySpec = Sentry.createZoneSpecification();
+  ///   
+  ///   final mergedSpec = ZoneSpecification(
+  ///     print: devPanelSpec.print ?? sentrySpec.print,
+  ///     // 合并其他处理器...
+  ///   );
+  ///   
+  ///   runZonedGuarded(() {
+  ///     runApp(MyApp());
+  ///   }, handleError, zoneSpecification: mergedSpec);
+  /// }
+  /// ```
+  static ZoneSpecification createZoneSpecification({
+    bool enableLogCapture = true,
+  }) {
+    return ZoneSpecification(
+      print: kDebugMode && enableLogCapture
+          ? (Zone self, ZoneDelegate parent, Zone zone, String line) {
+              // 捕获 print 到 Dev Panel
+              core.DevLogger.instance.info(line);
+              // 继续传递给父 Zone
+              parent.print(zone, line);
+            }
+          : null,
+    );
+  }
+  
+  /// 创建一个 print 拦截的钩子函数
+  /// 
+  /// 这是最灵活的方式，可以在任何 Zone 设置中使用。
+  /// 
+  /// 示例:
+  /// ```dart
+  /// void main() {
+  ///   runZonedGuarded(() {
+  ///     runApp(MyApp());
+  ///   }, (error, stack) {
+  ///     // 错误处理
+  ///   }, zoneSpecification: ZoneSpecification(
+  ///     print: (self, parent, zone, line) {
+  ///       FlutterDevPanel.handlePrint(line); // 捕获到 Dev Panel
+  ///       // 其他库的处理...
+  ///       parent.print(zone, line); // 继续输出
+  ///     },
+  ///   ));
+  /// ```
+  static void handlePrint(String line) {
+    if (kDebugMode) {
+      core.DevLogger.instance.info(line);
+    }
+  }
+  
+  /// 记录日志（统一的日志 API）
+  /// 
+  /// 示例:
+  /// ```dart
+  /// FlutterDevPanel.log('User logged in');
+  /// FlutterDevPanel.logInfo('Request completed');
+  /// FlutterDevPanel.logWarning('Low memory');
+  /// FlutterDevPanel.logError('Failed to load', error: e, stackTrace: s);
+  /// ```
+  static void log(String message) => kDebugMode ? core.DevLogger.instance.info(message) : null;
+  static void logVerbose(String message) => kDebugMode ? core.DevLogger.instance.verbose(message) : null;
+  static void logDebug(String message) => kDebugMode ? core.DevLogger.instance.debug(message) : null;
+  static void logInfo(String message) => kDebugMode ? core.DevLogger.instance.info(message) : null;
+  static void logWarning(String message, {String? error}) => 
+    kDebugMode ? core.DevLogger.instance.warning(message, error: error) : null;
+  static void logError(String message, {Object? error, StackTrace? stackTrace}) =>
+    kDebugMode ? core.DevLogger.instance.error(
+      message, 
+      error: error?.toString(), 
+      stackTrace: stackTrace?.toString(),
+    ) : null;
 }

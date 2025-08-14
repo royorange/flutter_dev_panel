@@ -93,6 +93,81 @@ dependencies:
 
 ## Quick Start
 
+> **Important**: Choose the right initialization method based on your needs:
+> - **Method 1**: Automatic setup with full log capture ✅ (Recommended)
+> - **Method 2**: Custom Zone setup for integration with other tools 🔧
+> - **Method 3**: Traditional initialization without print interception ⚠️
+
+### Method 1: Using FlutterDevPanel.init (Recommended)
+
+Automatically sets up Zone to intercept print statements, making Logger package integration automatic.
+
+```dart
+import 'package:flutter_dev_panel/flutter_dev_panel.dart';
+// Import the modules you need
+import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
+import 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Your initialization code...
+  await initServices();
+  
+  // Use FlutterDevPanel.init with appRunner
+  await FlutterDevPanel.init(
+    () => runApp(const MyApp()),
+    modules: [
+      ConsoleModule(),
+      NetworkModule(),
+      DeviceModule(),
+      PerformanceModule()
+      // Add more modules as needed
+    ],
+    config: const DevPanelConfig(
+      triggerModes: {TriggerMode.fab, TriggerMode.shake},
+      // showInProduction: false,  // Only show in debug mode (default)
+      // enableLogCapture: true,    // Intercept print statements (default)
+    ),
+  );
+}
+```
+
+### Method 2: Custom Zone Setup (With Sentry/Crashlytics)
+
+For integration with error tracking services like Sentry or Firebase Crashlytics.
+
+```dart
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    
+    // Initialize your services
+    await initServices();
+    
+    // Initialize Dev Panel
+    FlutterDevPanel.initialize(
+      modules: [ConsoleModule(), NetworkModule()],
+    );
+    
+    runApp(const MyApp());
+  }, (error, stack) {
+    // Send to multiple services
+    FlutterDevPanel.logError('Uncaught error', error: error, stackTrace: stack);
+    Sentry.captureException(error, stackTrace: stack);
+  }, zoneSpecification: ZoneSpecification(
+    print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
+      FlutterDevPanel.log(line);  // Capture to Dev Panel
+      parent.print(zone, line);    // Still print to console
+    },
+  ));
+}
+```
+
+### Method 3: Traditional Initialization (Simple Setup)
+
+**Note**: This method does NOT automatically capture print statements. Console module will only show logs from direct `FlutterDevPanel.log()` calls.
+
 ```dart
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 // Import the modules you need
@@ -131,17 +206,12 @@ void main() async {
   // Initialize dev panel with selected modules
   FlutterDevPanel.initialize(
     modules: [
-      ConsoleModule(),
       NetworkModule(),
       // Add more modules as needed
     ],
   );
 
-  runApp(
-    DevPanelWrapper(
-      child: MyApp(),
-    ),
-  );
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -156,6 +226,11 @@ class MyApp extends StatelessWidget {
           theme: ThemeData.light(),
           darkTheme: ThemeData.dark(),
           themeMode: themeMode,  // Apply theme from dev panel
+          builder: (context, child) {
+            return DevPanelWrapper(
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
           home: MyHomePage(),
         );
       },
@@ -171,18 +246,31 @@ class MyApp extends StatelessWidget {
 - **Shake Gesture**: Shake the device (mobile only)
 - **Programmatic**: `FlutterDevPanel.open(context)`
 
-### Integration Methods
+### Logging
 
-#### Standard MaterialApp
+Flutter Dev Panel provides a unified logging API:
+
 ```dart
-MaterialApp(
-  home: DevPanelWrapper(
-    child: MyHomePage(),
-  ),
-)
+// Simple logging
+FlutterDevPanel.log('User action');
+FlutterDevPanel.logInfo('Request completed');
+FlutterDevPanel.logWarning('Low memory');
+FlutterDevPanel.logError('Failed to load', error: e, stackTrace: s);
+
+// Automatic print interception (when using FlutterDevPanel.init)
+print('This will be captured automatically');
+debugPrint('This too');
+
+// Logger package is also captured automatically
+final logger = Logger();
+logger.i('Info from Logger package');
 ```
 
-#### Using Builder Pattern (Supports GetX/Auto Route/etc.)
+For detailed logging features, see [Console Module Documentation](https://pub.dev/packages/flutter_dev_panel_console).
+
+### Integration Methods
+
+#### Using Builder Pattern (Recommended)
 ```dart
 // Works with MaterialApp, GetMaterialApp, etc.
 MaterialApp(
@@ -195,7 +283,7 @@ MaterialApp(
 )
 ```
 
-The builder pattern can be used for:
+The builder pattern works with:
 - GetX (`GetMaterialApp`)
 - Auto Route navigation
 - Apps with complex navigation setup
@@ -209,23 +297,37 @@ final isDebug = EnvironmentManager.instance.getVariable<bool>('debug');
 
 ### Network Monitoring Setup
 
-For **Dio**:
+For **Dio** (Recommended):
 ```dart
 final dio = Dio();
-dio.interceptors.add(NetworkInterceptor.dio());
+NetworkModule.attachToDio(dio);  // Modifies dio directly
+// Use dio as normal
 ```
 
-For **HTTP**:
-```dart
-final client = NetworkInterceptor.http(http.Client());
-```
-
-For **GraphQL**:
+For **GraphQL** (Recommended):
 ```dart
 final graphQLClient = GraphQLClient(
-  link: NetworkInterceptor.graphQL(httpLink),
+  link: HttpLink('https://api.example.com/graphql'),
   cache: GraphQLCache(),
 );
+
+// IMPORTANT: attachToGraphQL returns a wrapped client
+final monitoredClient = NetworkModule.attachToGraphQL(graphQLClient);
+
+// Use the returned monitoredClient for all GraphQL operations
+Query(
+  options: QueryOptions(...),
+  builder: (result, {...}) {
+    // Your UI
+  },
+  client: monitoredClient,  // Use the wrapped client
+);
+```
+
+For **HTTP** (Alternative):
+```dart
+// Using interceptor pattern
+final client = NetworkInterceptor.http(http.Client());
 ```
 
 ## Environment Management
@@ -415,18 +517,17 @@ This approach:
 
 ### Console Module
 ```dart
-DevLogger.instance.updateConfig(
-  const LogCaptureConfig(
-    maxLogs: 500,
-    autoScroll: true,
-    combineLoggerOutput: true,  // Merge Logger package multi-line output
+// Configure via module initialization
+ConsoleModule(
+  logConfig: const LogCaptureConfig(
+    maxLogs: 1000,              // Maximum logs to keep (default: 1000)
+    autoScroll: true,           // Auto-scroll to latest log (default: true)
+    combineLoggerOutput: true,  // Merge Logger package multi-line output (default: true)
   ),
-);
+)
 
-// Use predefined configurations
-DevLogger.instance.updateConfig(
-  const LogCaptureConfig.development(), // maxLogs: 1000, autoScroll: true
-);
+// Default configuration is usually sufficient
+ConsoleModule()  // Uses default: maxLogs=1000, autoScroll=true, combineLoggerOutput=true
 ```
 
 ### Performance Module

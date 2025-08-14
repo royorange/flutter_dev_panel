@@ -93,10 +93,10 @@ void main() async {
       enableLogCapture: true,
     );
     
-    // 配置日志捕获（可选，默认使用 development 模式）
-    DevLogger.instance.updateConfig(
-      const LogCaptureConfig.development(), // 开发模式：捕获应用和库日志
-    );
+    // 配置日志捕获（可选）
+    // DevLogger.instance.updateConfig(
+    //   const LogCaptureConfig(maxLogs: 2000),
+    // );
 
     runApp(MyApp(
       dio: dio,
