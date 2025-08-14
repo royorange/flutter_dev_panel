@@ -33,18 +33,18 @@ void main() async {
     // 需要先导入: import 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
     NetworkModule.attachToDio(dio);
 
-    // 初始化GraphQL客户端
+    // 初始化GraphQL客户端（推荐方式：在创建时就加入监控）
     const graphQLEndpoint = 'https://countries.trevorblades.com/';
+    final graphQLLink = NetworkModule.createGraphQLLink(
+      HttpLink(graphQLEndpoint),
+      endpoint: graphQLEndpoint,
+    );
     final graphQLClient = GraphQLClient(
-      link: HttpLink(graphQLEndpoint),
+      link: graphQLLink,
       cache: GraphQLCache(),
     );
-
-    // 添加GraphQL监控（会自动检测endpoint，也可以手动传入）
-    final monitoredGraphQLClient = NetworkModule.attachToGraphQL(
-      graphQLClient,
-      endpoint: graphQLEndpoint, // 可选：手动指定以确保显示正确
-    );
+    
+    // 注意：不需要再包装，直接使用 graphQLClient
 
     // Initialize environment configurations
     // Priority: .env files > code configuration > saved configuration
@@ -100,7 +100,7 @@ void main() async {
 
     runApp(MyApp(
       dio: dio,
-      graphQLClient: monitoredGraphQLClient,
+      graphQLClient: graphQLClient,
     ));
   }, (error, stack) {
     // Errors will be captured by DevLogger

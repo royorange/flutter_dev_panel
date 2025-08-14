@@ -76,19 +76,68 @@ class NetworkModule extends DevModule {
   }
   
   // ============ GraphQL 集成 ============
-  /// 附加到现有的GraphQL客户端（最简单的方式）
-  /// endpoint 参数可选，用于在监控面板中显示请求地址
-  static gql.GraphQLClient attachToGraphQL(gql.GraphQLClient client, {String? endpoint}) {
-    // 生产模式下返回原始客户端
+  /// 创建带监控的 GraphQL Link（推荐方式）
+  /// 
+  /// 使用方法 1 - 单个 Link：
+  /// ```dart
+  /// final link = NetworkModule.createGraphQLLink(
+  ///   HttpLink('https://api.example.com/graphql'),
+  /// );
+  /// ```
+  /// 
+  /// 使用方法 2 - 多个 Link 组合：
+  /// ```dart
+  /// final httpLink = HttpLink('https://api.example.com/graphql');
+  /// final authLink = AuthLink(getToken: () async => 'Bearer $token');
+  /// 
+  /// // 先组合你的 Links
+  /// final combinedLink = Link.from([authLink, httpLink]);
+  /// 
+  /// // 然后添加监控
+  /// final link = NetworkModule.createGraphQLLink(combinedLink);
+  /// ```
+  /// 
+  /// 使用方法 3 - 只监控 HttpLink：
+  /// ```dart
+  /// final httpLink = HttpLink('https://api.example.com/graphql');
+  /// final monitoredHttpLink = NetworkModule.createGraphQLLink(httpLink);
+  /// final authLink = AuthLink(getToken: () async => 'Bearer $token');
+  /// 
+  /// // 监控在 auth 之后
+  /// final link = Link.from([authLink, monitoredHttpLink]);
+  /// ```
+  static gql.Link createGraphQLLink(gql.Link link, {String? endpoint}) {
+    // 生产模式下返回原始 link
     if (!kDebugMode) {
-      return client;
+      return link;
     }
     
     final interceptor = GraphQLInterceptor(
       controller: controller,
       endpoint: endpoint,
     );
-    final wrappedLink = gql.Link.from([interceptor, client.link]);
+    return gql.Link.from([interceptor, link]);
+  }
+  
+  /// 包装现有的 GraphQL 客户端（返回新客户端）
+  /// 
+  /// 注意：由于 GraphQL 客户端的设计，无法直接修改原客户端，
+  /// 必须返回新客户端。请使用返回的客户端替换原客户端。
+  /// 
+  /// 使用方法：
+  /// ```dart
+  /// GraphQLClient client = GraphQLClient(...);
+  /// client = NetworkModule.wrapGraphQLClient(client); // 重新赋值
+  /// ```
+  /// 
+  /// 或者使用 createGraphQLLink 在创建客户端时就加入监控（推荐）
+  static gql.GraphQLClient wrapGraphQLClient(gql.GraphQLClient client, {String? endpoint}) {
+    // 生产模式下返回原始客户端
+    if (!kDebugMode) {
+      return client;
+    }
+    
+    final wrappedLink = createGraphQLLink(client.link, endpoint: endpoint);
     
     // 返回新的客户端，保留原有配置
     return gql.GraphQLClient(
@@ -97,6 +146,7 @@ class NetworkModule extends DevModule {
       defaultPolicies: client.defaultPolicies,
     );
   }
+  
   
   /// 创建带监控的GraphQL客户端
   static gql.GraphQLClient createGraphQLClient({

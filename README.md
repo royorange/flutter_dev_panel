@@ -304,9 +304,73 @@ The builder pattern works with:
 
 ### Get Environment Variables
 ```dart
-final apiUrl = EnvironmentManager.instance.getVariable<String>('api_url');
-final isDebug = EnvironmentManager.instance.getVariable<bool>('debug');
+// Using convenience methods (recommended)
+final apiUrl = DevPanel.environment.getString('api_url');
+final isDebug = DevPanel.environment.getBool('debug');
+final timeout = DevPanel.environment.getInt('timeout');
+
+// Listen to environment changes
+ListenableBuilder(
+  listenable: DevPanel.environment,
+  builder: (context, _) {
+    final apiUrl = DevPanel.environment.getString('api_url');
+    // UI updates automatically when environment switches
+    return Text('API: $apiUrl');
+  },
+);
 ```
+
+### Dynamic Endpoint Switching
+
+For **Dio** (simple - can modify directly):
+```dart
+class ApiService {
+  final dio = Dio();
+  
+  ApiService() {
+    NetworkModule.attachToDio(dio); // Only once
+    _updateConfig();
+    DevPanel.environment.addListener(_updateConfig);
+  }
+  
+  void _updateConfig() {
+    // Directly modify options
+    dio.options.baseUrl = DevPanel.environment.getString('api_url') ?? '';
+  }
+}
+```
+
+For **GraphQL** (requires recreating client):
+```dart
+class GraphQLService extends ChangeNotifier {
+  GraphQLClient? _client;
+  GraphQLClient get client => _client ?? _createClient();
+  
+  void initialize() {
+    _client = _createClient();
+    DevPanel.environment.addListener(_onEnvironmentChanged);
+  }
+  
+  void _onEnvironmentChanged() {
+    _client = _createClient(); // Recreate with new endpoint
+    notifyListeners();
+  }
+  
+  GraphQLClient _createClient() {
+    final endpoint = DevPanel.environment.getString('graphql_endpoint') 
+        ?? 'https://api.example.com/graphql';
+    
+    final link = NetworkModule.createGraphQLLink(
+      HttpLink(endpoint),
+      endpoint: endpoint,
+    );
+    
+    return GraphQLClient(link: link, cache: GraphQLCache());
+  }
+}
+```
+
+See [GraphQL Environment Switching Guide](docs/graphql_environment_switching.md) for more details.
 
 ### Network Monitoring Setup
 
@@ -317,24 +381,33 @@ NetworkModule.attachToDio(dio);  // Modifies dio directly
 // Use dio as normal
 ```
 
-For **GraphQL** (Recommended):
+For **GraphQL**:
+
+Method 1 - Create with monitoring (Recommended):
 ```dart
+// Add monitoring when creating the client
+final link = NetworkModule.createGraphQLLink(
+  HttpLink('https://api.example.com/graphql'),
+  endpoint: 'https://api.example.com/graphql',
+);
+
 final graphQLClient = GraphQLClient(
-  link: HttpLink('https://api.example.com/graphql'),
+  link: link,
   cache: GraphQLCache(),
 );
 
-// IMPORTANT: attachToGraphQL returns a wrapped client
-final monitoredClient = NetworkModule.attachToGraphQL(graphQLClient);
+// Use graphQLClient directly - no need to wrap
+```
 
-// Use the returned monitoredClient for all GraphQL operations
-Query(
-  options: QueryOptions(...),
-  builder: (result, {...}) {
-    // Your UI
-  },
-  client: monitoredClient,  // Use the wrapped client
-);
+Method 2 - Wrap existing client:
+```dart
+// If you already have a client
+GraphQLClient client = GraphQLClient(...);
+
+// Note: GraphQL clients are immutable, so you must reassign
+client = NetworkModule.wrapGraphQLClient(client);
+
+// Now use the wrapped client
 ```
 
 For **HTTP** (Alternative):
