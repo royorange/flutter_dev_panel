@@ -29,7 +29,10 @@ import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 ///   printer: PrettyPrinter(...),
 /// );
 /// ```
-class DevPanelLoggerOutput {
+/// 
+/// Note: This class extends LogOutput from the logger package.
+/// If logger package is not available, it will use a dynamic approach.
+class DevPanelLoggerOutput extends _LogOutputBase {
   final dynamic baseOutput;
   late final dynamic _actualOutput;
   
@@ -61,18 +64,25 @@ class DevPanelLoggerOutput {
     return _DefaultConsoleOutput();
   }
   
-  /// Forward the output call to the actual implementation
+  @override
   void output(dynamic event) {
     _actualOutput.output(event);
   }
 }
 
+/// Base class that acts as LogOutput
+/// This allows DevPanelLoggerOutput to be used as a LogOutput
+abstract class _LogOutputBase {
+  void output(dynamic event);
+}
+
 /// Internal implementation that captures to Dev Panel in debug mode
-class _DevPanelLoggerOutputImpl {
+class _DevPanelLoggerOutputImpl extends _LogOutputBase {
   final dynamic _wrappedOutput;
   
   _DevPanelLoggerOutputImpl(this._wrappedOutput);
   
+  @override
   void output(dynamic event) {
     // Always forward to the wrapped output
     if (_wrappedOutput != null) {
@@ -124,7 +134,8 @@ class _DevPanelLoggerOutputImpl {
 
 /// Default console output implementation
 /// Mimics Logger package's ConsoleOutput behavior
-class _DefaultConsoleOutput {
+class _DefaultConsoleOutput extends _LogOutputBase {
+  @override
   void output(dynamic event) {
     if (event == null) return;
     
