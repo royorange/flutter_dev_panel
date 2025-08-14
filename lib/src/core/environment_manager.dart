@@ -314,6 +314,94 @@ class EnvironmentManager extends ChangeNotifier {
   T getVariableOrDefault<T>(String key, T defaultValue) {
     return getVariable<T>(key, defaultValue: defaultValue) ?? defaultValue;
   }
+  
+  /// Convenience methods for common types without generics
+  
+  /// Get a String variable
+  /// 
+  /// Example:
+  /// ```dart
+  /// final apiUrl = DevPanel.environment.getString('api_url');
+  /// final apiUrl = DevPanel.environment.getString('api_url', defaultValue: 'https://api.example.com');
+  /// ```
+  String? getString(String key, {String? defaultValue}) {
+    return getVariable<String>(key, defaultValue: defaultValue);
+  }
+  
+  /// Get a bool variable
+  /// 
+  /// Example:
+  /// ```dart
+  /// final isDebug = DevPanel.environment.getBool('debug');
+  /// final isDebug = DevPanel.environment.getBool('debug', defaultValue: false);
+  /// ```
+  bool? getBool(String key, {bool? defaultValue}) {
+    return getVariable<bool>(key, defaultValue: defaultValue);
+  }
+  
+  /// Get an int variable
+  /// 
+  /// Example:
+  /// ```dart
+  /// final timeout = DevPanel.environment.getInt('timeout');
+  /// final timeout = DevPanel.environment.getInt('timeout', defaultValue: 30000);
+  /// ```
+  int? getInt(String key, {int? defaultValue}) {
+    final value = _currentEnvironment?.variables[key];
+    if (value != null) {
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value) ?? defaultValue;
+      if (value is double) return value.toInt();
+    }
+    return defaultValue;
+  }
+  
+  /// Get a double variable
+  /// 
+  /// Example:
+  /// ```dart
+  /// final version = DevPanel.environment.getDouble('version');
+  /// final version = DevPanel.environment.getDouble('version', defaultValue: 1.0);
+  /// ```
+  double? getDouble(String key, {double? defaultValue}) {
+    final value = _currentEnvironment?.variables[key];
+    if (value != null) {
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? defaultValue;
+    }
+    return defaultValue;
+  }
+  
+  /// Get a List variable
+  /// 
+  /// Example:
+  /// ```dart
+  /// final servers = DevPanel.environment.getList<String>('servers');
+  /// final servers = DevPanel.environment.getList<String>('servers', defaultValue: ['server1']);
+  /// ```
+  List<T>? getList<T>(String key, {List<T>? defaultValue}) {
+    final value = _currentEnvironment?.variables[key];
+    if (value != null && value is List) {
+      return value.cast<T>();
+    }
+    return defaultValue;
+  }
+  
+  /// Get a Map variable
+  /// 
+  /// Example:
+  /// ```dart
+  /// final config = DevPanel.environment.getMap('config');
+  /// final config = DevPanel.environment.getMap('config', defaultValue: {'key': 'value'});
+  /// ```
+  Map<String, dynamic>? getMap(String key, {Map<String, dynamic>? defaultValue}) {
+    final value = _currentEnvironment?.variables[key];
+    if (value != null && value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    return defaultValue;
+  }
 
   /// Update a variable in current environment
   void updateVariable(String key, dynamic value) {
