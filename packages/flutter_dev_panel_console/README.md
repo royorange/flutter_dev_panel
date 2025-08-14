@@ -51,6 +51,30 @@ The console module automatically captures:
 - Logger package logs (with smart multi-line merging)
 - Flutter framework errors
 
+## Logger Package Integration
+
+For better integration with the [logger](https://pub.dev/packages/logger) package:
+
+```dart
+import 'package:logger/logger.dart';
+import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
+
+final logger = Logger(
+  output: DevPanelLoggerOutput(), // That's it!
+  printer: PrettyPrinter(),
+);
+
+// Use logger as normal
+logger.i("Info message");
+logger.e("Error message", error: exception, stackTrace: stack);
+```
+
+Features:
+- **Debug mode**: Logs appear in both console AND Dev Panel
+- **Release mode**: Only outputs to console (zero overhead)
+- **Automatic**: No need to specify ConsoleOutput, it's handled internally
+- **Customizable**: Can pass custom LogOutput if needed
+
 ## Configuration
 
 ```dart
