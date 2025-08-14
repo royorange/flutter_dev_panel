@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'monitoring_data_provider.dart';
+import 'dev_panel_controller.dart';
 
 /// 日志级别
 enum LogLevel {
@@ -288,6 +289,11 @@ class DevLogger {
   }
   
   void _addLog(LogLevel level, String message, {String? error, String? stackTrace}) {
+    // Production safety: use unified check
+    if (!DevPanelController.isEnabled) {
+      return;
+    }
+    
     // Don't capture logs when paused
     if (_isPaused) {
       return;
@@ -531,7 +537,7 @@ class DevLogger {
     return _ParsedLog(level: null, message: message);
   }
   
-  // Public logging methods
+  // Public logging methods - respect user's configuration
   void verbose(String message) => _addLog(LogLevel.verbose, message);
   void debug(String message) => _addLog(LogLevel.debug, message);
   void info(String message) => _addLog(LogLevel.info, message);
@@ -541,6 +547,7 @@ class DevLogger {
   }
   
   // Static convenience methods that mirror print
+  // These check isEnabled internally through _addLog
   static void log(String message) => instance.info(message);
   static void logDebug(String message) => instance.debug(message);
   static void logError(String message, {Object? error, StackTrace? stackTrace}) {

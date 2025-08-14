@@ -22,6 +22,11 @@ class FlutterDevPanelCore {
     List<DevModule> modules = const [],
     bool enableLogCapture = true,
   }) {
+    // 使用统一的启用检查
+    if (!DevPanelController.isEnabled) {
+      return;
+    }
+    
     controller.initialize(config: config);
     moduleRegistry.registerModules(modules);
     
@@ -44,7 +49,8 @@ class FlutterDevPanelCore {
 
   /// 打开面板
   void open(BuildContext context) {
-    if (!controller.shouldShowInProduction()) {
+    // 使用统一的启用检查
+    if (!DevPanelController.isEnabled) {
       return;
     }
 

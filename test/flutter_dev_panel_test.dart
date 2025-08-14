@@ -22,29 +22,24 @@ void main() {
   group('Core Components Tests', () {
     test('DevPanelConfig can be created with defaults', () {
       const config = DevPanelConfig();
-      expect(config.enabled, true);
-      expect(config.showInProduction, false);
       expect(config.triggerModes.contains(TriggerMode.fab), true);
+      expect(config.enableLogCapture, true);
     });
 
     test('DevPanelConfig can be customized', () {
       const config = DevPanelConfig(
-        enabled: false,
-        showInProduction: true,
-        triggerModes: {TriggerMode.shake, TriggerMode.manual},
+        triggerModes: {TriggerMode.shake},
+        enableLogCapture: false,
       );
-      expect(config.enabled, false);
-      expect(config.showInProduction, true);
       expect(config.triggerModes.contains(TriggerMode.shake), true);
-      expect(config.triggerModes.contains(TriggerMode.manual), true);
       expect(config.triggerModes.contains(TriggerMode.fab), false);
+      expect(config.enableLogCapture, false);
     });
 
     test('TriggerMode enum has correct values', () {
-      expect(TriggerMode.values.length, 3);
+      expect(TriggerMode.values.length, 2);
       expect(TriggerMode.values.contains(TriggerMode.fab), true);
       expect(TriggerMode.values.contains(TriggerMode.shake), true);
-      expect(TriggerMode.values.contains(TriggerMode.manual), true);
     });
   });
 

@@ -40,7 +40,8 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
   }
 
   void _openPanel([BuildContext? fabContext]) {
-    if (!controller.shouldShowInProduction() || _isPanelOpen) {
+    // 使用统一的启用检查
+    if (!DevPanelController.isEnabled || _isPanelOpen) {
       return;
     }
 
@@ -134,15 +135,16 @@ class _DevPanelWrapperState extends State<DevPanelWrapper> {
 
   @override
   Widget build(BuildContext context) {
+    // 使用编译时常量，支持 tree shaking
+    if (!DevPanelController.isEnabled) {
+      return widget.child;
+    }
+    
     return ListenableBuilder(
       listenable: Listenable.merge([controller, PanelSettings.instance]),
       builder: (context, child) {
         final config = controller.config;
         final settings = PanelSettings.instance;
-        
-        if (!config.enabled || !controller.shouldShowInProduction()) {
-          return widget.child;
-        }
 
         Widget result = widget.child;
 

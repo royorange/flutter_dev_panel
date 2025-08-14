@@ -126,8 +126,7 @@ void main() async {
     ],
     config: const DevPanelConfig(
       triggerModes: {TriggerMode.fab, TriggerMode.shake},
-      // showInProduction: false,  // Only show in debug mode (default)
-      // enableLogCapture: true,    // Intercept print statements (default)
+      // enableLogCapture: true,  // Intercept print statements (default)
     ),
   );
 }
@@ -444,12 +443,11 @@ The system automatically detects and applies these overrides.
 ```dart
 FlutterDevPanel.initialize(
   config: const DevPanelConfig(
-    enabled: true,  // Enable/disable the panel
-    showInProduction: false,  // Hide in production builds
     triggerModes: {
       TriggerMode.fab,
       TriggerMode.shake,
     },
+    enableLogCapture: true,  // Capture print statements (default: true)
   ),
   modules: [...],
 );
@@ -568,17 +566,38 @@ class CustomModule extends DevModule {
 
 ### Production Safety
 
-The dev panel automatically disables itself in production builds unless explicitly configured:
+The dev panel has multiple layers of protection for production builds:
 
-```dart
-FlutterDevPanel.initialize(
-  config: const DevPanelConfig(
-    enabled: !kReleaseMode, // Automatically disabled in release builds
-    showInProduction: false, // Additional safety check
-  ),
-  // ...
-);
+#### 1. Default Behavior
+- **Debug mode**: Automatically enabled
+- **Release mode**: Automatically disabled (code removed by tree shaking)
+
+#### 2. Force Enable in Production
+For internal testing builds, you can enable the panel in release mode:
+
+```bash
+# Build with dev panel enabled in release mode
+flutter build apk --release --dart-define=FORCE_DEV_PANEL=true
+
+# CI/CD example
+flutter build ios --release \
+  --dart-define=FORCE_DEV_PANEL=true \
+  --dart-define=API_KEY=${{ secrets.API_KEY }}
 ```
+
+#### 3. API Protection
+All public APIs check compile-time constants:
+- APIs become no-op in release mode (unless `FORCE_DEV_PANEL=true`)
+- Tree-shaking removes unused code automatically
+- Zero runtime overhead in production
+
+#### 4. Zero Overhead in Production
+When not forced in release builds:
+- No UI components are rendered
+- No logs are captured  
+- No performance monitoring
+- Code is completely removed by tree-shaking
+- No impact on app size or performance
 
 ## Architecture
 

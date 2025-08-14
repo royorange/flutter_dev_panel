@@ -80,9 +80,7 @@ void main() async {
     // Initialize Flutter Dev Panel with log capture
     FlutterDevPanel.initialize(
       config: const DevPanelConfig(
-        enabled: true,
         triggerModes: {TriggerMode.fab, TriggerMode.shake},
-        showInProduction: false,
       ),
       modules: [
         const ConsoleModule(), // Console 第一个显示

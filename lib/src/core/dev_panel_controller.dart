@@ -2,6 +2,12 @@ import 'package:flutter/foundation.dart';
 import '../models/dev_panel_config.dart';
 import 'module_registry.dart';
 
+/// 编译时常量，通过 --dart-define=FORCE_DEV_PANEL=true 启用
+const bool _forceDevPanel = bool.fromEnvironment(
+  'FORCE_DEV_PANEL',
+  defaultValue: false,
+);
+
 /// Dev Panel core controller
 class DevPanelController extends ChangeNotifier {
   static DevPanelController? _instance;
@@ -36,7 +42,7 @@ class DevPanelController extends ChangeNotifier {
 
   /// 打开面板
   void open() {
-    if (!_isOpen && _config.enabled) {
+    if (!_isOpen && isEnabled) {
       _isOpen = true;
       notifyListeners();
     }
@@ -59,10 +65,10 @@ class DevPanelController extends ChangeNotifier {
     }
   }
 
-  /// 检查是否应该在生产环境显示
-  bool shouldShowInProduction() {
-    return _config.showInProduction || kDebugMode;
-  }
+  /// 检查面板是否启用
+  /// - 调试模式：始终启用
+  /// - 生产模式：仅当 FORCE_DEV_PANEL=true 时启用
+  static bool get isEnabled => kDebugMode || _forceDevPanel;
 
   /// 清理资源
   @override

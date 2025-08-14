@@ -37,6 +37,12 @@ import 'src/models/dev_panel_config.dart';
 import 'src/models/dev_module.dart';
 import 'src/core/dev_logger.dart' as core;
 
+/// 编译时常量，通过 --dart-define=FORCE_DEV_PANEL=true 在生产环境启用
+const bool _forceDevPanel = bool.fromEnvironment(
+  'FORCE_DEV_PANEL',
+  defaultValue: false,
+);
+
 /// Flutter开发面板的主入口类
 /// 提供更简洁的API访问方式
 class FlutterDevPanel {
@@ -49,8 +55,14 @@ class FlutterDevPanel {
   
   /// 初始化开发面板
   /// 
-  /// 在 Release 模式下，这个方法会自动变成空操作（no-op）
-  /// 用户可以直接调用，不需要手动添加 kDebugMode 判断
+  /// 默认情况下：
+  /// - 调试模式：自动启用
+  /// - 生产模式：自动禁用（代码被 tree shaking 优化）
+  /// 
+  /// 如需在生产环境启用，使用：
+  /// ```bash
+  /// flutter build apk --release --dart-define=FORCE_DEV_PANEL=true
+  /// ```
   /// 
   /// 示例:
   /// ```dart
@@ -66,8 +78,8 @@ class FlutterDevPanel {
     List<DevModule> modules = const [],
     bool enableLogCapture = true,
   }) {
-    // 使用 kDebugMode 常量，让编译器在 Release 模式完全剔除代码
-    if (kDebugMode) {
+    // 使用编译时常量，支持 tree shaking
+    if (kDebugMode || _forceDevPanel) {
       if (_initialized) return;
       _initialized = true;
       
@@ -83,7 +95,7 @@ class FlutterDevPanel {
   /// 
   /// 注意：context 必须在 MaterialApp/CupertinoApp 内部
   static void open(BuildContext context) {
-    if (kDebugMode && _initialized) {
+    if ((kDebugMode || _forceDevPanel) && _initialized) {
       // 检查 Navigator 是否可用
       final navigator = Navigator.maybeOf(context);
       if (navigator == null) {
@@ -97,15 +109,16 @@ class FlutterDevPanel {
   
   /// 关闭开发面板
   static void close() {
-    if (kDebugMode && _initialized) {
+    if ((kDebugMode || _forceDevPanel) && _initialized) {
       core.FlutterDevPanelCore.instance.close();
     }
   }
   
   /// 重置开发面板
   static void reset() {
-    if (kDebugMode && _initialized) {
+    if ((kDebugMode || _forceDevPanel) && _initialized) {
       core.FlutterDevPanelCore.instance.reset();
+      _initialized = false;
     }
   }
   
@@ -157,8 +170,9 @@ class FlutterDevPanel {
     List<DevModule> modules = const [],
     void Function(Object error, StackTrace stack)? onError,
   }) async {
-    if (!kDebugMode) {
-      // 在 Release 模式下，直接运行应用
+    // 使用编译时常量以支持 tree shaking
+    if (!(kDebugMode || _forceDevPanel)) {
+      // 在 Release 模式下（且未强制启用），直接运行应用
       appRunner();
       return;
     }
@@ -266,8 +280,8 @@ class FlutterDevPanel {
     Future<void> Function() body, {
     void Function(Object error, StackTrace stack)? onError,
   }) async {
-    if (!kDebugMode) {
-      // 在 Release 模式下，直接运行
+    if (!(kDebugMode || _forceDevPanel)) {
+      // 在 Release 模式下（且未强制启用），直接运行
       await body();
       return;
     }
@@ -334,7 +348,7 @@ class FlutterDevPanel {
     bool enableLogCapture = true,
   }) {
     return ZoneSpecification(
-      print: kDebugMode && enableLogCapture
+      print: (kDebugMode || _forceDevPanel) && enableLogCapture
           ? (Zone self, ZoneDelegate parent, Zone zone, String line) {
               // 捕获 print 到 Dev Panel
               core.DevLogger.instance.info(line);
@@ -365,12 +379,17 @@ class FlutterDevPanel {
   ///   ));
   /// ```
   static void handlePrint(String line) {
-    if (kDebugMode) {
+    if (kDebugMode || _forceDevPanel) {
       core.DevLogger.instance.info(line);
     }
   }
   
   /// 记录日志（统一的日志 API）
+  /// 
+  /// 这些方法会尊重用户的配置：
+  /// - 如果 enabled 为 null（默认）：仅在调试模式下记录
+  /// - 如果 enabled 为 true：即使在生产环境也记录
+  /// - 如果 enabled 为 false：不记录
   /// 
   /// 示例:
   /// ```dart
@@ -379,16 +398,16 @@ class FlutterDevPanel {
   /// FlutterDevPanel.logWarning('Low memory');
   /// FlutterDevPanel.logError('Failed to load', error: e, stackTrace: s);
   /// ```
-  static void log(String message) => kDebugMode ? core.DevLogger.instance.info(message) : null;
-  static void logVerbose(String message) => kDebugMode ? core.DevLogger.instance.verbose(message) : null;
-  static void logDebug(String message) => kDebugMode ? core.DevLogger.instance.debug(message) : null;
-  static void logInfo(String message) => kDebugMode ? core.DevLogger.instance.info(message) : null;
+  static void log(String message) => core.DevLogger.instance.info(message);
+  static void logVerbose(String message) => core.DevLogger.instance.verbose(message);
+  static void logDebug(String message) => core.DevLogger.instance.debug(message);
+  static void logInfo(String message) => core.DevLogger.instance.info(message);
   static void logWarning(String message, {String? error}) => 
-    kDebugMode ? core.DevLogger.instance.warning(message, error: error) : null;
+    core.DevLogger.instance.warning(message, error: error);
   static void logError(String message, {Object? error, StackTrace? stackTrace}) =>
-    kDebugMode ? core.DevLogger.instance.error(
+    core.DevLogger.instance.error(
       message, 
       error: error?.toString(), 
       stackTrace: stackTrace?.toString(),
-    ) : null;
+    );
 }
