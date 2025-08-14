@@ -1,15 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 
-/// Logger package integration output for Flutter Dev Panel.
+/// Creates a LogOutput adapter for Logger package integration.
 /// 
-/// This provides a LogOutput implementation specifically designed for
-/// the Logger package (https://pub.dev/packages/logger).
-/// 
-/// Features:
-/// - In debug mode: Captures logs to Dev Panel AND outputs to console
-/// - In release mode: Only outputs to console (zero overhead)
-/// - Automatically handles ConsoleOutput internally
+/// This factory function returns a dynamic object that can be used
+/// as LogOutput with the Logger package, without requiring a direct dependency.
 /// 
 /// Usage:
 /// ```dart
@@ -17,134 +12,103 @@ import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 /// import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
 /// 
 /// final logger = Logger(
-///   output: DevPanelLoggerOutput(),  // That's it!
-///   printer: PrettyPrinter(...),
+///   output: createDevPanelLoggerOutput(), // Returns LogOutput
+///   printer: PrettyPrinter(),
 /// );
-/// ```
 /// 
-/// Advanced usage with custom base output:
-/// ```dart
+/// // Or with custom base output:
 /// final logger = Logger(
-///   output: DevPanelLoggerOutput(baseOutput: FileOutput()),
-///   printer: PrettyPrinter(...),
+///   output: createDevPanelLoggerOutput(baseOutput: FileOutput()),
 /// );
 /// ```
 /// 
-/// Note: This class extends LogOutput from the logger package.
-/// If logger package is not available, it will use a dynamic approach.
-class DevPanelLoggerOutput extends _LogOutputBase {
-  final dynamic baseOutput;
-  late final dynamic _actualOutput;
+/// In debug mode: Captures to Dev Panel + base output
+/// In release mode: Only uses base output (zero overhead)
+dynamic createDevPanelLoggerOutput({dynamic baseOutput}) {
+  // If no base output provided, create a default console output
+  final output = baseOutput ?? _DefaultConsoleOutput();
   
-  /// Creates a LogOutput for Logger package.
-  /// 
-  /// [baseOutput] - Optional base LogOutput to use. If not provided,
-  /// ConsoleOutput will be used by default.
-  DevPanelLoggerOutput({this.baseOutput}) {
-    _actualOutput = _createOutput();
+  // In debug mode, wrap to capture to Dev Panel
+  if (kDebugMode) {
+    return _DevPanelLoggerAdapter(output);
   }
   
-  /// Creates the appropriate output based on debug mode and base output
-  dynamic _createOutput() {
-    // Get the base output (provided or default ConsoleOutput)
-    final output = baseOutput ?? _createDefaultConsoleOutput();
+  // In release mode, return base output directly
+  return output;
+}
+
+/// Adapter class that captures Logger output to Dev Panel.
+/// This is designed to work with Logger package's LogOutput interface
+/// without directly importing or depending on it.
+class _DevPanelLoggerAdapter {
+  final dynamic _baseOutput;
+  
+  _DevPanelLoggerAdapter(this._baseOutput);
+  
+  /// The output method expected by Logger's LogOutput interface
+  void output(dynamic event) {
+    // Forward to base output
+    if (_baseOutput != null) {
+      _baseOutput.output(event);
+    }
     
-    // In debug mode, wrap it to capture to Dev Panel
+    // Capture to Dev Panel in debug mode
     if (kDebugMode) {
-      return _DevPanelLoggerOutputImpl(output);
+      _captureToDevPanel(event);
     }
-    
-    // In release mode, use the base output directly
-    return output;
   }
   
-  /// Create default ConsoleOutput dynamically
-  dynamic _createDefaultConsoleOutput() {
-    // Create a simple console output that works like Logger's ConsoleOutput
-    return _DefaultConsoleOutput();
-  }
-  
-  @override
-  void output(dynamic event) {
-    _actualOutput.output(event);
-  }
-}
-
-/// Base class that acts as LogOutput
-/// This allows DevPanelLoggerOutput to be used as a LogOutput
-abstract class _LogOutputBase {
-  void output(dynamic event);
-}
-
-/// Internal implementation that captures to Dev Panel in debug mode
-class _DevPanelLoggerOutputImpl extends _LogOutputBase {
-  final dynamic _wrappedOutput;
-  
-  _DevPanelLoggerOutputImpl(this._wrappedOutput);
-  
-  @override
-  void output(dynamic event) {
-    // Always forward to the wrapped output
-    if (_wrappedOutput != null) {
-      _wrappedOutput.output(event);
+  /// The destroy method expected by Logger's LogOutput interface
+  void destroy() {
+    if (_baseOutput != null && _baseOutput.destroy != null) {
+      _baseOutput.destroy();
     }
-    
-    // Also capture to Dev Panel
-    _captureToDevPanel(event);
   }
   
   void _captureToDevPanel(dynamic event) {
     if (event == null) return;
     
     try {
-      // Access event.lines which contains the formatted output
+      // Logger's OutputEvent has 'lines' and 'level' properties
       final lines = event.lines as List<String>?;
-      
       if (lines == null || lines.isEmpty) return;
       
-      // Combine all lines into a single message
       final message = lines.join('\n');
-      
-      // Determine log level from the event
       final level = event.level;
       
-      // Map logger levels to DevLogger levels
-      if (level?.name == 'error' || level?.name == 'wtf') {
+      // Map Logger levels to DevLogger levels
+      final levelName = level?.name?.toString() ?? '';
+      
+      if (levelName == 'error' || levelName == 'wtf') {
         DevLogger.instance.error(message);
-      } else if (level?.name == 'warning') {
+      } else if (levelName == 'warning') {
         DevLogger.instance.warning(message);
-      } else if (level?.name == 'info') {
+      } else if (levelName == 'info') {
         DevLogger.instance.info(message);
-      } else if (level?.name == 'debug') {
+      } else if (levelName == 'debug') {
         DevLogger.instance.debug(message);
-      } else if (level?.name == 'verbose' || level?.name == 'trace') {
+      } else if (levelName == 'verbose' || levelName == 'trace') {
         DevLogger.instance.verbose(message);
       } else {
-        // Default to info for unknown levels
         DevLogger.instance.info(message);
       }
     } catch (e) {
-      // Silently ignore errors to not interfere with normal logging
       if (kDebugMode) {
-        debugPrint('DevPanelLoggerOutput: Failed to capture log: $e');
+        debugPrint('DevPanelLoggerAdapter: Failed to capture log: $e');
       }
     }
   }
 }
 
-/// Default console output implementation
-/// Mimics Logger package's ConsoleOutput behavior
-class _DefaultConsoleOutput extends _LogOutputBase {
-  @override
+/// Default console output that mimics Logger's ConsoleOutput
+class _DefaultConsoleOutput {
   void output(dynamic event) {
     if (event == null) return;
     
     try {
-      // Try to get lines from event (Logger's OutputEvent has lines property)
       final lines = event.lines as List<String>?;
       if (lines != null) {
         for (final line in lines) {
-          // Use debugPrint in debug mode, print in release mode
           if (kDebugMode) {
             debugPrint(line);
           } else {
@@ -152,25 +116,20 @@ class _DefaultConsoleOutput extends _LogOutputBase {
             print(line);
           }
         }
-      } else {
-        // Fallback to toString if lines not available
-        final message = event.toString();
-        if (kDebugMode) {
-          debugPrint(message);
-        } else {
-          // ignore: avoid_print
-          print(message);
-        }
       }
-    } catch (e) {
-      // Last resort fallback
+    } catch (_) {
       final message = event.toString();
       if (kDebugMode) {
-        debugPrint('DevPanelLoggerOutput fallback: $message');
+        debugPrint(message);
       } else {
         // ignore: avoid_print
         print(message);
       }
     }
   }
+  
+  void destroy() {
+    // Nothing to destroy
+  }
 }
+

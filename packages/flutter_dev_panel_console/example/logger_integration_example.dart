@@ -8,7 +8,7 @@ import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
 void main() {
   // Simple usage - automatically uses ConsoleOutput internally
   // final logger = Logger(
-  //   output: DevPanelLoggerOutput(),
+  //   output: createDevPanelLoggerOutput(),
   //   printer: PrettyPrinter(
   //     methodCount: 2,
   //     errorMethodCount: 8,
@@ -21,7 +21,7 @@ void main() {
   
   // Advanced usage - with custom base output
   // final logger = Logger(
-  //   output: DevPanelLoggerOutput(
+  //   output: createDevPanelLoggerOutput(
   //     baseOutput: MultiOutput([
   //       ConsoleOutput(),
   //       FileOutput(file: File('log.txt')),
