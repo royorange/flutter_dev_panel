@@ -19,10 +19,10 @@ void main() {
   //   ),
   // );
   
-  // Advanced usage - with custom output
+  // Advanced usage - with custom base output
   // final logger = Logger(
   //   output: DevPanelLoggerOutput(
-  //     customOutput: MultiOutput([
+  //     baseOutput: MultiOutput([
   //       ConsoleOutput(),
   //       FileOutput(file: File('log.txt')),
   //     ]),

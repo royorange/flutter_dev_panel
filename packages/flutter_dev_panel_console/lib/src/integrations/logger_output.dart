@@ -22,37 +22,37 @@ import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 /// );
 /// ```
 /// 
-/// Advanced usage with custom output:
+/// Advanced usage with custom base output:
 /// ```dart
 /// final logger = Logger(
-///   output: DevPanelLoggerOutput(customOutput: FileOutput()),
+///   output: DevPanelLoggerOutput(baseOutput: FileOutput()),
 ///   printer: PrettyPrinter(...),
 /// );
 /// ```
 class DevPanelLoggerOutput {
-  final dynamic customOutput;
+  final dynamic baseOutput;
   late final dynamic _actualOutput;
   
   /// Creates a LogOutput for Logger package.
   /// 
-  /// [customOutput] - Optional custom LogOutput. If not provided,
+  /// [baseOutput] - Optional base LogOutput to use. If not provided,
   /// ConsoleOutput will be used by default.
-  DevPanelLoggerOutput({this.customOutput}) {
+  DevPanelLoggerOutput({this.baseOutput}) {
     _actualOutput = _createOutput();
   }
   
-  /// Creates the appropriate output based on debug mode and custom output
+  /// Creates the appropriate output based on debug mode and base output
   dynamic _createOutput() {
-    // Get the base output (custom or default ConsoleOutput)
-    final baseOutput = customOutput ?? _createDefaultConsoleOutput();
+    // Get the base output (provided or default ConsoleOutput)
+    final output = baseOutput ?? _createDefaultConsoleOutput();
     
     // In debug mode, wrap it to capture to Dev Panel
     if (kDebugMode) {
-      return _DevPanelLoggerOutputImpl(baseOutput);
+      return _DevPanelLoggerOutputImpl(output);
     }
     
     // In release mode, use the base output directly
-    return baseOutput;
+    return output;
   }
   
   /// Create default ConsoleOutput dynamically
