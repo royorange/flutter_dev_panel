@@ -48,7 +48,7 @@ class _NetworkMonitorPageState extends State<NetworkMonitorPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: Column(
@@ -65,84 +65,103 @@ class _NetworkMonitorPageState extends State<NetworkMonitorPage> {
 
   Widget _buildToolbar(ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
         border: Border(
-          bottom: BorderSide(color: theme.colorScheme.outlineVariant),
+          bottom: BorderSide(
+            color: theme.dividerColor.withValues(alpha: 0.2),
+          ),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  height: 36,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: _isSearchFocused 
-                          ? Theme.of(context).colorScheme.primary 
-                          : Theme.of(context).dividerColor,
-                      width: _isSearchFocused ? 2 : 1,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      border: Border.all(
+                        color: _isSearchFocused
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.transparent,
+                        width: _isSearchFocused ? 2 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(18),
                     ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Icon(
-                          Icons.search, 
-                          size: 18,
-                          color: _isSearchFocused 
-                              ? Theme.of(context).colorScheme.primary
-                              : null,
-                        ),
-                      ),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          focusNode: _searchFocusNode,
-                          decoration: const InputDecoration(
-                            hintText: 'Search...',
-                            hintStyle: TextStyle(fontSize: 13),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.zero,
-                            isDense: true,
+                    child: Row(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Icon(
+                            Icons.search,
+                            size: 18,
+                            color: _isSearchFocused
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.5),
                           ),
-                          style: const TextStyle(fontSize: 13),
                         ),
-                      ),
-                      ValueListenableBuilder<TextEditingValue>(
-                        valueListenable: _searchController,
-                        builder: (context, value, _) {
-                          if (value.text.isEmpty) {
-                            return const SizedBox.shrink();
-                          }
-                          return GestureDetector(
-                            onTap: () {
-                              _searchController.clear();
-                            },
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: Icon(Icons.clear, size: 16),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            focusNode: _searchFocusNode,
+                            decoration: const InputDecoration(
+                              hintText: 'Search...',
+                              hintStyle: TextStyle(fontSize: 13),
+                              filled: true,
+                              fillColor: Colors.transparent,
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              errorBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              focusedErrorBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
+                              isDense: true,
                             ),
-                          );
-                        },
-                      ),
-                    ],
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                        ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: _searchController,
+                          builder: (context, value, _) {
+                            if (value.text.isEmpty) {
+                              return const SizedBox.shrink();
+                            }
+                            return GestureDetector(
+                              onTap: () {
+                                _searchController.clear();
+                              },
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: Icon(Icons.clear, size: 16),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              _buildActionButtons(),
-            ],
+                const SizedBox(width: 8),
+                _buildActionButtons(),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          _buildFilterButtons(),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: _buildFilterButtons(),
+          ),
         ],
       ),
     );
@@ -178,7 +197,8 @@ class _NetworkMonitorPageState extends State<NetworkMonitorPage> {
                 tooltip: 'Filter by method',
                 child: Chip(
                   label: Text(
-                    widget.controller.filter.method?.name.toUpperCase() ?? 'All Methods',
+                    widget.controller.filter.method?.name.toUpperCase() ??
+                        'All Methods',
                     style: const TextStyle(fontSize: 12),
                   ),
                   avatar: const Icon(Icons.filter_list, size: 14),
@@ -193,9 +213,9 @@ class _NetworkMonitorPageState extends State<NetworkMonitorPage> {
                   ),
                   const PopupMenuDivider(),
                   ...RequestMethod.values.map((method) => PopupMenuItem(
-                    value: method,
-                    child: Text(method.name.toUpperCase()),
-                  )),
+                        value: method,
+                        child: Text(method.name.toUpperCase()),
+                      )),
                 ],
                 onSelected: (method) {
                   widget.controller.setMethodFilter(method);
@@ -298,7 +318,8 @@ class _NetworkMonitorPageState extends State<NetworkMonitorPage> {
                   const SizedBox(width: 16),
                   TextButton(
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       minimumSize: const Size(0, 0),
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
@@ -354,7 +375,7 @@ class _NetworkMonitorPageState extends State<NetworkMonitorPage> {
       listenable: widget.controller,
       builder: (context, _) {
         final requests = widget.controller.requests;
-        
+
         if (requests.isEmpty) {
           return Center(
             child: Column(
@@ -363,7 +384,10 @@ class _NetworkMonitorPageState extends State<NetworkMonitorPage> {
                 Icon(
                   Icons.cloud_off,
                   size: 64,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurfaceVariant
+                      .withValues(alpha: 0.5),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -371,8 +395,8 @@ class _NetworkMonitorPageState extends State<NetworkMonitorPage> {
                       ? 'No requests match the current filters'
                       : 'No network requests yet',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                 ),
               ],
             ),
@@ -407,7 +431,8 @@ class _NetworkMonitorPageState extends State<NetworkMonitorPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Clear All Requests'),
-        content: const Text('Are you sure you want to clear all network requests?'),
+        content:
+            const Text('Are you sure you want to clear all network requests?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -442,7 +467,8 @@ class _NetworkMonitorPageState extends State<NetworkMonitorPage> {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   controller: TextEditingController(
                     text: widget.controller.maxRequests.toString(),

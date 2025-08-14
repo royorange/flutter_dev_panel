@@ -14,11 +14,18 @@ class ConsolePage extends StatefulWidget {
 
 class _ConsolePageState extends State<ConsolePage> {
   late final ConsoleProvider provider;
+  final _searchFocusNode = FocusNode();
+  bool _isSearchFocused = false;
   
   @override
   void initState() {
     super.initState();
     provider = ConsoleProvider();
+    _searchFocusNode.addListener(() {
+      setState(() {
+        _isSearchFocused = _searchFocusNode.hasFocus;
+      });
+    });
     
     // 页面打开时如果启用了自动滚动，延迟滚动到底部
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -33,6 +40,7 @@ class _ConsolePageState extends State<ConsolePage> {
   @override
   void dispose() {
     provider.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
   
@@ -109,11 +117,18 @@ class _ConsolePageState extends State<ConsolePage> {
         children: [
           // Search box
           Expanded(
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
               height: 36,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
+                border: Border.all(
+                  color: _isSearchFocused 
+                      ? theme.colorScheme.primary 
+                      : Colors.transparent,
+                  width: _isSearchFocused ? 2 : 1,
+                ),
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Row(
@@ -121,11 +136,14 @@ class _ConsolePageState extends State<ConsolePage> {
                   Icon(
                     Icons.search,
                     size: 18,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    color: _isSearchFocused
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
+                      focusNode: _searchFocusNode,
                       onChanged: (value) {
                         provider.setSearchText(value);
                       },
@@ -134,7 +152,14 @@ class _ConsolePageState extends State<ConsolePage> {
                         hintStyle: TextStyle(
                           color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                         ),
+                        filled: true,
+                        fillColor: Colors.transparent,
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
                         contentPadding: EdgeInsets.zero,
                         isDense: true,
                       ),
