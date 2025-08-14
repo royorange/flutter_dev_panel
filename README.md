@@ -114,7 +114,7 @@ dependencies:
 
 ### Method 1: Using DevPanel.init (Recommended)
 
-Automatically sets up Zone to intercept print statements, making Logger package integration automatic.
+Automatically sets up Zone to intercept print statements and handles all initialization properly. **No need to call `WidgetsFlutterBinding.ensureInitialized()` manually**.
 
 ```dart
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
@@ -123,25 +123,44 @@ import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
 import 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // Your initialization code...
-  await initServices();
-  
-  // Use DevPanel.init with appRunner
   await DevPanel.init(
     () => runApp(const MyApp()),
     modules: [
-      ConsoleModule(),
+      const ConsoleModule(),
       NetworkModule(),
-      DeviceModule(),
-      PerformanceModule()
-      // Add more modules as needed
+      const DeviceModule(),
+      const PerformanceModule(),
     ],
+  );
+}
+
+// Or with custom initialization
+void main() async {
+  await DevPanel.init(
+    () async {
+      // DevPanel.init automatically calls WidgetsFlutterBinding.ensureInitialized()
+      // You don't need to call it manually
+      
+      // Your initialization code
+      await initServices();
+      await setupDependencies();
+      
+      // Listen to environment changes
+      DevPanel.environment.addListener(() {
+        final apiUrl = DevPanel.environment.getString('API_URL');
+        // Update your services with new URL
+      });
+      
+      runApp(const MyApp());
+    },
     config: const DevPanelConfig(
       triggerModes: {TriggerMode.fab, TriggerMode.shake},
-      // enableLogCapture: true,  // Intercept print statements (default)
+      loadFromEnvFiles: true,  // Auto-load .env files (default: true)
     ),
+    modules: [
+      const ConsoleModule(),
+      NetworkModule(),
+    ],
   );
 }
 ```
@@ -190,9 +209,18 @@ import 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize environments
-  // --dart-define automatically overrides matching keys
-  await EnvironmentManager.instance.initialize(
+  // Initialize dev panel with selected modules
+  DevPanel.initialize(
+    modules: [
+      const ConsoleModule(),
+      NetworkModule(),
+      // Add more modules as needed
+    ],
+  );
+  
+  // Initialize environments (optional - .env files are loaded automatically)
+  // You only need this if you want to provide fallback configurations
+  await DevPanel.environment.initialize(
     environments: [
       const EnvironmentConfig(
         name: 'Development',
@@ -213,14 +241,6 @@ void main() async {
           'timeout': 10000,
         },
       ),
-    ],
-  );
-
-  // Initialize dev panel with selected modules
-  DevPanel.initialize(
-    modules: [
-      NetworkModule(),
-      // Add more modules as needed
     ],
   );
 

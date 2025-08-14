@@ -9,6 +9,7 @@ import 'package:flutter_dev_panel_performance/flutter_dev_panel_performance.dart
 import 'package:dio/dio.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:logger/logger.dart';
+import 'test_env.dart';
 
 // Create a global logger instance
 final logger = Logger(
@@ -618,6 +619,23 @@ class _MyHomePageState extends State<MyHomePage>
                         label: const Text('Test Logger'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.indigo,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          // Open environment test page
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const TestEnvPage(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.settings, size: 16),
+                        label: const Text('Test Environment'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
                           foregroundColor: Colors.white,
                         ),
                       ),

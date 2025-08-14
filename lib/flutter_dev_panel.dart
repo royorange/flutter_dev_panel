@@ -31,7 +31,7 @@ export 'src/ui/widgets/theme_switcher.dart';
 
 // Module exports are now separate packages that users install independently:
 // - flutter_dev_panel_console
-// - flutter_dev_panel_network  
+// - flutter_dev_panel_network
 // - flutter_dev_panel_device
 // - flutter_dev_panel_performance
 
@@ -51,29 +51,29 @@ const bool _forceDevPanel = bool.fromEnvironment(
 /// 提供更简洁的API访问方式
 class DevPanel {
   DevPanel._();
-  
+
   static bool _initialized = false;
-  
+
   /// 获取单例实例
   static core.DevPanelCore get instance => core.DevPanelCore.instance;
-  
+
   /// 环境管理器
   static EnvironmentManager get environment => EnvironmentManager.instance;
-  
+
   /// 主题管理器
   static ThemeManager get theme => ThemeManager.instance;
-  
+
   /// 初始化开发面板
-  /// 
+  ///
   /// 默认情况下：
   /// - 调试模式：自动启用
   /// - 生产模式：自动禁用（代码被 tree shaking 优化）
-  /// 
+  ///
   /// 如需在生产环境启用，使用：
   /// ```bash
   /// flutter build apk --release --dart-define=FORCE_DEV_PANEL=true
   /// ```
-  /// 
+  ///
   /// 示例:
   /// ```dart
   /// void main() {
@@ -92,7 +92,7 @@ class DevPanel {
     if (kDebugMode || _forceDevPanel) {
       if (_initialized) return;
       _initialized = true;
-      
+
       core.DevPanelCore.instance.initialize(
         config: config,
         modules: modules,
@@ -100,9 +100,9 @@ class DevPanel {
       );
     }
   }
-  
+
   /// 打开开发面板（需要BuildContext）
-  /// 
+  ///
   /// 注意：context 必须在 MaterialApp/CupertinoApp 内部
   static void open(BuildContext context) {
     if ((kDebugMode || _forceDevPanel) && _initialized) {
@@ -116,14 +116,14 @@ class DevPanel {
       core.DevPanelCore.instance.open(context);
     }
   }
-  
+
   /// 关闭开发面板
   static void close() {
     if ((kDebugMode || _forceDevPanel) && _initialized) {
       core.DevPanelCore.instance.close();
     }
   }
-  
+
   /// 重置开发面板
   static void reset() {
     if ((kDebugMode || _forceDevPanel) && _initialized) {
@@ -131,11 +131,11 @@ class DevPanel {
       _initialized = false;
     }
   }
-  
+
   /// 初始化并运行应用（类似 Sentry 的模式）
-  /// 
+  ///
   /// 这个方法会自动设置 Zone 来拦截所有 print 语句。
-  /// 
+  ///
   /// 示例 1 - 最简单使用（使用所有默认值）:
   /// ```dart
   /// void main() async {
@@ -144,7 +144,7 @@ class DevPanel {
   ///   );
   /// }
   /// ```
-  /// 
+  ///
   /// 示例 2 - 带模块和配置:
   /// ```dart
   /// void main() async {
@@ -157,7 +157,7 @@ class DevPanel {
   ///   );
   /// }
   /// ```
-  /// 
+  ///
   /// 示例 3 - 与 Sentry 配合使用:
   /// ```dart
   /// void main() async {
@@ -175,59 +175,116 @@ class DevPanel {
   /// }
   /// ```
   static Future<void> init(
-    void Function() appRunner, {
+    FutureOr<void> Function() appRunner, {
     DevPanelConfig config = const DevPanelConfig(),
     List<DevModule> modules = const [],
     void Function(Object error, StackTrace stack)? onError,
+    List<EnvironmentConfig>? environments, // 可选的代码配置环境
   }) async {
     // 使用编译时常量以支持 tree shaking
     if (!(kDebugMode || _forceDevPanel)) {
       // 在 Release 模式下（且未强制启用），直接运行应用
-      appRunner();
+      await appRunner();
       return;
     }
-    
-    // 初始化 Dev Panel
-    if (!_initialized) {
-      _initialized = true;
-      core.DevPanelCore.instance.initialize(
-        config: config,
-        modules: modules,
-        enableLogCapture: config.enableLogCapture,
-      );
+
+    // 创建一个包装函数，在 Zone 内初始化所有内容
+    Future<void> runInZone() async {
+      // 在 Zone 内调用 ensureInitialized，避免 Zone mismatch
+      WidgetsFlutterBinding.ensureInitialized();
+
+      // 初始化 Dev Panel（必须在 binding 初始化之后）
+      if (!_initialized) {
+        _initialized = true;
+        core.DevPanelCore.instance.initialize(
+          config: config,
+          modules: modules,
+          enableLogCapture: config.enableLogCapture,
+        );
+      }
+
+      // 初始化环境（已经在 Zone 内）
+      if (EnvironmentManager.instance.environments.isEmpty &&
+          (config.loadFromEnvFiles || environments != null)) {
+        try {
+          await EnvironmentManager.instance.initialize(
+            loadFromEnvFiles: config.loadFromEnvFiles,
+            environments: environments,
+          );
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('DevPanel: Environment init failed: $e');
+            // 备用环境处理...
+            if (environments != null && environments.isNotEmpty) {
+              for (final env in environments) {
+                try {
+                  EnvironmentManager.instance.addEnvironment(env);
+                } catch (_) {}
+              }
+              try {
+                if (environments.any((e) => e.isDefault)) {
+                  final defaultEnv =
+                      environments.firstWhere((e) => e.isDefault);
+                  EnvironmentManager.instance
+                      .switchEnvironment(defaultEnv.name);
+                } else if (EnvironmentManager
+                    .instance.environments.isNotEmpty) {
+                  EnvironmentManager.instance.switchEnvironment(
+                      EnvironmentManager.instance.environments.first.name);
+                }
+              } catch (_) {}
+            }
+          }
+        }
+      }
+
+      // 执行用户的 appRunner
+      await appRunner();
     }
-    
+
     // 检查是否已经在 Zone 中
     final currentZone = Zone.current;
-    final hasPrintInterception = currentZone[#_devPanelPrintIntercepted] == true;
-    
+    final hasPrintInterception =
+        currentZone[#_devPanelPrintIntercepted] == true;
+
     if (hasPrintInterception) {
       // 已经在拦截 print 的 Zone 中，直接运行
-      appRunner();
+      await runInZone();
     } else if (!config.enableLogCapture) {
       // 不需要拦截 print，直接运行
-      appRunner();
+      await runInZone();
     } else {
       // 创建新的 Zone 来拦截 print
       await runZonedGuarded(
-        () async {
-          appRunner();
-        },
+        runInZone,
         (error, stack) {
-          // 捕获未处理的错误到 Dev Panel
-          core.DevLogger.instance.error(
-            'Uncaught Error',
-            error: error.toString(),
-            stackTrace: stack.toString(),
-          );
-          
+          // 延迟记录错误，避免在 binding 初始化前访问 DevLogger
+          Future.microtask(() {
+            try {
+              core.DevLogger.instance.error(
+                'Uncaught Error',
+                error: error.toString(),
+                stackTrace: stack.toString(),
+              );
+            } catch (_) {
+              // 如果 DevLogger 还没准备好，只打印到控制台
+              debugPrint('Uncaught Error: $error\n$stack');
+            }
+          });
+
           // 调用用户的错误处理器（如果提供）
           onError?.call(error, stack);
         },
         zoneSpecification: ZoneSpecification(
           print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
-            // 捕获 print 到 Dev Panel
-            core.DevLogger.instance.info(line);
+            // 延迟捕获 print，避免在 binding 初始化前访问 DevLogger
+            Future.microtask(() {
+              try {
+                core.DevLogger.instance.info(line);
+              } catch (_) {
+                // 忽略早期的 print
+              }
+            });
             // 仍然输出到控制台
             parent.print(zone, line);
           },
@@ -238,9 +295,9 @@ class DevPanel {
       );
     }
   }
-  
+
   /// 使用自动 print 拦截运行应用（向后兼容）
-  /// 
+  ///
   /// @deprecated 请使用 DevPanel.init 代替
   static void runApp(
     Widget app, {
@@ -253,7 +310,7 @@ class DevPanel {
     final finalConfig = enableLogCapture != config.enableLogCapture
         ? config.copyWith(enableLogCapture: enableLogCapture)
         : config;
-    
+
     init(
       () => runApp(app),
       config: finalConfig,
@@ -261,26 +318,26 @@ class DevPanel {
       onError: onError,
     );
   }
-  
+
   /// 在 Zone 中运行代码并拦截 print
-  /// 
+  ///
   /// 这个方法让你可以先完成所有初始化，然后再运行应用。
-  /// 
+  ///
   /// 示例:
   /// ```dart
   /// void main() async {
   ///   await DevPanel.runWithZone(() async {
   ///     WidgetsFlutterBinding.ensureInitialized();
-  ///     
+  ///
   ///     // 你的初始化代码...
   ///     await initHiveForFlutter();
   ///     await Get.putAsync(() => StorageService().init());
-  ///     
+  ///
   ///     // 初始化 Dev Panel
   ///     DevPanel.initialize(
   ///       modules: [ConsoleModule()],
   ///     );
-  ///     
+  ///
   ///     // 最后运行应用
   ///     runApp(const MyApp());
   ///   });
@@ -295,7 +352,7 @@ class DevPanel {
       await body();
       return;
     }
-    
+
     await runZonedGuarded(
       body,
       (error, stack) {
@@ -305,7 +362,7 @@ class DevPanel {
           error: error.toString(),
           stackTrace: stack.toString(),
         );
-        
+
         // 调用用户的错误处理器（如果提供）
         onError?.call(error, stack);
       },
@@ -319,12 +376,12 @@ class DevPanel {
       ),
     );
   }
-  
+
   /// 创建一个用于 print 拦截的 ZoneSpecification
-  /// 
+  ///
   /// 这个方法提供更灵活的集成方式，让用户可以自己控制 Zone。
   /// 适合与 Sentry、Firebase Crashlytics 等第三方库配合使用。
-  /// 
+  ///
   /// 示例 1 - 与 runZonedGuarded 配合:
   /// ```dart
   /// void main() {
@@ -337,18 +394,18 @@ class DevPanel {
   ///   }, zoneSpecification: DevPanel.createZoneSpecification());
   /// }
   /// ```
-  /// 
+  ///
   /// 示例 2 - 合并多个 ZoneSpecification:
   /// ```dart
   /// void main() {
   ///   final devPanelSpec = DevPanel.createZoneSpecification();
   ///   final sentrySpec = Sentry.createZoneSpecification();
-  ///   
+  ///
   ///   final mergedSpec = ZoneSpecification(
   ///     print: devPanelSpec.print ?? sentrySpec.print,
   ///     // 合并其他处理器...
   ///   );
-  ///   
+  ///
   ///   runZonedGuarded(() {
   ///     runApp(MyApp());
   ///   }, handleError, zoneSpecification: mergedSpec);
@@ -368,11 +425,11 @@ class DevPanel {
           : null,
     );
   }
-  
+
   /// 创建一个 print 拦截的钩子函数
-  /// 
+  ///
   /// 这是最灵活的方式，可以在任何 Zone 设置中使用。
-  /// 
+  ///
   /// 示例:
   /// ```dart
   /// void main() {
@@ -393,14 +450,14 @@ class DevPanel {
       core.DevLogger.instance.info(line);
     }
   }
-  
+
   /// 记录日志（统一的日志 API）
-  /// 
+  ///
   /// 这些方法会尊重用户的配置：
   /// - 如果 enabled 为 null（默认）：仅在调试模式下记录
   /// - 如果 enabled 为 true：即使在生产环境也记录
   /// - 如果 enabled 为 false：不记录
-  /// 
+  ///
   /// 示例:
   /// ```dart
   /// DevPanel.log('User logged in');
@@ -409,17 +466,20 @@ class DevPanel {
   /// DevPanel.logError('Failed to load', error: e, stackTrace: s);
   /// ```
   static void log(String message) => core.DevLogger.instance.info(message);
-  static void logVerbose(String message) => core.DevLogger.instance.verbose(message);
-  static void logDebug(String message) => core.DevLogger.instance.debug(message);
+  static void logVerbose(String message) =>
+      core.DevLogger.instance.verbose(message);
+  static void logDebug(String message) =>
+      core.DevLogger.instance.debug(message);
   static void logInfo(String message) => core.DevLogger.instance.info(message);
-  static void logWarning(String message, {String? error}) => 
-    core.DevLogger.instance.warning(message, error: error);
-  static void logError(String message, {Object? error, StackTrace? stackTrace}) =>
-    core.DevLogger.instance.error(
-      message, 
-      error: error?.toString(), 
-      stackTrace: stackTrace?.toString(),
-    );
+  static void logWarning(String message, {String? error}) =>
+      core.DevLogger.instance.warning(message, error: error);
+  static void logError(String message,
+          {Object? error, StackTrace? stackTrace}) =>
+      core.DevLogger.instance.error(
+        message,
+        error: error?.toString(),
+        stackTrace: stackTrace?.toString(),
+      );
 }
 
 /// @deprecated 使用 DevPanel 代替

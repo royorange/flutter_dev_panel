@@ -61,6 +61,20 @@
 - 性能图表和趋势
 - 内存峰值跟踪
 
+## 架构
+
+Flutter Dev Panel 使用**完全模块化架构**，确保：
+- ✅ **生产环境零开销** - 未使用的代码被 tree shaking 完全移除
+- ✅ **按需付费** - 只有导入的模块会包含在应用中
+- ✅ **生产安全** - 编译时常量确保在发布版本中自动禁用
+
+### 工作原理
+
+1. **编译时优化**：所有调试代码都包装在 `if (kDebugMode || _forceDevPanel)` 检查中
+2. **Tree shaking**：在发布版本中，Dart 编译器会移除所有不可达代码
+3. **模块化导入**：每个模块是用户显式导入的独立包
+4. **零运行时开销**：未启用时，性能影响为零
+
 ## 安装
 
 ### 选项 1：仅核心包（最小化）
@@ -100,7 +114,7 @@ dependencies:
 
 ### 方法 1：使用 DevPanel.init（推荐）
 
-自动设置 Zone 来拦截 print 语句，使 Logger 包集成自动化。
+自动设置 Zone 来拦截 print 语句并正确处理所有初始化。**无需手动调用 `WidgetsFlutterBinding.ensureInitialized()`**。
 
 ```dart
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
@@ -109,25 +123,44 @@ import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
 import 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // 初始化代码...
-  await initServices();
-  
-  // 使用 DevPanel.init 与 appRunner
   await DevPanel.init(
     () => runApp(const MyApp()),
     modules: [
-      ConsoleModule(),
+      const ConsoleModule(),
       NetworkModule(),
-      DeviceModule(),
-      PerformanceModule(),
-      // 根据需要添加更多模块
+      const DeviceModule(),
+      const PerformanceModule(),
     ],
+  );
+}
+
+// 或使用自定义初始化
+void main() async {
+  await DevPanel.init(
+    () async {
+      // DevPanel.init 会自动调用 WidgetsFlutterBinding.ensureInitialized()
+      // 你不需要手动调用它
+      
+      // 你的初始化代码
+      await initServices();
+      await setupDependencies();
+      
+      // 监听环境变化
+      DevPanel.environment.addListener(() {
+        final apiUrl = DevPanel.environment.getString('API_URL');
+        // 使用新 URL 更新服务
+      });
+      
+      runApp(const MyApp());
+    },
     config: const DevPanelConfig(
       triggerModes: {TriggerMode.fab, TriggerMode.shake},
-      // enableLogCapture: true,  // 拦截 print 语句（默认）
+      loadFromEnvFiles: true,  // 自动加载 .env 文件（默认：true）
     ),
+    modules: [
+      const ConsoleModule(),
+      NetworkModule(),
+    ],
   );
 }
 ```
@@ -176,9 +209,18 @@ import 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 初始化环境
-  // --dart-define 自动覆盖匹配的键
-  await EnvironmentManager.instance.initialize(
+  // 使用选定的模块初始化 dev panel
+  DevPanel.initialize(
+    modules: [
+      const ConsoleModule(),
+      NetworkModule(),
+      // 根据需要添加更多模块
+    ],
+  );
+  
+  // 初始化环境（可选 - .env 文件会自动加载）
+  // 仅在需要提供备用配置时使用
+  await DevPanel.environment.initialize(
     environments: [
       const EnvironmentConfig(
         name: 'Development',
@@ -199,14 +241,6 @@ void main() async {
           'timeout': 10000,
         },
       ),
-    ],
-  );
-
-  // 使用选定的模块初始化 dev panel
-  DevPanel.initialize(
-    modules: [
-      NetworkModule(),
-      // 根据需要添加更多模块
     ],
   );
 
@@ -288,14 +322,75 @@ Builder 模式适用于：
 - 复杂导航设置的应用
 - 全局覆盖需求
 
-## 高级功能
-
-### 环境变量访问
+### 获取环境变量
 ```dart
-// 获取环境变量（自动从 --dart-define 注入）
-final apiUrl = EnvironmentManager.instance.getVariable<String>('api_url');
-final isDebug = EnvironmentManager.instance.getVariable<bool>('debug');
+// 使用便捷方法（推荐）
+final apiUrl = DevPanel.environment.getString('api_url');
+final isDebug = DevPanel.environment.getBool('debug');
+final timeout = DevPanel.environment.getInt('timeout');
+
+// 监听环境变化
+ListenableBuilder(
+  listenable: DevPanel.environment,
+  builder: (context, _) {
+    final apiUrl = DevPanel.environment.getString('api_url');
+    // 环境切换时 UI 自动更新
+    return Text('API: $apiUrl');
+  },
+);
 ```
+
+### 动态端点切换
+
+对于 **Dio**（简单 - 可直接修改）：
+```dart
+class ApiService {
+  final dio = Dio();
+  
+  ApiService() {
+    NetworkModule.attachToDio(dio); // 只需一次
+    _updateConfig();
+    DevPanel.environment.addListener(_updateConfig);
+  }
+  
+  void _updateConfig() {
+    // 直接修改选项
+    dio.options.baseUrl = DevPanel.environment.getString('api_url') ?? '';
+  }
+}
+```
+
+对于 **GraphQL**（需要重新创建客户端）：
+```dart
+class GraphQLService extends ChangeNotifier {
+  GraphQLClient? _client;
+  GraphQLClient get client => _client ?? _createClient();
+  
+  void initialize() {
+    _client = _createClient();
+    DevPanel.environment.addListener(_onEnvironmentChanged);
+  }
+  
+  void _onEnvironmentChanged() {
+    _client = _createClient(); // 使用新端点重新创建
+    notifyListeners();
+  }
+  
+  GraphQLClient _createClient() {
+    final endpoint = DevPanel.environment.getString('graphql_endpoint') 
+        ?? 'https://api.example.com/graphql';
+    
+    final link = NetworkModule.createGraphQLLink(
+      HttpLink(endpoint),
+      endpoint: endpoint,
+    );
+    
+    return GraphQLClient(link: link, cache: GraphQLCache());
+  }
+}
+```
+
+详情请参阅 [GraphQL 环境切换指南](docs/graphql_environment_switching.md)。
 
 ### 网络监控设置
 
@@ -306,24 +401,33 @@ NetworkModule.attachToDio(dio);  // 直接修改 dio
 // 正常使用 dio
 ```
 
-对于 **GraphQL**（推荐）：
+对于 **GraphQL**：
+
+方法 1 - 创建时添加监控（推荐）：
 ```dart
+// 创建客户端时添加监控
+final link = NetworkModule.createGraphQLLink(
+  HttpLink('https://api.example.com/graphql'),
+  endpoint: 'https://api.example.com/graphql',
+);
+
 final graphQLClient = GraphQLClient(
-  link: HttpLink('https://api.example.com/graphql'),
+  link: link,
   cache: GraphQLCache(),
 );
 
-// 重要：attachToGraphQL 返回包装后的 client
-final monitoredClient = NetworkModule.attachToGraphQL(graphQLClient);
+// 直接使用 graphQLClient - 无需包装
+```
 
-// 对所有 GraphQL 操作使用返回的 monitoredClient
-Query(
-  options: QueryOptions(...),
-  builder: (result, {...}) {
-    // UI 代码
-  },
-  client: monitoredClient,  // 使用包装后的 client
-);
+方法 2 - 包装现有客户端：
+```dart
+// 如果已有客户端
+GraphQLClient client = GraphQLClient(...);
+
+// 注意：GraphQL 客户端是不可变的，所以必须重新赋值
+client = NetworkModule.wrapGraphQLClient(client);
+
+// 现在使用包装后的客户端
 ```
 
 对于 **HTTP**（替代方案）：
@@ -412,11 +516,36 @@ flutter build ios \
 - 环境特定覆盖
 
 **优势：**
+- 非敏感配置受版本控制
 - 敏感数据永不接触代码库
-- 灵活的部署配置
-- 轻松的本地开发设置
+- CI/CD 可以覆盖配置中定义的任何值
+- 开发者无需手动设置即可运行应用
+- 无需维护硬编码的键列表
 
-## 面板配置
+### --dart-define 的工作原理
+
+1. **在环境配置中定义键**并提供默认值：
+```dart
+const EnvironmentConfig(
+  name: 'Production',
+  variables: {
+    'api_url': 'https://api.example.com',
+    'api_key': '',  // 空默认值，将被注入
+    'sentry_dsn': '',  // 空默认值，将被注入
+  },
+)
+```
+
+2. **通过 --dart-define 在 CI/CD 中覆盖**：
+```bash
+flutter build apk \
+  --dart-define=api_key=${{ secrets.API_KEY }} \
+  --dart-define=sentry_dsn=${{ secrets.SENTRY_DSN }}
+```
+
+系统会自动检测并应用这些覆盖。
+
+## 配置
 
 ```dart
 DevPanel.initialize(
@@ -554,10 +683,106 @@ flutter build ios --release \
 - 代码被 tree-shaking 完全移除
 - 不影响应用大小和性能
 
-## 贡献
+## 高级用法
 
-欢迎贡献！请随时提交 Pull Request。
+### 创建自定义模块
+
+通过扩展 `DevModule` 创建自己的自定义模块：
+
+```dart
+class CustomModule extends DevModule {
+  @override
+  String get name => 'Custom';
+  
+  @override
+  IconData get icon => Icons.extension;
+  
+  @override
+  Widget buildPage(BuildContext context) {
+    return YourCustomPage();
+  }
+  
+  @override
+  Widget? buildFabContent(BuildContext context) {
+    // 可选：返回一个小部件在 FAB 中显示
+    return Text('Custom Info');
+  }
+}
+```
+
+### 生产安全
+
+Dev Panel 为生产构建提供多层保护：
+
+#### 1. 默认行为
+- **调试模式**：自动启用
+- **发布模式**：自动禁用（代码被 tree shaking 移除）
+
+#### 2. 在生产环境强制启用
+对于内部测试版本，可以在发布模式下启用面板：
+
+```bash
+# 在发布模式下启用 dev panel
+flutter build apk --release --dart-define=FORCE_DEV_PANEL=true
+
+# CI/CD 示例
+flutter build ios --release \
+  --dart-define=FORCE_DEV_PANEL=true \
+  --dart-define=API_KEY=${{ secrets.API_KEY }}
+```
+
+#### 3. API 保护
+所有公共 API 检查编译时常量：
+- API 在发布模式下变成空操作（除非 `FORCE_DEV_PANEL=true`）
+- Tree-shaking 自动移除未使用代码
+- 生产环境零运行时开销
+
+#### 4. 生产环境零开销
+当未在发布版本中强制启用时：
+- 不渲染 UI 组件
+- 不捕获日志
+- 不进行性能监控
+- 代码被 tree-shaking 完全移除
+- 不影响应用大小或性能
+
+## 架构
+
+Flutter Dev Panel 遵循模块化架构：
+
+```
+flutter_dev_panel/              # 核心框架（必需）
+├── lib/
+│   └── src/
+│       ├── core/               # 核心功能
+│       ├── models/             # 数据模型
+│       └── ui/                 # UI 组件
+├── packages/                   # 可选模块
+│   ├── flutter_dev_panel_console/     # 控制台/日志模块
+│   ├── flutter_dev_panel_network/     # 网络监控模块
+│   ├── flutter_dev_panel_device/      # 设备信息模块
+│   └── flutter_dev_panel_performance/ # 性能监控模块
+└── example/                    # 示例应用
+```
+
+每个模块包都依赖于核心 `flutter_dev_panel` 包，可以独立安装。
+
+## 测试
+
+```bash
+# 运行所有测试
+flutter test
+
+# 测试各个模块
+flutter test packages/flutter_dev_panel_console/test
+flutter test packages/flutter_dev_panel_network/test
+flutter test packages/flutter_dev_panel_device/test
+flutter test packages/flutter_dev_panel_performance/test
+
+# 运行示例应用
+cd example
+flutter run
+```
 
 ## 许可证
 
-本项目采用 MIT 许可证 - 详情请参阅 [LICENSE](LICENSE) 文件。
+MIT 许可证 - 详情请参阅 [LICENSE](LICENSE) 文件

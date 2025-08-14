@@ -12,6 +12,7 @@ class DevPanelConfig {
   final ThemeData? darkTheme;
   final ThemeMode themeMode;
   final bool enableLogCapture;
+  final bool loadFromEnvFiles;  // 是否自动加载 .env 文件
 
   const DevPanelConfig({
     this.triggerModes = const {TriggerMode.fab},
@@ -20,6 +21,7 @@ class DevPanelConfig {
     this.darkTheme,
     this.themeMode = ThemeMode.system,
     this.enableLogCapture = true,
+    this.loadFromEnvFiles = true,  // 默认自动加载 .env 文件
   });
 
   DevPanelConfig copyWith({
@@ -29,6 +31,7 @@ class DevPanelConfig {
     ThemeData? darkTheme,
     ThemeMode? themeMode,
     bool? enableLogCapture,
+    bool? loadFromEnvFiles,
   }) {
     return DevPanelConfig(
       triggerModes: triggerModes ?? this.triggerModes,
@@ -37,6 +40,7 @@ class DevPanelConfig {
       darkTheme: darkTheme ?? this.darkTheme,
       themeMode: themeMode ?? this.themeMode,
       enableLogCapture: enableLogCapture ?? this.enableLogCapture,
+      loadFromEnvFiles: loadFromEnvFiles ?? this.loadFromEnvFiles,
     );
   }
 }

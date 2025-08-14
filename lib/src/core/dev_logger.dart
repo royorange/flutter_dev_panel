@@ -99,7 +99,16 @@ class DevLogger {
     _interceptDeveloperLog();
     _setupFrameworkLogging();
     _interceptStdout();
-    _loadConfig();
+    // 延迟加载配置，等待 binding 初始化
+    Future.microtask(() async {
+      try {
+        // 等待一帧，确保 binding 已初始化
+        await Future.delayed(Duration.zero);
+        await _loadConfig();
+      } catch (e) {
+        // 忽略错误，使用默认配置
+      }
+    });
   }
   
   /// Load configuration from SharedPreferences

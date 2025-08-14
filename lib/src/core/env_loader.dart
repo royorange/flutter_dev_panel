@@ -1,5 +1,6 @@
-import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'environment_manager.dart';
 
@@ -7,136 +8,171 @@ import 'environment_manager.dart';
 class EnvLoader {
   /// Load environments from .env files in the project root
   /// 
-  /// Supports:
-  /// - .env (default environment)
-  /// - .env.dev or .env.development
-  /// - .env.prod or .env.production
-  /// - .env.test
-  /// - .env.staging
-  /// - .env.local (for local overrides, should be in .gitignore)
+  /// 自动扫描项目中的 .env 文件：
+  /// - .env (生产环境/默认)
+  /// - .env.xxx (xxx 作为环境名，如 .env.dev → "dev" 环境)
   /// 
   /// Returns null if no .env files are found
   static Future<List<EnvironmentConfig>?> loadFromEnvFiles() async {
     final environments = <EnvironmentConfig>[];
     
-    // Define environment file mappings
-    final envFiles = {
-      'Default': '.env',
-      'Development': ['.env.dev', '.env.development'],
-      'Production': ['.env.prod', '.env.production'],
-      'Test': ['.env.test'],
-      'Staging': ['.env.staging'],
-      'Local': ['.env.local'],
-    };
+    // 生产模式只加载 .env 或 .env.production
+    if (kReleaseMode) {
+      // 优先尝试 .env.production
+      var loaded = await _tryLoadEnvFile('.env.production');
+      if (loaded != null) {
+        environments.add(
+          EnvironmentConfig(
+            name: 'Production',
+            variables: loaded,
+            isDefault: true,
+          ),
+        );
+      } else {
+        // 回退到 .env
+        loaded = await _tryLoadEnvFile('.env');
+        if (loaded != null) {
+          environments.add(
+            EnvironmentConfig(
+              name: 'Production',
+              variables: loaded,
+              isDefault: true,
+            ),
+          );
+        }
+      }
+      return environments.isEmpty ? null : environments;
+    }
     
-    for (final entry in envFiles.entries) {
-      final envName = entry.key;
-      final files = entry.value is String ? [entry.value as String] : entry.value as List<String>;
+    // 开发/调试模式：动态扫描所有 .env 文件
+    
+    // 通过 AssetManifest 获取所有声明的 assets
+    try {
+      // 获取 AssetManifest 来找出所有声明的 .env 文件
+      final List<String> envFiles = await _getEnvFilesFromAssets();
       
-      for (final fileName in files) {
-        try {
-          // Try to load the file
-          final loaded = await _loadEnvFile(fileName);
+      if (envFiles.isNotEmpty) {
+        debugPrint('DevPanel: Found env files in assets: $envFiles');
+        
+        // 加载所有找到的 .env.* 文件
+        for (final fileName in envFiles) {
+          // 跳过基础 .env 文件（最后加载）
+          if (fileName == '.env') continue;
+          
+          final loaded = await _tryLoadEnvFile(fileName);
           if (loaded != null) {
+            final envName = _extractEnvNameFromFile(fileName);
             environments.add(
               EnvironmentConfig(
                 name: envName,
                 variables: loaded,
-                isDefault: envName == 'Default' || envName == 'Development',
+                isDefault: fileName.contains('dev'),
               ),
             );
-            break; // Use the first file that exists for this environment
           }
-        } catch (e) {
-          debugPrint('Failed to load $fileName: $e');
+        }
+        
+        // 如果没有找到任何 .env.* 文件，尝试加载 .env
+        if (environments.isEmpty && envFiles.contains('.env')) {
+          final loaded = await _tryLoadEnvFile('.env');
+          if (loaded != null) {
+            environments.add(
+              EnvironmentConfig(
+                name: 'Default',
+                variables: loaded,
+                isDefault: true,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('DevPanel: Failed to get env files from assets: $e');
+      
+      // 回退方案：尝试常见的文件名
+      final fallbackFiles = ['.env', '.env.production', '.env.dev', '.env.staging'];
+      for (final fileName in fallbackFiles) {
+        final loaded = await _tryLoadEnvFile(fileName);
+        if (loaded != null) {
+          final envName = fileName == '.env' ? 'Default' : _extractEnvNameFromFile(fileName);
+          environments.add(
+            EnvironmentConfig(
+              name: envName,
+              variables: loaded,
+              isDefault: fileName == '.env' || fileName.contains('dev'),
+            ),
+          );
         }
       }
     }
-    
-    // Also check for custom environment files with pattern .env.*
-    await _loadCustomEnvFiles(environments);
     
     return environments.isEmpty ? null : environments;
   }
   
-  /// Load a specific .env file
-  static Future<Map<String, dynamic>?> _loadEnvFile(String fileName) async {
+  /// 从 AssetManifest 获取所有 .env 文件
+  static Future<List<String>> _getEnvFilesFromAssets() async {
     try {
-      // Check if running in Flutter app context
-      if (!kIsWeb) {
-        // Try to load from file system (for development)
-        final file = File(fileName);
-        if (await file.exists()) {
-          await dotenv.load(fileName: fileName);
-          return Map<String, dynamic>.from(dotenv.env);
+      // 使用 rootBundle 获取 AssetManifest
+      final String manifestContent = await rootBundle.loadString('AssetManifest.json');
+      final Map<String, dynamic> manifestMap = json.decode(manifestContent);
+      
+      // 筛选出所有 .env 文件
+      final envFiles = <String>[];
+      for (final String key in manifestMap.keys) {
+        // 匹配 .env 或 .env.* 文件（在根目录）
+        if (key.startsWith('.env') && !key.contains('/')) {
+          envFiles.add(key);
         }
       }
       
-      // Try to load from assets (for production builds)
-      try {
-        await dotenv.load(fileName: fileName);
-        return Map<String, dynamic>.from(dotenv.env);
-      } catch (e) {
-        // File doesn't exist in assets
-        return null;
-      }
+      // 排序：.env.* 文件优先，.env 最后
+      envFiles.sort((a, b) {
+        if (a == '.env') return 1;
+        if (b == '.env') return -1;
+        return a.compareTo(b);
+      });
+      
+      return envFiles;
     } catch (e) {
-      debugPrint('Error loading $fileName: $e');
-      return null;
+      // 如果无法读取 manifest，返回空列表
+      return [];
     }
   }
   
-  /// Discover and load custom .env.* files
-  static Future<void> _loadCustomEnvFiles(List<EnvironmentConfig> environments) async {
-    // This is tricky because we can't list files in assets
-    // So we'll try common patterns
-    final customPatterns = [
-      '.env.qa',
-      '.env.uat',
-      '.env.demo',
-      '.env.sandbox',
-    ];
-    
-    for (final pattern in customPatterns) {
-      try {
-        final loaded = await _loadEnvFile(pattern);
-        if (loaded != null) {
-          // Extract environment name from file name
-          final envName = _extractEnvName(pattern);
-          
-          // Check if this environment already exists
-          if (!environments.any((e) => e.name == envName)) {
-            environments.add(
-              EnvironmentConfig(
-                name: envName,
-                variables: loaded,
-              ),
-            );
-          }
-        }
-      } catch (e) {
-        // Ignore, file doesn't exist
-      }
-    }
-  }
-  
-  /// Extract environment name from file name
-  static String _extractEnvName(String fileName) {
-    // .env.production -> Production
-    // .env.dev -> Dev
-    // .env -> Default
-    if (fileName == '.env') {
+  /// 从文件名提取环境名
+  static String _extractEnvNameFromFile(String fileName) {
+    // .env.dev → Dev
+    // .env.development → Development
+    // .env.staging → Staging
+    if (!fileName.startsWith('.env.')) {
       return 'Default';
     }
     
-    final parts = fileName.split('.');
-    if (parts.length > 2) {
-      final envPart = parts.last;
-      // Capitalize first letter
-      return envPart[0].toUpperCase() + envPart.substring(1).toLowerCase();
-    }
+    final suffix = fileName.substring(5); // Remove '.env.'
     
-    return 'Unknown';
+    // 首字母大写
+    if (suffix.isEmpty) {
+      return 'Default';
+    }
+    return suffix[0].toUpperCase() + suffix.substring(1).toLowerCase();
+  }
+  
+  
+  /// 静默尝试加载 .env 文件（不打印错误）
+  static Future<Map<String, dynamic>?> _tryLoadEnvFile(String fileName) async {
+    try {
+      await dotenv.load(fileName: fileName);
+      
+      if (dotenv.env.isNotEmpty) {
+        debugPrint('DevPanel: Loaded $fileName with ${dotenv.env.length} variables');
+        return Map<String, dynamic>.from(dotenv.env);
+      }
+      
+      return null;
+    } catch (e) {
+      // 完全静默，不打印任何错误
+      return null;
+    }
   }
   
   /// Create a sample .env file content
