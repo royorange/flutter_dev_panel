@@ -317,36 +317,69 @@ class EnvironmentManager extends ChangeNotifier {
   
   /// Convenience methods for common types without generics
   
-  /// Get a String variable
+  /// Get a String variable (nullable)
   /// 
   /// Example:
   /// ```dart
   /// final apiUrl = DevPanel.environment.getString('api_url');
-  /// final apiUrl = DevPanel.environment.getString('api_url', defaultValue: 'https://api.example.com');
   /// ```
-  String? getString(String key, {String? defaultValue}) {
-    return getVariable<String>(key, defaultValue: defaultValue);
+  String? getString(String key) {
+    return getVariable<String>(key);
   }
   
-  /// Get a bool variable
+  /// Get a String variable with default value (non-null)
+  /// 
+  /// Example:
+  /// ```dart
+  /// final apiUrl = DevPanel.environment.getStringOr('api_url', 'https://api.example.com');
+  /// ```
+  String getStringOr(String key, String defaultValue) {
+    return getVariable<String>(key) ?? defaultValue;
+  }
+  
+  /// Get a bool variable (nullable)
   /// 
   /// Example:
   /// ```dart
   /// final isDebug = DevPanel.environment.getBool('debug');
-  /// final isDebug = DevPanel.environment.getBool('debug', defaultValue: false);
   /// ```
-  bool? getBool(String key, {bool? defaultValue}) {
-    return getVariable<bool>(key, defaultValue: defaultValue);
+  bool? getBool(String key) {
+    return getVariable<bool>(key);
   }
   
-  /// Get an int variable
+  /// Get a bool variable with default value (non-null)
+  /// 
+  /// Example:
+  /// ```dart
+  /// final isDebug = DevPanel.environment.getBoolOr('debug', false);
+  /// ```
+  bool getBoolOr(String key, bool defaultValue) {
+    return getVariable<bool>(key) ?? defaultValue;
+  }
+  
+  /// Get an int variable (nullable)
   /// 
   /// Example:
   /// ```dart
   /// final timeout = DevPanel.environment.getInt('timeout');
-  /// final timeout = DevPanel.environment.getInt('timeout', defaultValue: 30000);
   /// ```
-  int? getInt(String key, {int? defaultValue}) {
+  int? getInt(String key) {
+    final value = _currentEnvironment?.variables[key];
+    if (value != null) {
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value);
+      if (value is double) return value.toInt();
+    }
+    return null;
+  }
+  
+  /// Get an int variable with default value (non-null)
+  /// 
+  /// Example:
+  /// ```dart
+  /// final timeout = DevPanel.environment.getIntOr('timeout', 30000);
+  /// ```
+  int getIntOr(String key, int defaultValue) {
     final value = _currentEnvironment?.variables[key];
     if (value != null) {
       if (value is int) return value;
@@ -356,14 +389,29 @@ class EnvironmentManager extends ChangeNotifier {
     return defaultValue;
   }
   
-  /// Get a double variable
+  /// Get a double variable (nullable)
   /// 
   /// Example:
   /// ```dart
   /// final version = DevPanel.environment.getDouble('version');
-  /// final version = DevPanel.environment.getDouble('version', defaultValue: 1.0);
   /// ```
-  double? getDouble(String key, {double? defaultValue}) {
+  double? getDouble(String key) {
+    final value = _currentEnvironment?.variables[key];
+    if (value != null) {
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) return double.tryParse(value);
+    }
+    return null;
+  }
+  
+  /// Get a double variable with default value (non-null)
+  /// 
+  /// Example:
+  /// ```dart
+  /// final version = DevPanel.environment.getDoubleOr('version', 1.0);
+  /// ```
+  double getDoubleOr(String key, double defaultValue) {
     final value = _currentEnvironment?.variables[key];
     if (value != null) {
       if (value is double) return value;
@@ -373,14 +421,27 @@ class EnvironmentManager extends ChangeNotifier {
     return defaultValue;
   }
   
-  /// Get a List variable
+  /// Get a List variable (nullable)
   /// 
   /// Example:
   /// ```dart
   /// final servers = DevPanel.environment.getList<String>('servers');
-  /// final servers = DevPanel.environment.getList<String>('servers', defaultValue: ['server1']);
   /// ```
-  List<T>? getList<T>(String key, {List<T>? defaultValue}) {
+  List<T>? getList<T>(String key) {
+    final value = _currentEnvironment?.variables[key];
+    if (value != null && value is List) {
+      return value.cast<T>();
+    }
+    return null;
+  }
+  
+  /// Get a List variable with default value (non-null)
+  /// 
+  /// Example:
+  /// ```dart
+  /// final servers = DevPanel.environment.getListOr<String>('servers', ['server1']);
+  /// ```
+  List<T> getListOr<T>(String key, List<T> defaultValue) {
     final value = _currentEnvironment?.variables[key];
     if (value != null && value is List) {
       return value.cast<T>();
