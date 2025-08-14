@@ -193,10 +193,15 @@ class _ModularMonitoringFabState extends State<ModularMonitoringFab> with Single
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    colorScheme.primary,
-                    colorScheme.primary.withValues(alpha: 0.8),
-                  ],
+                  colors: Theme.of(context).brightness == Brightness.dark
+                    ? [
+                        colorScheme.primary.withValues(alpha: 0.7),
+                        colorScheme.primary.withValues(alpha: 0.5),
+                      ]
+                    : [
+                        colorScheme.primary,
+                        colorScheme.primary.withValues(alpha: 0.8),
+                      ],
                 ),
                 boxShadow: [
                   BoxShadow(
