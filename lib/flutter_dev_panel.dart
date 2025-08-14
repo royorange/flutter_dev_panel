@@ -12,6 +12,10 @@ export 'src/core/dev_logger.dart';
 export 'src/core/environment_manager.dart';
 export 'src/core/theme_manager.dart';
 
+// Import for internal use in DevPanel class
+import 'src/core/environment_manager.dart';
+import 'src/core/theme_manager.dart';
+
 // Model exports
 export 'src/models/dev_module.dart';
 export 'src/models/dev_panel_config.dart';
@@ -45,13 +49,19 @@ const bool _forceDevPanel = bool.fromEnvironment(
 
 /// Flutter开发面板的主入口类
 /// 提供更简洁的API访问方式
-class FlutterDevPanel {
-  FlutterDevPanel._();
+class DevPanel {
+  DevPanel._();
   
   static bool _initialized = false;
   
   /// 获取单例实例
-  static core.FlutterDevPanelCore get instance => core.FlutterDevPanelCore.instance;
+  static core.DevPanelCore get instance => core.DevPanelCore.instance;
+  
+  /// 环境管理器
+  static EnvironmentManager get environment => EnvironmentManager.instance;
+  
+  /// 主题管理器
+  static ThemeManager get theme => ThemeManager.instance;
   
   /// 初始化开发面板
   /// 
@@ -67,7 +77,7 @@ class FlutterDevPanel {
   /// 示例:
   /// ```dart
   /// void main() {
-  ///   FlutterDevPanel.initialize(
+  ///   DevPanel.initialize(
   ///     modules: [ConsoleModule(), NetworkModule()],
   ///   );
   ///   runApp(MyApp());
@@ -83,7 +93,7 @@ class FlutterDevPanel {
       if (_initialized) return;
       _initialized = true;
       
-      core.FlutterDevPanelCore.instance.initialize(
+      core.DevPanelCore.instance.initialize(
         config: config,
         modules: modules,
         enableLogCapture: enableLogCapture,
@@ -103,21 +113,21 @@ class FlutterDevPanel {
             'Make sure to call this from within MaterialApp/CupertinoApp.');
         return;
       }
-      core.FlutterDevPanelCore.instance.open(context);
+      core.DevPanelCore.instance.open(context);
     }
   }
   
   /// 关闭开发面板
   static void close() {
     if ((kDebugMode || _forceDevPanel) && _initialized) {
-      core.FlutterDevPanelCore.instance.close();
+      core.DevPanelCore.instance.close();
     }
   }
   
   /// 重置开发面板
   static void reset() {
     if ((kDebugMode || _forceDevPanel) && _initialized) {
-      core.FlutterDevPanelCore.instance.reset();
+      core.DevPanelCore.instance.reset();
       _initialized = false;
     }
   }
@@ -129,7 +139,7 @@ class FlutterDevPanel {
   /// 示例 1 - 最简单使用（使用所有默认值）:
   /// ```dart
   /// void main() async {
-  ///   await FlutterDevPanel.init(
+  ///   await DevPanel.init(
   ///     () => runApp(const MyApp()),
   ///   );
   /// }
@@ -138,7 +148,7 @@ class FlutterDevPanel {
   /// 示例 2 - 带模块和配置:
   /// ```dart
   /// void main() async {
-  ///   await FlutterDevPanel.init(
+  ///   await DevPanel.init(
   ///     () => runApp(const MyApp()),
   ///     modules: [ConsoleModule()],
   ///     config: const DevPanelConfig(
@@ -156,7 +166,7 @@ class FlutterDevPanel {
   ///       options.dsn = 'your-dsn';
   ///     },
   ///     appRunner: () async {
-  ///       await FlutterDevPanel.init(
+  ///       await DevPanel.init(
   ///         () => runApp(const MyApp()),
   ///         modules: [ConsoleModule()],
   ///       );
@@ -180,7 +190,7 @@ class FlutterDevPanel {
     // 初始化 Dev Panel
     if (!_initialized) {
       _initialized = true;
-      core.FlutterDevPanelCore.instance.initialize(
+      core.DevPanelCore.instance.initialize(
         config: config,
         modules: modules,
         enableLogCapture: config.enableLogCapture,
@@ -231,7 +241,7 @@ class FlutterDevPanel {
   
   /// 使用自动 print 拦截运行应用（向后兼容）
   /// 
-  /// @deprecated 请使用 FlutterDevPanel.init 代替
+  /// @deprecated 请使用 DevPanel.init 代替
   static void runApp(
     Widget app, {
     DevPanelConfig config = const DevPanelConfig(),
@@ -259,7 +269,7 @@ class FlutterDevPanel {
   /// 示例:
   /// ```dart
   /// void main() async {
-  ///   await FlutterDevPanel.runWithZone(() async {
+  ///   await DevPanel.runWithZone(() async {
   ///     WidgetsFlutterBinding.ensureInitialized();
   ///     
   ///     // 你的初始化代码...
@@ -267,7 +277,7 @@ class FlutterDevPanel {
   ///     await Get.putAsync(() => StorageService().init());
   ///     
   ///     // 初始化 Dev Panel
-  ///     FlutterDevPanel.initialize(
+  ///     DevPanel.initialize(
   ///       modules: [ConsoleModule()],
   ///     );
   ///     
@@ -319,19 +329,19 @@ class FlutterDevPanel {
   /// ```dart
   /// void main() {
   ///   runZonedGuarded(() {
-  ///     FlutterDevPanel.initialize(modules: [ConsoleModule()]);
+  ///     DevPanel.initialize(modules: [ConsoleModule()]);
   ///     runApp(MyApp());
   ///   }, (error, stack) {
   ///     // 你的错误处理
   ///     Sentry.captureException(error, stackTrace: stack);
-  ///   }, zoneSpecification: FlutterDevPanel.createZoneSpecification());
+  ///   }, zoneSpecification: DevPanel.createZoneSpecification());
   /// }
   /// ```
   /// 
   /// 示例 2 - 合并多个 ZoneSpecification:
   /// ```dart
   /// void main() {
-  ///   final devPanelSpec = FlutterDevPanel.createZoneSpecification();
+  ///   final devPanelSpec = DevPanel.createZoneSpecification();
   ///   final sentrySpec = Sentry.createZoneSpecification();
   ///   
   ///   final mergedSpec = ZoneSpecification(
@@ -372,7 +382,7 @@ class FlutterDevPanel {
   ///     // 错误处理
   ///   }, zoneSpecification: ZoneSpecification(
   ///     print: (self, parent, zone, line) {
-  ///       FlutterDevPanel.handlePrint(line); // 捕获到 Dev Panel
+  ///       DevPanel.handlePrint(line); // 捕获到 Dev Panel
   ///       // 其他库的处理...
   ///       parent.print(zone, line); // 继续输出
   ///     },
@@ -393,10 +403,10 @@ class FlutterDevPanel {
   /// 
   /// 示例:
   /// ```dart
-  /// FlutterDevPanel.log('User logged in');
-  /// FlutterDevPanel.logInfo('Request completed');
-  /// FlutterDevPanel.logWarning('Low memory');
-  /// FlutterDevPanel.logError('Failed to load', error: e, stackTrace: s);
+  /// DevPanel.log('User logged in');
+  /// DevPanel.logInfo('Request completed');
+  /// DevPanel.logWarning('Low memory');
+  /// DevPanel.logError('Failed to load', error: e, stackTrace: s);
   /// ```
   static void log(String message) => core.DevLogger.instance.info(message);
   static void logVerbose(String message) => core.DevLogger.instance.verbose(message);
@@ -411,3 +421,6 @@ class FlutterDevPanel {
       stackTrace: stackTrace?.toString(),
     );
 }
+
+/// @deprecated 使用 DevPanel 代替
+typedef FlutterDevPanel = DevPanel;

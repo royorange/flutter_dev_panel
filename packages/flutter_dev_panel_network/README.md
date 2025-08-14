@@ -32,7 +32,7 @@ import 'package:dio/dio.dart';
 
 void main() {
   // Initialize with network module
-  FlutterDevPanel.initialize(
+  DevPanel.initialize(
     modules: [NetworkModule()],
   );
   

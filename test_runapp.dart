@@ -11,13 +11,11 @@ void main() async {
   await Future.delayed(const Duration(milliseconds: 100));
   print('App initialization completed');
   
-  // 使用新的 FlutterDevPanel.runApp 方法
+  // 使用新的 DevPanel.runApp 方法
   // 这会自动设置 Zone 来拦截 print 语句
-  FlutterDevPanel.runApp(
+  DevPanel.runApp(
     const MyApp(),
     config: const DevPanelConfig(
-      enabled: true,
-      showInProduction: false,
       triggerModes: {
         TriggerMode.fab,
         TriggerMode.shake,
@@ -42,7 +40,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Test FlutterDevPanel.runApp',
+      title: 'Test DevPanel.runApp',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
@@ -65,11 +63,11 @@ class TestScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Test FlutterDevPanel.runApp'),
+        title: const Text('Test DevPanel.runApp'),
         actions: [
           IconButton(
             icon: const Icon(Icons.bug_report),
-            onPressed: () => FlutterDevPanel.open(context),
+            onPressed: () => DevPanel.open(context),
             tooltip: 'Open Dev Panel',
           ),
         ],
@@ -79,7 +77,7 @@ class TestScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              'FlutterDevPanel.runApp 测试',
+              'DevPanel.runApp 测试',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 32),

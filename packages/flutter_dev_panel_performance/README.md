@@ -31,7 +31,7 @@ import 'package:flutter_dev_panel_performance/flutter_dev_panel_performance.dart
 
 void main() {
   // Initialize with performance module
-  FlutterDevPanel.initialize(
+  DevPanel.initialize(
     modules: [PerformanceModule()],
   );
   

@@ -32,8 +32,8 @@ void main() async {
   
   // Your initialization code...
   
-  // Use FlutterDevPanel.init for automatic print interception
-  await FlutterDevPanel.init(
+  // Use DevPanel.init for automatic print interception
+  await DevPanel.init(
     () => runApp(const MyApp()),
     modules: [
       ConsoleModule(
@@ -75,14 +75,14 @@ The console module automatically captures:
 
 Flutter Dev Panel automatically captures output from the [logger](https://pub.dev/packages/logger) package when using `ConsoleOutput`!
 
-### Automatic Capture with FlutterDevPanel.init (Simplest)
+### Automatic Capture with DevPanel.init (Simplest)
 
 ```dart
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Use FlutterDevPanel.init to automatically set up Zone
-  await FlutterDevPanel.init(
+  // Use DevPanel.init to automatically set up Zone
+  await DevPanel.init(
     () => runApp(const MyApp()),
     modules: [
       ConsoleModule(), // Use default config
@@ -112,7 +112,7 @@ If you prefer to set up the Zone manually:
 void main() {
   runZonedGuarded(() {
     // Initialize Dev Panel first
-    FlutterDevPanel.initialize(
+    DevPanel.initialize(
       modules: [
         ConsoleModule(
           logConfig: const LogCaptureConfig(
@@ -127,10 +127,10 @@ void main() {
     runApp(MyApp());
   }, (error, stack) {
     // Error handling
-    FlutterDevPanel.logError('Uncaught error', error: error, stackTrace: stack);
+    DevPanel.logError('Uncaught error', error: error, stackTrace: stack);
   }, zoneSpecification: ZoneSpecification(
     print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
-      FlutterDevPanel.log(line); // Use the unified API
+      DevPanel.log(line); // Use the unified API
       parent.print(zone, line); // Still print to console
     },
   ));
@@ -182,7 +182,7 @@ Features:
 
 ```dart
 // Configure via ConsoleModule initialization
-await FlutterDevPanel.init(
+await DevPanel.init(
   () => runApp(MyApp()),
   modules: [
     ConsoleModule(

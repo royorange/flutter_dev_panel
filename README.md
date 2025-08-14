@@ -61,6 +61,20 @@ A modular, zero-intrusion debugging panel for Flutter applications that provides
 - Performance charts and trends
 - Memory peak tracking
 
+## Architecture
+
+Flutter Dev Panel uses a **fully modular architecture** that ensures:
+- ✅ **Zero overhead in production** - Unused code is completely removed by tree shaking
+- ✅ **Pay for what you use** - Only imported modules are included in your app
+- ✅ **Production safe** - Compile-time constants ensure automatic disabling in release builds
+
+### How It Works
+
+1. **Compile-time optimization**: All debug code is wrapped in `if (kDebugMode || _forceDevPanel)` checks
+2. **Tree shaking**: In release builds, the Dart compiler removes all unreachable code
+3. **Modular imports**: Each module is a separate package that users explicitly import
+4. **No runtime overhead**: When not enabled, there's zero performance impact
+
 ## Installation
 
 ### Option 1: Core Package Only (Minimal)
@@ -98,7 +112,7 @@ dependencies:
 > - **Method 2**: Custom Zone setup for integration with other tools 🔧
 > - **Method 3**: Traditional initialization without print interception ⚠️
 
-### Method 1: Using FlutterDevPanel.init (Recommended)
+### Method 1: Using DevPanel.init (Recommended)
 
 Automatically sets up Zone to intercept print statements, making Logger package integration automatic.
 
@@ -114,8 +128,8 @@ void main() async {
   // Your initialization code...
   await initServices();
   
-  // Use FlutterDevPanel.init with appRunner
-  await FlutterDevPanel.init(
+  // Use DevPanel.init with appRunner
+  await DevPanel.init(
     () => runApp(const MyApp()),
     modules: [
       ConsoleModule(),
@@ -145,18 +159,18 @@ void main() {
     await initServices();
     
     // Initialize Dev Panel
-    FlutterDevPanel.initialize(
+    DevPanel.initialize(
       modules: [ConsoleModule(), NetworkModule()],
     );
     
     runApp(const MyApp());
   }, (error, stack) {
     // Send to multiple services
-    FlutterDevPanel.logError('Uncaught error', error: error, stackTrace: stack);
+    DevPanel.logError('Uncaught error', error: error, stackTrace: stack);
     Sentry.captureException(error, stackTrace: stack);
   }, zoneSpecification: ZoneSpecification(
     print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
-      FlutterDevPanel.log(line);  // Capture to Dev Panel
+      DevPanel.log(line);  // Capture to Dev Panel
       parent.print(zone, line);    // Still print to console
     },
   ));
@@ -165,7 +179,7 @@ void main() {
 
 ### Method 3: Traditional Initialization (Simple Setup)
 
-**Note**: This method does NOT automatically capture print statements. Console module will only show logs from direct `FlutterDevPanel.log()` calls.
+**Note**: This method does NOT automatically capture print statements. Console module will only show logs from direct `DevPanel.log()` calls.
 
 ```dart
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
@@ -203,7 +217,7 @@ void main() async {
   );
 
   // Initialize dev panel with selected modules
-  FlutterDevPanel.initialize(
+  DevPanel.initialize(
     modules: [
       NetworkModule(),
       // Add more modules as needed
@@ -243,7 +257,7 @@ class MyApp extends StatelessWidget {
 ### Access the Panel
 - **Floating Button**: Tap the FAB (default)
 - **Shake Gesture**: Shake the device (mobile only)
-- **Programmatic**: `FlutterDevPanel.open(context)`
+- **Programmatic**: `DevPanel.open(context)`
 
 ### Logging
 
@@ -251,12 +265,12 @@ Flutter Dev Panel provides a unified logging API:
 
 ```dart
 // Simple logging
-FlutterDevPanel.log('User action');
-FlutterDevPanel.logInfo('Request completed');
-FlutterDevPanel.logWarning('Low memory');
-FlutterDevPanel.logError('Failed to load', error: e, stackTrace: s);
+DevPanel.log('User action');
+DevPanel.logInfo('Request completed');
+DevPanel.logWarning('Low memory');
+DevPanel.logError('Failed to load', error: e, stackTrace: s);
 
-// Automatic print interception (when using FlutterDevPanel.init)
+// Automatic print interception (when using DevPanel.init)
 print('This will be captured automatically');
 debugPrint('This too');
 
@@ -441,7 +455,7 @@ The system automatically detects and applies these overrides.
 ## Configuration
 
 ```dart
-FlutterDevPanel.initialize(
+DevPanel.initialize(
   config: const DevPanelConfig(
     triggerModes: {
       TriggerMode.fab,

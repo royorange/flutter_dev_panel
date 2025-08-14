@@ -98,7 +98,7 @@ dependencies:
 > - **方法 2**：自定义 Zone 设置以与其他工具集成 🔧
 > - **方法 3**：传统初始化，无 print 拦截 ⚠️
 
-### 方法 1：使用 FlutterDevPanel.init（推荐）
+### 方法 1：使用 DevPanel.init（推荐）
 
 自动设置 Zone 来拦截 print 语句，使 Logger 包集成自动化。
 
@@ -114,8 +114,8 @@ void main() async {
   // 初始化代码...
   await initServices();
   
-  // 使用 FlutterDevPanel.init 与 appRunner
-  await FlutterDevPanel.init(
+  // 使用 DevPanel.init 与 appRunner
+  await DevPanel.init(
     () => runApp(const MyApp()),
     modules: [
       ConsoleModule(),
@@ -145,18 +145,18 @@ void main() {
     await initServices();
     
     // 初始化 Dev Panel
-    FlutterDevPanel.initialize(
+    DevPanel.initialize(
       modules: [ConsoleModule(), NetworkModule()],
     );
     
     runApp(const MyApp());
   }, (error, stack) {
     // 发送到多个服务
-    FlutterDevPanel.logError('Uncaught error', error: error, stackTrace: stack);
+    DevPanel.logError('Uncaught error', error: error, stackTrace: stack);
     Sentry.captureException(error, stackTrace: stack);
   }, zoneSpecification: ZoneSpecification(
     print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
-      FlutterDevPanel.log(line);  // 捕获到 Dev Panel
+      DevPanel.log(line);  // 捕获到 Dev Panel
       parent.print(zone, line);    // 仍然打印到控制台
     },
   ));
@@ -165,7 +165,7 @@ void main() {
 
 ### 方法 3：传统初始化（简单设置）
 
-**注意**：此方法不会自动捕获 print 语句。Console 模块只会显示直接调用 `FlutterDevPanel.log()` 的日志。
+**注意**：此方法不会自动捕获 print 语句。Console 模块只会显示直接调用 `DevPanel.log()` 的日志。
 
 ```dart
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
@@ -203,7 +203,7 @@ void main() async {
   );
 
   // 使用选定的模块初始化 dev panel
-  FlutterDevPanel.initialize(
+  DevPanel.initialize(
     modules: [
       NetworkModule(),
       // 根据需要添加更多模块
@@ -243,7 +243,7 @@ class MyApp extends StatelessWidget {
 ### 访问面板
 - **悬浮按钮**：点击 FAB（默认）
 - **摇一摇手势**：摇动设备（仅限移动设备）
-- **程序化调用**：`FlutterDevPanel.open(context)`
+- **程序化调用**：`DevPanel.open(context)`
 
 ### 日志记录
 
@@ -251,12 +251,12 @@ Flutter Dev Panel 提供统一的日志 API：
 
 ```dart
 // 简单日志记录
-FlutterDevPanel.log('User action');
-FlutterDevPanel.logInfo('Request completed');
-FlutterDevPanel.logWarning('Low memory');
-FlutterDevPanel.logError('Failed to load', error: e, stackTrace: s);
+DevPanel.log('User action');
+DevPanel.logInfo('Request completed');
+DevPanel.logWarning('Low memory');
+DevPanel.logError('Failed to load', error: e, stackTrace: s);
 
-// 自动 print 拦截（使用 FlutterDevPanel.init 时）
+// 自动 print 拦截（使用 DevPanel.init 时）
 print('This will be captured automatically');
 debugPrint('This too');
 
@@ -419,7 +419,7 @@ flutter build ios \
 ## 面板配置
 
 ```dart
-FlutterDevPanel.initialize(
+DevPanel.initialize(
   config: const DevPanelConfig(
     triggerModes: {
       TriggerMode.fab,

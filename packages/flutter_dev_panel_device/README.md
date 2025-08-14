@@ -31,7 +31,7 @@ import 'package:flutter_dev_panel_device/flutter_dev_panel_device.dart';
 
 void main() {
   // Initialize with device module
-  FlutterDevPanel.initialize(
+  DevPanel.initialize(
     modules: [DeviceModule()],
   );
   

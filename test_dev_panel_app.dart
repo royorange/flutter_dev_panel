@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 import 'packages/flutter_dev_panel_console/lib/flutter_dev_panel_console.dart';
 
-// 测试新的 DevPanelApp helper
+// 测试新的 DevPanel.init helper
 void main() {
-  // 方法1: 使用 DevPanelApp.run
-  DevPanelApp.run(
+  // 方法1: 使用 DevPanel.init
+  DevPanel.init(
     () => runApp(MyApp()),
     modules: [ConsoleModule()],
     config: const DevPanelConfig(
-      enabled: true,
       triggerModes: {TriggerMode.fab, TriggerMode.shake},
     ),
   );
@@ -70,7 +69,7 @@ class TestScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 // 打开 Dev Panel
-                FlutterDevPanel.open(context);
+                DevPanel.open(context);
               },
               child: Text('Open Dev Panel'),
             ),

@@ -29,6 +29,8 @@ void main() async {
 
     // 初始化Dio
     final dio = Dio();
+    // 注意：NetworkModule.attachToDio 是来自 flutter_dev_panel_network 包的静态方法
+    // 需要先导入: import 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
     NetworkModule.attachToDio(dio);
 
     // 初始化GraphQL客户端
@@ -78,7 +80,7 @@ void main() async {
     );
 
     // Initialize Flutter Dev Panel with log capture
-    FlutterDevPanel.initialize(
+    DevPanel.initialize(
       config: const DevPanelConfig(
         triggerModes: {TriggerMode.fab, TriggerMode.shake},
       ),
@@ -292,7 +294,7 @@ class _MyHomePageState extends State<MyHomePage>
         actions: [
           IconButton(
             icon: const Icon(Icons.bug_report),
-            onPressed: () => FlutterDevPanel.open(context),
+            onPressed: () => DevPanel.open(context),
             tooltip: 'Open Dev Panel',
           ),
         ],
@@ -742,7 +744,7 @@ class _MyHomePageState extends State<MyHomePage>
                   _buildAccessMethod(
                     icon: Icons.code,
                     method: 'Programmatically',
-                    description: 'Call FlutterDevPanel.open(context)',
+                    description: 'Call DevPanel.open(context)',
                   ),
                 ],
               ),

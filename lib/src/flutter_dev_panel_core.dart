@@ -7,11 +7,11 @@ import 'models/dev_panel_config.dart';
 import 'ui/dev_panel.dart';
 
 /// Flutter开发面板核心类
-class FlutterDevPanelCore {
-  static final FlutterDevPanelCore _instance = FlutterDevPanelCore._();
-  static FlutterDevPanelCore get instance => _instance;
+class DevPanelCore {
+  static final DevPanelCore _instance = DevPanelCore._();
+  static DevPanelCore get instance => _instance;
   
-  FlutterDevPanelCore._();
+  DevPanelCore._();
 
   DevPanelController get controller => DevPanelController.instance;
   ModuleRegistry get moduleRegistry => ModuleRegistry.instance;
