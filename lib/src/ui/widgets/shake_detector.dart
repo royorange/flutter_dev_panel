@@ -36,55 +36,51 @@ class _ShakeDetectorState extends State<ShakeDetector> {
     _startListening();
   }
 
-  void _startListening() {
-    // Skip shake detection on desktop platforms
+  /// 检查平台是否支持传感器
+  bool get _isPlatformSupported {
+    if (kIsWeb) return false;
     if (!kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {
-      return;
+      return false;
     }
+    return true; // iOS 和 Android 默认支持
+  }
+
+  void _startListening() {
+    // 不支持的平台直接跳过
+    if (!_isPlatformSupported) return;
     
     try {
       _streamSubscription = userAccelerometerEventStream(
         samplingPeriod: const Duration(milliseconds: 100),
-      ).listen((UserAccelerometerEvent event) {
-      final double acceleration = sqrt(
-        event.x * event.x + event.y * event.y + event.z * event.z,
+      ).listen(
+        _handleAccelerometerEvent,
+        onError: (_) {}, // 静默处理错误
       );
+    } catch (_) {
+      // 初始化失败，静默处理
+    }
+  }
 
-      if (acceleration > widget.threshold) {
-        final now = DateTime.now();
+  void _handleAccelerometerEvent(UserAccelerometerEvent event) {
+    final double acceleration = sqrt(
+      event.x * event.x + event.y * event.y + event.z * event.z,
+    );
+
+    if (acceleration > widget.threshold) {
+      final now = DateTime.now();
+      
+      if (_lastShakeTime != null &&
+          now.difference(_lastShakeTime!) < _shakeDuration) {
+        _shakeCount++;
         
-        if (_lastShakeTime != null &&
-            now.difference(_lastShakeTime!) < _shakeDuration) {
-          _shakeCount++;
-          
-          if (_shakeCount >= _shakeCountThreshold) {
-            widget.onShake();
-            _shakeCount = 0;
-            _lastShakeTime = null;
-          }
-        } else {
-          _shakeCount = 1;
-          _lastShakeTime = now;
+        if (_shakeCount >= _shakeCountThreshold) {
+          widget.onShake();
+          _shakeCount = 0;
+          _lastShakeTime = null;
         }
-      }
-      }, onError: (dynamic error) {
-        // Silently handle errors - expected on platforms without accelerometer
-        // Only log in debug mode to avoid cluttering the console
-        if (kDebugMode) {
-          // Check if it's a platform-specific error
-          if (error.toString().contains('MissingPluginException') ||
-              error.toString().contains('No implementation found')) {
-            // This is expected on desktop/web, don't log
-          } else {
-            // Unexpected error, worth logging
-            debugPrint('ShakeDetector: Unexpected error - $error');
-          }
-        }
-      });
-    } catch (e) {
-      // Initialization failed - this is normal on unsupported platforms
-      if (kDebugMode && !e.toString().contains('MissingPluginException')) {
-        debugPrint('ShakeDetector: Could not initialize - $e');
+      } else {
+        _shakeCount = 1;
+        _lastShakeTime = now;
       }
     }
   }
