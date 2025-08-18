@@ -5,3 +5,5 @@ export 'src/network_interceptor.dart';
 export 'src/network_monitor_controller.dart';
 export 'src/models/network_request.dart';
 export 'src/models/network_filter.dart';
+export 'src/network_api.dart';
+export 'src/extensions.dart';

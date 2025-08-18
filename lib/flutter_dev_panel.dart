@@ -12,6 +12,9 @@ export 'src/core/dev_logger.dart';
 export 'src/core/environment_manager.dart';
 export 'src/core/theme_manager.dart';
 
+// API exports
+export 'src/api/dev_panel_api.dart';
+
 // Import for internal use in DevPanel class
 import 'src/core/environment_manager.dart';
 import 'src/core/theme_manager.dart';
@@ -40,6 +43,8 @@ import 'src/flutter_dev_panel_core.dart' as core;
 import 'src/models/dev_panel_config.dart';
 import 'src/models/dev_module.dart';
 import 'src/core/dev_logger.dart' as core;
+import 'src/core/module_registry.dart' as core;
+import 'src/api/dev_panel_api.dart';
 
 /// 编译时常量，通过 --dart-define=FORCE_DEV_PANEL=true 在生产环境启用
 const bool _forceDevPanel = bool.fromEnvironment(
@@ -56,12 +61,82 @@ class DevPanel {
 
   /// 获取单例实例
   static core.DevPanelCore get instance => core.DevPanelCore.instance;
+  
+  /// 便捷访问器
+  /// 使用 DevPanel.get() 获取 API 访问器，用于访问各模块的 API
+  /// 
+  /// 示例：
+  /// ```dart
+  /// DevPanel.get().performance?.startMonitoring();
+  /// DevPanel.get().network?.clearRequests();
+  /// ```
+  static DevPanelAPI get() => DevPanelAPI.instance;
 
   /// 环境管理器
   static EnvironmentManager get environment => EnvironmentManager.instance;
 
   /// 主题管理器
   static ThemeManager get theme => ThemeManager.instance;
+
+  /// 获取已注册的模块（类型安全的方式）
+  /// 
+  /// 示例:
+  /// ```dart
+  /// // 获取性能模块
+  /// final perfModule = DevPanel.getModule<PerformanceModule>();
+  /// if (perfModule != null) {
+  ///   // 使用模块功能
+  /// }
+  /// ```
+  static T? getModule<T extends DevModule>() {
+    if (!_initialized) {
+      if (kDebugMode) {
+        debugPrint('DevPanel: Not initialized. Please call DevPanel.initialize() first.');
+      }
+      return null;
+    }
+    
+    final modules = core.ModuleRegistry.instance.modules;
+    try {
+      return modules.whereType<T>().firstOrNull;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('DevPanel: Module ${T.toString()} not found. '
+            'Make sure the module is registered during initialization.');
+      }
+      return null;
+    }
+  }
+  
+  /// 通过 ID 获取模块
+  static DevModule? getModuleById(String moduleId) {
+    if (!_initialized) {
+      if (kDebugMode) {
+        debugPrint('DevPanel: Not initialized. Please call DevPanel.initialize() first.');
+      }
+      return null;
+    }
+    
+    final module = core.ModuleRegistry.instance.getModule(moduleId);
+    if (module == null && kDebugMode) {
+      final availableModules = core.ModuleRegistry.instance.modules.map((m) => m.id).join(', ');
+      if (availableModules.isNotEmpty) {
+        debugPrint('DevPanel: Module "$moduleId" not found. Available modules: $availableModules');
+      } else {
+        debugPrint('DevPanel: Module "$moduleId" not found. No modules registered.');
+      }
+    }
+    return module;
+  }
+  
+  /// 检查模块是否已安装
+  static bool hasModule(String moduleId) {
+    if (!_initialized) return false;
+    return core.ModuleRegistry.instance.getModule(moduleId) != null;
+  }
+  
+  /// 检查是否已初始化
+  static bool get isInitialized => _initialized;
 
   /// 初始化开发面板
   ///
@@ -275,20 +350,7 @@ class DevPanel {
           // 调用用户的错误处理器（如果提供）
           onError?.call(error, stack);
         },
-        zoneSpecification: ZoneSpecification(
-          print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
-            // 延迟捕获 print，避免在 binding 初始化前访问 DevLogger
-            Future.microtask(() {
-              try {
-                core.DevLogger.instance.info(line);
-              } catch (_) {
-                // 忽略早期的 print
-              }
-            });
-            // 仍然输出到控制台
-            parent.print(zone, line);
-          },
-        ),
+        zoneSpecification: _createCombinedZoneSpec(config, modules),
         zoneValues: {
           #_devPanelPrintIntercepted: true,
         },
@@ -296,6 +358,80 @@ class DevPanel {
     }
   }
 
+  /// 创建合并的 ZoneSpecification
+  /// 合并 print 拦截和其他模块的 Zone 配置
+  static ZoneSpecification _createCombinedZoneSpec(
+    DevPanelConfig config,
+    List<DevModule> modules,
+  ) {
+    // print 拦截处理器
+    void Function(Zone, ZoneDelegate, Zone, String)? printHandler;
+    
+    if (config.enableLogCapture) {
+      printHandler = (Zone self, ZoneDelegate parent, Zone zone, String line) {
+        // 延迟捕获 print，避免在 binding 初始化前访问 DevLogger
+        Future.microtask(() {
+          try {
+            core.DevLogger.instance.info(line);
+          } catch (_) {
+            // 忽略早期的 print
+          }
+        });
+        // 仍然输出到控制台
+        parent.print(zone, line);
+      };
+    }
+    
+    // Timer 拦截处理器（用于 Performance 模块的自动追踪）
+    Timer Function(Zone, ZoneDelegate, Zone, Duration, void Function())? createTimerHandler;
+    Timer Function(Zone, ZoneDelegate, Zone, Duration, void Function(Timer))? createPeriodicTimerHandler;
+    
+    // 检查是否有 Performance 模块并且启用了自动追踪
+    try {
+      // 查找 PerformanceModule（使用动态类型以避免硬依赖）
+      final performanceModule = modules.firstWhere(
+        (m) => m.id == 'performance',
+        orElse: () => throw Exception('No performance module'),
+      );
+      
+      // 通过反射检查是否启用了自动追踪
+      // 由于我们不能直接导入 PerformanceModule，使用动态方式
+      final moduleType = performanceModule.runtimeType.toString();
+      if (moduleType == 'PerformanceModule') {
+        // 获取 autoTrackTimers 属性（使用 dynamic）
+        dynamic dynModule = performanceModule;
+        try {
+          if (dynModule.autoTrackTimers == true) {
+            // 获取 API 实例来创建 Zone
+            final api = dynModule.api;
+            final zoneSpec = api.createZoneSpecification();
+            if (zoneSpec != null) {
+              createTimerHandler = zoneSpec.createTimer;
+              createPeriodicTimerHandler = zoneSpec.createPeriodicTimer;
+              if (kDebugMode) {
+                debugPrint('DevPanel: Timer auto-tracking enabled via Zone');
+              }
+            }
+          }
+        } catch (e) {
+          // 如果无法访问属性，忽略
+          if (kDebugMode) {
+            debugPrint('DevPanel: Could not enable Timer auto-tracking: $e');
+          }
+        }
+      }
+    } catch (_) {
+      // 没有 Performance 模块，忽略
+    }
+    
+    // 合并所有处理器
+    return ZoneSpecification(
+      print: printHandler,
+      createTimer: createTimerHandler,
+      createPeriodicTimer: createPeriodicTimerHandler,
+    );
+  }
+  
   /// 使用自动 print 拦截运行应用（向后兼容）
   ///
   /// @deprecated 请使用 DevPanel.init 代替

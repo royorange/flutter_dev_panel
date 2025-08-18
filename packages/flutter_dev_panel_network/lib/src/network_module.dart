@@ -10,6 +10,7 @@ import 'interceptors/http_client_interceptor.dart';
 import 'interceptors/base_interceptor.dart';
 import 'interceptors/graphql_interceptor.dart';
 import 'ui/network_monitor_page.dart';
+import 'network_api.dart';
 
 class NetworkModule extends DevModule {
   static NetworkModule? _instance;
@@ -32,6 +33,9 @@ class NetworkModule extends DevModule {
     _controller ??= NetworkMonitorController();
     return _controller!;
   }
+  
+  /// 获取模块的 API
+  NetworkAPI get api => NetworkAPI.instance;
 
   // ============ Dio 集成 ============
   static Interceptor createInterceptor() {
@@ -157,7 +161,6 @@ class NetworkModule extends DevModule {
   }) {
     return MonitoredGraphQLClient.create(
       endpoint: endpoint,
-      controller: controller,
       subscriptionEndpoint: subscriptionEndpoint,
       defaultHeaders: defaultHeaders,
       cache: cache,
@@ -170,7 +173,8 @@ class NetworkModule extends DevModule {
     if (!kDebugMode) {
       return link;
     }
-    return MonitoredGraphQLClient.wrapLink(link, controller: controller);
+    // 暂时直接返回原链接，需要实现包装逻辑
+    return link;
   }
   
   /// 获取GraphQL拦截器Link（用于自定义集成）

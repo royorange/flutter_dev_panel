@@ -22,7 +22,7 @@ void main() {
   
   group('PerformanceModule', () {
     test('should have correct properties', () {
-      const module = PerformanceModule();
+      final module = PerformanceModule();
       
       expect(module.name, 'Performance');
       expect(module.icon, Icons.speed);
@@ -33,7 +33,7 @@ void main() {
     });
 
     test('buildPage should return PerformanceMonitorPage', () {
-      const module = PerformanceModule();
+      final module = PerformanceModule();
       final page = module.buildPage(_TestBuildContext());
       
       expect(page, isNotNull);
@@ -41,7 +41,7 @@ void main() {
     });
 
     test('buildFabContent returns null when not monitoring', () {
-      const module = PerformanceModule();
+      final module = PerformanceModule();
       
       // Ensure monitoring is stopped
       PerformanceMonitorController.instance.stopMonitoring();
@@ -51,7 +51,7 @@ void main() {
     });
 
     test('buildFabContent returns widget when monitoring', () {
-      const module = PerformanceModule();
+      final module = PerformanceModule();
       
       // Start monitoring
       PerformanceMonitorController.instance.startMonitoring();

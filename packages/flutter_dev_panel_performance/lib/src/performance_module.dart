@@ -2,16 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 import 'ui/performance_monitor_page.dart';
 import 'performance_monitor_controller.dart';
+import 'performance_api.dart';
 
 class PerformanceModule extends DevModule {
-  const PerformanceModule()
-      : super(
+  /// 是否自动追踪 Timer（默认启用）
+  final bool autoTrackTimers;
+  
+  PerformanceModule({
+    this.autoTrackTimers = true,  // 默认启用自动追踪
+  }) : super(
           id: 'performance',
           name: 'Performance',
           description: 'Monitor app performance metrics including FPS and memory usage',
           icon: Icons.speed,
           order: 30,
-        );
+        ) {
+    // 将配置传递给 API
+    api.setAutoTrackingEnabled(autoTrackTimers);
+  }
+
+  /// 获取模块的 API
+  PerformanceAPI get api => PerformanceAPI.instance;
 
   @override
   Widget buildPage(BuildContext context) {
@@ -41,6 +52,8 @@ class _PerformanceFabContent extends StatefulWidget {
 
 class _PerformanceFabContentState extends State<_PerformanceFabContent> {
   final _dataProvider = MonitoringDataProvider.instance;
+  double? _lastMemory;
+  double _memoryTrend = 0; // 内存趋势：>0 上升，<0 下降
   
   @override
   void initState() {
@@ -56,6 +69,12 @@ class _PerformanceFabContentState extends State<_PerformanceFabContent> {
   
   void _onDataChanged() {
     if (mounted) {
+      // 计算内存趋势
+      final currentMemory = _dataProvider.memory;
+      if (currentMemory != null && _lastMemory != null) {
+        _memoryTrend = currentMemory - _lastMemory!;
+      }
+      _lastMemory = currentMemory;
       setState(() {});
     }
   }
@@ -102,6 +121,18 @@ class _PerformanceFabContentState extends State<_PerformanceFabContent> {
               text: '${memory.toStringAsFixed(0)}MB',
               style: TextStyle(color: _getMemoryColor(memory)),
             ),
+            // 显示内存趋势箭头
+            if (_memoryTrend.abs() > 2) ...[ // 只在变化超过2MB时显示
+              const TextSpan(text: ' '),
+              TextSpan(
+                text: _memoryTrend > 0 ? '↑' : '↓',  // 上箭头或下箭头
+                style: TextStyle(
+                  color: _memoryTrend > 0 ? Colors.redAccent : Colors.greenAccent,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ],
           // 只在有明显丢帧时显示
           if (instantDrops != null && instantDrops > 5) ...[

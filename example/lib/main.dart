@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 import 'package:flutter_dev_panel_console/flutter_dev_panel_console.dart';
+// Import these to get the extension methods
 import 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
 import 'package:flutter_dev_panel_device/flutter_dev_panel_device.dart';
 import 'package:flutter_dev_panel_performance/flutter_dev_panel_performance.dart';
@@ -24,85 +25,100 @@ final logger = Logger(
 );
 
 void main() async {
-  // Run the entire app in a Zone that intercepts print
+  // 使用 DevPanel.init() - 自动设置 Zone 来拦截 print 和 Timer
+  await DevPanel.init(
+    () async {
+      // 初始化Dio
+      final dio = Dio();
+      // 注意：NetworkModule.attachToDio 是来自 flutter_dev_panel_network 包的静态方法
+      // 需要先导入: import 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
+      NetworkModule.attachToDio(dio);
+
+      // 初始化GraphQL客户端（推荐方式：在创建时就加入监控）
+      const graphQLEndpoint = 'https://countries.trevorblades.com/';
+      final graphQLLink = NetworkModule.createGraphQLLink(
+        HttpLink(graphQLEndpoint),
+        endpoint: graphQLEndpoint,
+      );
+      final graphQLClient = GraphQLClient(
+        link: graphQLLink,
+        cache: GraphQLCache(),
+      );
+    
+      
+      // 注意：不需要再包装，直接使用 graphQLClient
+      
+      runApp(MyApp(dio: dio, graphQLClient: graphQLClient));
+    },
+    config: const DevPanelConfig(
+      triggerModes: {TriggerMode.fab, TriggerMode.shake},
+      loadFromEnvFiles: true,  // 尝试从 .env 文件加载环境配置
+    ),
+    modules: [
+      const ConsoleModule(), // Console 第一个显示
+      NetworkModule(),
+      const DeviceModule(),
+      PerformanceModule(
+        autoTrackTimers: true,  // 默认为 true，启用自动 Timer 追踪
+      ),
+    ],
+    environments: [
+      // 如果 .env 文件未找到，使用这些备用配置
+      const EnvironmentConfig(
+        name: 'Development',
+        variables: {
+          'api_url': 'https://dev-api.example.com',
+          'socket_url': 'wss://dev-socket.example.com',
+          'graphql_endpoint': 'https://countries.trevorblades.com/',
+          'debug': true,
+          'log_level': 'verbose',
+          'timeout': 30000,
+        },
+        isDefault: true,
+      ),
+      const EnvironmentConfig(
+        name: 'Production',
+        variables: {
+          'api_url': 'https://api.example.com',
+          'socket_url': 'wss://socket.example.com',
+          'graphql_endpoint': 'https://graphql.example.com/',
+          'debug': false,
+          'log_level': 'error',
+          'timeout': 15000,
+        },
+      ),
+    ],
+    onError: (error, stack) {
+      // 可选的错误处理
+      logger.e('Uncaught error', error: error, stackTrace: stack);
+    },
+  );
+}
+
+// ========= 旧的初始化方式（保留作为参考） =========
+void oldMainExample() async {
+  // 这是旧的初始化方式，需要手动设置 Zone
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
-
-    // 初始化Dio
-    final dio = Dio();
-    // 注意：NetworkModule.attachToDio 是来自 flutter_dev_panel_network 包的静态方法
-    // 需要先导入: import 'package:flutter_dev_panel_network/flutter_dev_panel_network.dart';
-    NetworkModule.attachToDio(dio);
-
-    // 初始化GraphQL客户端（推荐方式：在创建时就加入监控）
-    const graphQLEndpoint = 'https://countries.trevorblades.com/';
-    final graphQLLink = NetworkModule.createGraphQLLink(
-      HttpLink(graphQLEndpoint),
-      endpoint: graphQLEndpoint,
-    );
-    final graphQLClient = GraphQLClient(
-      link: graphQLLink,
-      cache: GraphQLCache(),
-    );
     
-    // 注意：不需要再包装，直接使用 graphQLClient
-
-    // Initialize environment configurations
-    // Priority: .env files > code configuration > saved configuration
-    await EnvironmentManager.instance.initialize(
-      loadFromEnvFiles: true, // Try to load from .env files first
-      environments: [
-        // These are fallback configurations if .env files are not found
-        const EnvironmentConfig(
-          name: 'Development',
-          variables: {
-            'api_url': 'https://dev-api.example.com',
-            'socket_url': 'wss://dev-socket.example.com',
-            'graphql_endpoint': 'https://countries.trevorblades.com/',
-            'debug': true,
-            'log_level': 'verbose',
-            'timeout': 30000,
-          },
-          isDefault: true,
-        ),
-        const EnvironmentConfig(
-          name: 'Production',
-          variables: {
-            'api_url': 'https://api.example.com',
-            'socket_url': 'wss://socket.example.com',
-            'graphql_endpoint': 'https://graphql.example.com/',
-            'debug': false,
-            'log_level': 'error',
-            'timeout': 15000,
-          },
-        ),
-      ],
-      defaultEnvironment: 'Development',
-    );
-
+    // ... 初始化代码 ...
+    
     // Initialize Flutter Dev Panel with log capture
     DevPanel.initialize(
       config: const DevPanelConfig(
         triggerModes: {TriggerMode.fab, TriggerMode.shake},
       ),
       modules: [
-        const ConsoleModule(), // Console 第一个显示
+        const ConsoleModule(),
         NetworkModule(),
         const DeviceModule(),
-        const PerformanceModule(),
+        PerformanceModule(),
       ],
       enableLogCapture: true,
     );
     
-    // 配置日志捕获（可选）
-    // DevLogger.instance.updateConfig(
-    //   const LogCaptureConfig(maxLogs: 2000),
-    // );
-
-    runApp(MyApp(
-      dio: dio,
-      graphQLClient: graphQLClient,
-    ));
+    // 在旧方式中需要手动运行应用
+    // runApp(MyApp(dio: dio, graphQLClient: graphQLClient));
   }, (error, stack) {
     // Errors will be captured by DevLogger
     DevLogger.instance.error(
@@ -189,6 +205,10 @@ class _MyHomePageState extends State<MyHomePage>
   // Environment variables
   String _currentEnv = '';
   String _apiUrl = '';
+  
+  // For testing memory leaks
+  Timer? _testTimer;
+  StreamSubscription? _testSubscription;
 
   @override
   void initState() {
@@ -200,6 +220,10 @@ class _MyHomePageState extends State<MyHomePage>
     
     // Listen to environment changes
     EnvironmentManager.instance.addListener(_updateEnvironmentValues);
+    
+    // Example: You can use the new API to access module functions
+    // DevPanel.get().performance?.startMonitoring();
+    // DevPanel.get().network?.clearRequests();
   }
   
   void _updateEnvironmentValues() {
@@ -213,6 +237,11 @@ class _MyHomePageState extends State<MyHomePage>
   void dispose() {
     _tabController.dispose();
     EnvironmentManager.instance.removeListener(_updateEnvironmentValues);
+    
+    // Clean up test resources
+    _testTimer?.cancel();
+    _testSubscription?.cancel();
+    
     super.dispose();
   }
 
@@ -601,6 +630,52 @@ class _MyHomePageState extends State<MyHomePage>
                       ),
                       ElevatedButton.icon(
                         onPressed: () {
+                          // 测试自动 Timer 追踪
+                          // 创建各种类型的 Timer（会被自动追踪）
+                          
+                          // 1. 一次性 Timer
+                          Timer(const Duration(seconds: 2), () {
+                            debugPrint('One-time timer executed');
+                          });
+                          
+                          // 2. 周期性 Timer
+                          Timer.periodic(const Duration(seconds: 3), (timer) {
+                            debugPrint('Periodic timer tick: ${timer.tick}');
+                            if (timer.tick >= 3) {
+                              timer.cancel();
+                            }
+                          });
+                          
+                          // 3. 使用 Future.delayed（内部创建 Timer）
+                          Future.delayed(const Duration(seconds: 1), () {
+                            debugPrint('Future.delayed executed');
+                          });
+                          
+                          // 4. Timer.run
+                          Timer.run(() {
+                            debugPrint('Timer.run executed immediately');
+                          });
+                          
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Created 4 timers - check Performance module'),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                          
+                          // 可以通过 API 检查 Timer 数量
+                          final timerCount = DevPanel.get().performance?.activeTimerCount ?? 0;
+                          debugPrint('Active timers after creation: $timerCount');
+                        },
+                        icon: const Icon(Icons.timer, size: 16),
+                        label: const Text('Test Auto-Track'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
                           // Test Logger package
                           logger.t('Trace log from Logger package');
                           logger.d('Debug log from Logger package');
@@ -718,6 +793,134 @@ class _MyHomePageState extends State<MyHomePage>
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
                     ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // New API Examples Section
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.api, color: Colors.purple),
+                      SizedBox(width: 8),
+                      Text(
+                        'New Module API Examples',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Performance API Examples
+                  const Text('Performance Module:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          // Check if module is available and start monitoring
+                          if (DevPanel.get().performance != null) {
+                            DevPanel.get().performance!.startMonitoring();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Performance monitoring started')),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Performance module not available')),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.play_arrow, size: 16),
+                        label: const Text('Start Monitoring'),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          // Create timer for leak testing
+                          _testTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+                            // This timer will leak if not canceled
+                          });
+                          // Track it
+                          DevPanel.get().performance?.trackTimer(_testTimer!);
+                          
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Timer created and tracked')),
+                          );
+                        },
+                        icon: const Icon(Icons.timer, size: 16),
+                        label: const Text('Test Timer Leak'),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          // Check memory status
+                          final summary = DevPanel.get().performance?.memorySummary ?? 'N/A';
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Memory: $summary')),
+                          );
+                        },
+                        icon: const Icon(Icons.memory, size: 16),
+                        label: const Text('Check Memory'),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Network API Examples
+                  const Text('Network Module:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          // Get network summary
+                          final summary = DevPanel.get().network?.summary ?? 'N/A';
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(summary)),
+                          );
+                        },
+                        icon: const Icon(Icons.analytics, size: 16),
+                        label: const Text('Network Stats'),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          // Clear all requests
+                          DevPanel.get().network?.clearRequests();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Network requests cleared')),
+                          );
+                        },
+                        icon: const Icon(Icons.clear, size: 16),
+                        label: const Text('Clear Requests'),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          // Toggle pause
+                          DevPanel.get().network?.togglePause();
+                          final isPaused = DevPanel.get().network?.isPaused ?? false;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(isPaused ? 'Monitoring paused' : 'Monitoring resumed')),
+                          );
+                        },
+                        icon: const Icon(Icons.pause, size: 16),
+                        label: const Text('Toggle Pause'),
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 import 'models/performance_data.dart';
 import 'fps_tracker.dart';
+import 'leak_detector.dart';
 
 class PerformanceMonitorController extends ChangeNotifier {
   static PerformanceMonitorController? _instance;
@@ -18,6 +19,7 @@ class PerformanceMonitorController extends ChangeNotifier {
   
   final FpsTracker _fpsTracker = FpsTracker();
   final PerformanceMetrics metrics = PerformanceMetrics();
+  final LeakDetector leakDetector = LeakDetector.instance;
   
   StreamSubscription<double>? _fpsSubscription;
   Timer? _memoryTimer;
@@ -151,6 +153,9 @@ class PerformanceMonitorController extends ChangeNotifier {
     } catch (_) {
       // maxRss might not be available on all platforms
     }
+    
+    // 记录内存快照用于泄露检测
+    leakDetector.recordMemorySnapshot(_currentMemory);
     
     _updateMetrics();
   }
