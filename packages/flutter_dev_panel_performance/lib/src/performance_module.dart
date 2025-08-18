@@ -114,16 +114,15 @@ class _PerformanceFabContentState extends State<_PerformanceFabContent> {
               style: TextStyle(color: _getMemoryColor(memory)),
             ),
             // 始终保留箭头空间，避免高度变化
-            const TextSpan(text: ' '),
             TextSpan(
               // 只在变化超过2MB时显示箭头，否则显示空格保持布局稳定
               text: _memoryTrend.abs() > 2 
-                  ? (_memoryTrend > 0 ? '↑' : '↓')
-                  : ' ',  // 空格占位
+                  ? (_memoryTrend > 0 ? ' ▲' : ' ▼')  // 使用实心三角形
+                  : '  ',  // 两个空格占位
               style: TextStyle(
                 color: _memoryTrend > 0 ? Colors.redAccent : Colors.greenAccent,
-                fontSize: 10,  // 与主文字大小一致
-                fontWeight: FontWeight.w600,  // 与主文字权重一致
+                fontSize: 9,  // 稍微小一点避免太突出
+                fontWeight: FontWeight.bold,  // 加粗
               ),
             ),
           ],
