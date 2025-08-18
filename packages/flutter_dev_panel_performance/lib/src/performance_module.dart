@@ -5,21 +5,13 @@ import 'performance_monitor_controller.dart';
 import 'performance_api.dart';
 
 class PerformanceModule extends DevModule {
-  /// 是否自动追踪 Timer（默认启用）
-  final bool autoTrackTimers;
-  
-  PerformanceModule({
-    this.autoTrackTimers = true,  // 默认启用自动追踪
-  }) : super(
+  const PerformanceModule() : super(
           id: 'performance',
           name: 'Performance',
           description: 'Monitor app performance metrics including FPS and memory usage',
           icon: Icons.speed,
           order: 30,
-        ) {
-    // 将配置传递给 API
-    api.setAutoTrackingEnabled(autoTrackTimers);
-  }
+        );
 
   /// 获取模块的 API
   PerformanceAPI get api => PerformanceAPI.instance;
@@ -121,18 +113,19 @@ class _PerformanceFabContentState extends State<_PerformanceFabContent> {
               text: '${memory.toStringAsFixed(0)}MB',
               style: TextStyle(color: _getMemoryColor(memory)),
             ),
-            // 显示内存趋势箭头
-            if (_memoryTrend.abs() > 2) ...[ // 只在变化超过2MB时显示
-              const TextSpan(text: ' '),
-              TextSpan(
-                text: _memoryTrend > 0 ? '↑' : '↓',  // 上箭头或下箭头
-                style: TextStyle(
-                  color: _memoryTrend > 0 ? Colors.redAccent : Colors.greenAccent,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
+            // 始终保留箭头空间，避免高度变化
+            const TextSpan(text: ' '),
+            TextSpan(
+              // 只在变化超过2MB时显示箭头，否则显示空格保持布局稳定
+              text: _memoryTrend.abs() > 2 
+                  ? (_memoryTrend > 0 ? '↑' : '↓')
+                  : ' ',  // 空格占位
+              style: TextStyle(
+                color: _memoryTrend > 0 ? Colors.redAccent : Colors.greenAccent,
+                fontSize: 10,  // 与主文字大小一致
+                fontWeight: FontWeight.w600,  // 与主文字权重一致
               ),
-            ],
+            ),
           ],
           // 只在有明显丢帧时显示
           if (instantDrops != null && instantDrops > 5) ...[

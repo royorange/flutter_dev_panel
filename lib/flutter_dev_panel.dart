@@ -386,7 +386,7 @@ class DevPanel {
     Timer Function(Zone, ZoneDelegate, Zone, Duration, void Function())? createTimerHandler;
     Timer Function(Zone, ZoneDelegate, Zone, Duration, void Function(Timer))? createPeriodicTimerHandler;
     
-    // 检查是否有 Performance 模块并且启用了自动追踪
+    // 检查是否有 Performance 模块，如果有就启用 Timer 自动追踪
     try {
       // 查找 PerformanceModule（使用动态类型以避免硬依赖）
       final performanceModule = modules.firstWhere(
@@ -394,27 +394,25 @@ class DevPanel {
         orElse: () => throw Exception('No performance module'),
       );
       
-      // 通过反射检查是否启用了自动追踪
+      // 通过反射检查是否是 PerformanceModule
       // 由于我们不能直接导入 PerformanceModule，使用动态方式
       final moduleType = performanceModule.runtimeType.toString();
       if (moduleType == 'PerformanceModule') {
-        // 获取 autoTrackTimers 属性（使用 dynamic）
+        // Performance 模块现在总是启用自动追踪（只要在 Zone 中）
         dynamic dynModule = performanceModule;
         try {
-          if (dynModule.autoTrackTimers == true) {
-            // 获取 API 实例来创建 Zone
-            final api = dynModule.api;
-            final zoneSpec = api.createZoneSpecification();
-            if (zoneSpec != null) {
-              createTimerHandler = zoneSpec.createTimer;
-              createPeriodicTimerHandler = zoneSpec.createPeriodicTimer;
-              if (kDebugMode) {
-                debugPrint('DevPanel: Timer auto-tracking enabled via Zone');
-              }
+          // 获取 API 实例来创建 Zone
+          final api = dynModule.api;
+          final zoneSpec = api.createZoneSpecification();
+          if (zoneSpec != null) {
+            createTimerHandler = zoneSpec.createTimer;
+            createPeriodicTimerHandler = zoneSpec.createPeriodicTimer;
+            if (kDebugMode) {
+              debugPrint('DevPanel: Timer auto-tracking enabled via Zone');
             }
           }
         } catch (e) {
-          // 如果无法访问属性，忽略
+          // 如果无法访问 API，忽略
           if (kDebugMode) {
             debugPrint('DevPanel: Could not enable Timer auto-tracking: $e');
           }

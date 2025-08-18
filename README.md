@@ -55,11 +55,12 @@ A modular, zero-intrusion debugging panel for Flutter applications that provides
 - App package information
 
 ### Performance Module (`flutter_dev_panel_performance`)
-- Real-time FPS monitoring
-- Memory usage tracking
-- Frame drop detection
-- Performance charts and trends
-- Memory peak tracking
+- Real-time FPS monitoring with visual charts
+- Memory usage tracking and leak detection
+- Automatic Timer tracking via Zone API
+- Resource leak detection (Timers & StreamSubscriptions)
+- Interactive performance analysis with actionable advice
+- 📖 [View full documentation →](./packages/flutter_dev_panel_performance/)
 
 ## Architecture
 
@@ -108,9 +109,17 @@ dependencies:
 ## Quick Start
 
 > **Important**: Choose the right initialization method based on your needs:
-> - **Method 1**: Automatic setup with full log capture ✅ (Recommended)
+> - **Method 1**: Automatic setup with full features ✅ (Recommended)
+>   - Auto-captures print/debugPrint for Console module
+>   - Auto-tracks Timers for Performance module
+>   - Handles all Zone setup automatically
 > - **Method 2**: Custom Zone setup for integration with other tools 🔧
-> - **Method 3**: Traditional initialization without print interception ⚠️
+>   - Use when integrating with Sentry/Crashlytics
+>   - Requires manual Zone configuration
+> - **Method 3**: Traditional initialization with limited features ⚠️
+>   - No automatic print capture
+>   - No automatic Timer tracking
+>   - Only for compatibility with existing codebases
 
 ### Method 1: Using DevPanel.init (Recommended)
 
@@ -129,7 +138,7 @@ void main() async {
       const ConsoleModule(),
       NetworkModule(),
       const DeviceModule(),
-      const PerformanceModule(),
+      const PerformanceModule(),  // Automatically tracks Timers when in Zone
     ],
   );
 }
@@ -196,9 +205,15 @@ void main() {
 }
 ```
 
-### Method 3: Traditional Initialization (Simple Setup)
+### Method 3: Traditional Initialization (Limited Features)
 
-**Note**: This method does NOT automatically capture print statements. Console module will only show logs from direct `DevPanel.log()` calls.
+**⚠️ Warning**: This method has significant limitations:
+- ❌ Does NOT capture print/debugPrint statements (Console module)
+- ❌ Does NOT auto-track Timers (Performance module)
+- ❌ Requires manual Zone setup for full functionality
+- ⚠️ Only use if you cannot modify your app's entry point
+
+**Note**: Console module will only show logs from direct `DevPanel.log()` calls, and Performance module cannot auto-track Timers.
 
 ```dart
 import 'package:flutter_dev_panel/flutter_dev_panel.dart';
@@ -299,7 +314,7 @@ final logger = Logger();
 logger.i('Info from Logger package');
 ```
 
-For detailed logging features, see [Console Module Documentation](https://pub.dev/packages/flutter_dev_panel_console).
+For detailed logging features, see 📖 [Console Module Documentation →](./packages/flutter_dev_panel_console/).
 
 ### Integration Methods
 
@@ -636,13 +651,25 @@ ConsoleModule()  // Uses default: maxLogs=1000, autoScroll=true, combineLoggerOu
 ```
 
 ### Performance Module
-The performance module automatically monitors:
-- Frame rate (FPS)
-- Memory usage
-- Frame drops
-- Render time
 
-No additional configuration required.
+#### Automatic Monitoring
+When using `DevPanel.init()` (Method 1), the module automatically:
+- Tracks all Timers via Zone interception
+- Monitors FPS and memory usage
+- Detects frame drops and jank
+- Analyzes memory growth patterns
+- Identifies resource leaks
+
+#### Key Features
+- **Timer Tracking**: View all active Timers with source location
+- **Memory Analysis**: Detect leaks with growth rate calculation  
+- **Resource Monitoring**: Track Timers and StreamSubscriptions
+- **Interactive UI**: Expandable lists with detailed stack traces
+- **Smart Detection**: Automatic identification of potential issues
+
+**Note**: Automatic Timer tracking requires Zone setup (Method 1 or 2). With Method 3, only manual tracking is available.
+
+📖 [View Performance Module Documentation →](./packages/flutter_dev_panel_performance/) for detailed API usage, Timer tracking examples, and memory analysis features.
 
 ## Advanced Usage
 

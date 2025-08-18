@@ -100,8 +100,6 @@ class LeakDetector {
   
   LeakDetector._internal();
   
-  bool _autoTrackingEnabled = true;  // 默认启用自动追踪
-
   // 手动追踪的 Timer（保留向后兼容）
   final _manualTimers = <WeakReference<Timer>>[];
   
@@ -263,7 +261,7 @@ class LeakDetector {
     
     // Debug 模式下内存波动较大，使用更宽松的阈值
     // 小于 2 MB/min 视为正常波动
-    final threshold = kDebugMode ? 2.0 : 0.5;
+    const threshold = kDebugMode ? 2.0 : 0.5;
     final effectiveGrowthRate = growthRate.abs() < threshold ? 0.0 : growthRate;
     
     // 判断趋势
@@ -313,14 +311,8 @@ class LeakDetector {
       'memoryGrowing': memoryAnalysis.isGrowing,
       'memoryGrowthRate': '${memoryAnalysis.growthRateMBPerMinute.toStringAsFixed(1)} MB/min',
       'suggestion': memoryAnalysis.suggestion,
-      'autoTrackingEnabled': _autoTrackingEnabled,
       'timerInfos': activeTimerInfos,  // 添加详细信息
     };
-  }
-  
-  /// 启用/禁用自动追踪
-  void enableAutoTracking([bool enable = true]) {
-    _autoTrackingEnabled = enable;
   }
   
   /// 创建用于自动追踪的 ZoneSpecification
@@ -331,7 +323,6 @@ class LeakDetector {
       return const ZoneSpecification();
     }
     
-    _autoTrackingEnabled = true;
     debugPrint('LeakDetector: Auto-tracking enabled for Timers');
     
     return ZoneSpecification(

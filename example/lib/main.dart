@@ -58,9 +58,7 @@ void main() async {
       const ConsoleModule(), // Console 第一个显示
       NetworkModule(),
       const DeviceModule(),
-      PerformanceModule(
-        autoTrackTimers: true,  // 默认为 true，启用自动 Timer 追踪
-      ),
+      const PerformanceModule(),  // 自动追踪所有 Timer（在 Zone 中）
     ],
     environments: [
       // 如果 .env 文件未找到，使用这些备用配置
@@ -112,7 +110,7 @@ void oldMainExample() async {
         const ConsoleModule(),
         NetworkModule(),
         const DeviceModule(),
-        PerformanceModule(),
+        const PerformanceModule(),
       ],
       enableLogCapture: true,
     );

@@ -14,7 +14,6 @@ class PerformanceAPI {
   
   PerformanceAPI._();
   
-  bool _autoTrackingEnabled = true;  // 默认启用
   
   /// 获取控制器实例（内部使用）
   PerformanceMonitorController get _controller => PerformanceMonitorController.instance;
@@ -25,15 +24,7 @@ class PerformanceAPI {
   // ========== 监控控制 ==========
   
   /// 开始性能监控
-  /// 
-  /// @param enableAutoTracking 是否启用自动 Timer 追踪（可选，默认使用模块配置）
-  void startMonitoring({bool? enableAutoTracking}) {
-    if (enableAutoTracking != null) {
-      _autoTrackingEnabled = enableAutoTracking;
-      if (_autoTrackingEnabled) {
-        _leakDetector.enableAutoTracking();
-      }
-    }
+  void startMonitoring() {
     _controller.startMonitoring();
   }
   
@@ -132,25 +123,11 @@ class PerformanceAPI {
   
   // ========== 自动追踪功能 ==========
   
-  /// 是否已启用自动追踪
-  bool get isAutoTrackingEnabled => _autoTrackingEnabled;
-  
-  /// 设置自动追踪状态（由模块初始化时调用）
-  void setAutoTrackingEnabled(bool enabled) {
-    _autoTrackingEnabled = enabled;
-    if (enabled) {
-      _leakDetector.enableAutoTracking();
-      if (kDebugMode) {
-        debugPrint('Performance: Auto Timer tracking enabled');
-      }
-    }
-  }
-  
   /// 创建用于自动追踪的 ZoneSpecification
   /// 
   /// 在 DevPanel.init() 或 runZonedGuarded 中使用
   ZoneSpecification? createZoneSpecification() {
-    if (!_autoTrackingEnabled || !kDebugMode) {
+    if (!kDebugMode) {
       return null;
     }
     

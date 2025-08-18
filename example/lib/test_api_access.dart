@@ -11,7 +11,7 @@ void main() {
   // Initialize DevPanel
   DevPanel.initialize(
     modules: [
-      PerformanceModule(),
+      const PerformanceModule(),
       NetworkModule(),
     ],
   );

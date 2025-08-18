@@ -49,9 +49,7 @@ void main() async {
   await DevPanel.init(
     () => runApp(MyApp()),
     modules: [
-      PerformanceModule(
-        autoTrackTimers: true,  // Enable automatic Timer tracking (default: true)
-      ),
+      const PerformanceModule(),  // Automatically tracks all Timers
       // Other modules...
     ],
   );
@@ -65,9 +63,7 @@ void main() {
   runZonedGuarded(() {
     DevPanel.initialize(
       modules: [
-        PerformanceModule(
-          autoTrackTimers: true,
-        ),
+        const PerformanceModule(),  // Automatically tracks all Timers
       ],
     );
     runApp(MyApp());
@@ -84,11 +80,6 @@ void main() {
 ```dart
 // Start monitoring
 DevPanel.get().performance?.startMonitoring();
-
-// Start with custom auto-tracking setting
-DevPanel.get().performance?.startMonitoring(
-  enableAutoTracking: false,  // Override module configuration
-);
 
 // Stop monitoring
 DevPanel.get().performance?.stopMonitoring();
@@ -124,9 +115,9 @@ final resourceSummary = DevPanel.get().performance?.resourceSummary ?? '';
 
 ### Timer Tracking
 
-#### Automatic Tracking (Default)
+#### Automatic Tracking
 
-When `autoTrackTimers` is enabled (default), all Timers are automatically tracked:
+When using Zone setup (Method 1 or 2), all Timers are automatically tracked:
 
 ```dart
 // All these Timers are automatically tracked
@@ -150,15 +141,10 @@ Timer.run(() {
 
 #### Manual Tracking
 
-When automatic tracking is disabled or for selective tracking:
+For additional manual tracking of specific Timers:
 
 ```dart
-// Configure module with auto-tracking disabled
-PerformanceModule(
-  autoTrackTimers: false,
-)
-
-// Manually track specific Timers
+// Manually track specific Timers (in addition to automatic tracking)
 final timer = Timer.periodic(Duration(seconds: 30), (_) {
   refreshData();
 });
@@ -254,19 +240,9 @@ When automatic tracking is enabled, each Timer provides:
 - **Stack Trace**: Full call stack for debugging (in detail view)
 - **Active Status**: Whether the Timer is still running
 
-## Configuration Options
+## Configuration
 
-### PerformanceModule Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `autoTrackTimers` | `bool` | `true` | Enable automatic Timer tracking via Zone |
-
-### startMonitoring Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `enableAutoTracking` | `bool?` | `null` | Override module's autoTrackTimers setting |
+The Performance module has no configuration parameters. It automatically tracks all Timers when the app runs within a Zone (using `DevPanel.init()` or custom Zone setup).
 
 ## Best Practices
 
@@ -275,7 +251,7 @@ When automatic tracking is enabled, each Timer provides:
 void main() async {
   await DevPanel.init(
     () => runApp(MyApp()),
-    modules: [PerformanceModule()],
+    modules: [const PerformanceModule()],
   );
 }
 ```
@@ -313,16 +289,16 @@ The automatic Timer tracking uses Dart's Zone API to intercept Timer creation:
 ### Q: Why does Timer count show 0?
 
 **Possible causes:**
-1. Auto-tracking not enabled (check `autoTrackTimers` configuration)
+1. Not using Zone setup (using Method 3 initialization)
 2. Timers created outside the Zone (ensure Zone setup before `runApp()`)
 3. No active Timers in the application
 
 **Solution:**
 ```dart
-// Ensure proper initialization order
+// Ensure proper initialization order with Zone
 await DevPanel.init(
   () => runApp(MyApp()),  // App runs inside Zone
-  modules: [PerformanceModule(autoTrackTimers: true)],
+  modules: [const PerformanceModule()],
 );
 ```
 
@@ -330,8 +306,8 @@ await DevPanel.init(
 
 **Yes!** Both methods can be used simultaneously:
 ```dart
-// Auto-tracking captures all Timers
-PerformanceModule(autoTrackTimers: true)
+// Auto-tracking captures all Timers (when in Zone)
+const PerformanceModule()
 
 // Still manually track critical Timers for special attention
 final criticalTimer = Timer.periodic(Duration(minutes: 1), (_) {
