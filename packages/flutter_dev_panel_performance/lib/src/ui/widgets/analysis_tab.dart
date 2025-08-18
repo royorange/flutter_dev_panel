@@ -1,7 +1,7 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../leak_detector.dart';
+import '../../performance_update_coordinator.dart';
 
 class AnalysisTab extends StatefulWidget {
   final LeakDetector leakDetector;
@@ -22,7 +22,7 @@ class AnalysisTab extends StatefulWidget {
 }
 
 class _AnalysisTabState extends State<AnalysisTab> {
-  Timer? _updateTimer;
+  final _updateCoordinator = PerformanceUpdateCoordinator.instance;
   bool _showTimerDetails = false; // 控制 Timer 列表展开状态
 
   @override
@@ -45,21 +45,22 @@ class _AnalysisTabState extends State<AnalysisTab> {
   }
 
   void _startUpdateTimerIfNeeded() {
-    // 只有在监控中（有数据）时才启动 Timer
-    if (widget.memoryHistory.isNotEmpty && _updateTimer == null) {
-      _updateTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-        if (mounted && widget.memoryHistory.isNotEmpty) {
-          // 记录内存快照
-          widget.leakDetector.recordMemorySnapshot(widget.memoryHistory.last);
-          setState(() {});
-        }
-      });
+    // 只有在监控中（有数据）时才注册更新回调
+    if (widget.memoryHistory.isNotEmpty) {
+      _updateCoordinator.addTwoSecondListener(_updateAnalysis);
+    }
+  }
+  
+  void _updateAnalysis() {
+    if (mounted && widget.memoryHistory.isNotEmpty) {
+      // 记录内存快照
+      widget.leakDetector.recordMemorySnapshot(widget.memoryHistory.last);
+      setState(() {});
     }
   }
 
   void _stopUpdateTimer() {
-    _updateTimer?.cancel();
-    _updateTimer = null;
+    _updateCoordinator.removeTwoSecondListener(_updateAnalysis);
   }
 
   @override

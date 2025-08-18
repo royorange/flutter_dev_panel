@@ -6,6 +6,7 @@ import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 import 'models/performance_data.dart';
 import 'fps_tracker.dart';
 import 'leak_detector.dart';
+import 'performance_update_coordinator.dart';
 
 class PerformanceMonitorController extends ChangeNotifier {
   static PerformanceMonitorController? _instance;
@@ -22,8 +23,7 @@ class PerformanceMonitorController extends ChangeNotifier {
   final LeakDetector leakDetector = LeakDetector.instance;
   
   StreamSubscription<double>? _fpsSubscription;
-  Timer? _memoryTimer;
-  Timer? _renderTimer;
+  final _updateCoordinator = PerformanceUpdateCoordinator.instance;
   
   // Performance tracking variables
   double _peakMemory = 0;
@@ -56,13 +56,12 @@ class PerformanceMonitorController extends ChangeNotifier {
       _updateMetrics();
     });
     
-    // Update memory usage less frequently to reduce performance impact
-    _memoryTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      _updateMemoryUsage();
-    });
+    // 使用统一的更新协调器
+    _updateCoordinator.start();
     
-    // Track render metrics
-    _startRenderTracking();
+    // 注册更新回调
+    _updateCoordinator.addTwoSecondListener(_updateMemoryUsage);
+    _updateCoordinator.addOneSecondListener(_updateRenderMetrics);
     
     // 数据已通过MonitoringDataProvider自动通知
     
@@ -80,11 +79,12 @@ class PerformanceMonitorController extends ChangeNotifier {
     _fpsSubscription?.cancel();
     _fpsSubscription = null;
     
-    _memoryTimer?.cancel();
-    _memoryTimer = null;
+    // 移除更新回调
+    _updateCoordinator.removeTwoSecondListener(_updateMemoryUsage);
+    _updateCoordinator.removeOneSecondListener(_updateRenderMetrics);
     
-    _renderTimer?.cancel();
-    _renderTimer = null;
+    // 停止协调器
+    _updateCoordinator.stop();
     
     // 清除全局监控数据
     try {
@@ -166,13 +166,6 @@ class PerformanceMonitorController extends ChangeNotifier {
     _updateMetrics();
   }
   
-  void _startRenderTracking() {
-    // Track frame rendering metrics
-    // Use a lower frequency to avoid performance impact
-    _renderTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      _updateRenderMetrics();
-    });
-  }
   
   void _updateRenderMetrics() {
     try {

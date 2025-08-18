@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'package:flutter/scheduler.dart';
+import 'performance_update_coordinator.dart';
 
 class FpsTracker {
   final _fpsController = StreamController<double>.broadcast();
   Stream<double> get fpsStream => _fpsController.stream;
 
-  Timer? _timer;
   final List<Duration> _frameDurations = [];
   bool _isTracking = false;
+  final _updateCoordinator = PerformanceUpdateCoordinator.instance;
 
   void startTracking() {
     if (_isTracking) return;
@@ -15,9 +16,8 @@ class FpsTracker {
 
     SchedulerBinding.instance.addTimingsCallback(_onTimingsCallback);
 
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      _calculateFps();
-    });
+    // 使用协调器替代直接创建 Timer
+    _updateCoordinator.addOneSecondListener(_calculateFps);
   }
 
   void stopTracking() {
@@ -25,8 +25,7 @@ class FpsTracker {
     _isTracking = false;
 
     SchedulerBinding.instance.removeTimingsCallback(_onTimingsCallback);
-    _timer?.cancel();
-    _timer = null;
+    _updateCoordinator.removeOneSecondListener(_calculateFps);
     _frameDurations.clear();
   }
 
