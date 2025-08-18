@@ -47,6 +47,9 @@ class PerformanceMonitorController extends ChangeNotifier {
     if (_isMonitoring) return;
     _isMonitoring = true;
     
+    // 通知 LeakDetector 监控已启动
+    leakDetector.setMonitoringStarted(true);
+    
     _fpsTracker.startTracking();
     _fpsSubscription = _fpsTracker.fpsStream.listen((fps) {
       _currentFps = fps;
@@ -69,6 +72,9 @@ class PerformanceMonitorController extends ChangeNotifier {
   void stopMonitoring() {
     if (!_isMonitoring) return;
     _isMonitoring = false;
+    
+    // 通知 LeakDetector 监控已停止
+    leakDetector.setMonitoringStarted(false);
     
     _fpsTracker.stopTracking();
     _fpsSubscription?.cancel();

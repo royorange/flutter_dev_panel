@@ -8,7 +8,7 @@ class AnalysisTab extends StatefulWidget {
   final List<double> memoryHistory;
   final bool hideInternalTimers;
   final int maxTimersToShow;
-  
+
   const AnalysisTab({
     Key? key,
     required this.leakDetector,
@@ -23,26 +23,27 @@ class AnalysisTab extends StatefulWidget {
 
 class _AnalysisTabState extends State<AnalysisTab> {
   Timer? _updateTimer;
-  bool _showTimerDetails = false;  // 控制 Timer 列表展开状态
-  
+  bool _showTimerDetails = false; // 控制 Timer 列表展开状态
+
   @override
   void initState() {
     super.initState();
     // 只有在有数据时才启动更新 Timer
     _startUpdateTimerIfNeeded();
   }
-  
+
   @override
   void didUpdateWidget(AnalysisTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     // 当 memoryHistory 变化时检查是否需要启动/停止 Timer
     if (oldWidget.memoryHistory.isEmpty && widget.memoryHistory.isNotEmpty) {
       _startUpdateTimerIfNeeded();
-    } else if (oldWidget.memoryHistory.isNotEmpty && widget.memoryHistory.isEmpty) {
+    } else if (oldWidget.memoryHistory.isNotEmpty &&
+        widget.memoryHistory.isEmpty) {
       _stopUpdateTimer();
     }
   }
-  
+
   void _startUpdateTimerIfNeeded() {
     // 只有在监控中（有数据）时才启动 Timer
     if (widget.memoryHistory.isNotEmpty && _updateTimer == null) {
@@ -55,12 +56,12 @@ class _AnalysisTabState extends State<AnalysisTab> {
       });
     }
   }
-  
+
   void _stopUpdateTimer() {
     _updateTimer?.cancel();
     _updateTimer = null;
   }
-  
+
   @override
   void dispose() {
     _stopUpdateTimer();
@@ -69,11 +70,10 @@ class _AnalysisTabState extends State<AnalysisTab> {
 
   @override
   Widget build(BuildContext context) {
-    
     // 获取调试信息
     final debugInfo = widget.leakDetector.getDebugInfo();
     final memoryAnalysis = widget.leakDetector.analyzeMemoryGrowth();
-    
+
     // 不在 build 中记录快照，避免频繁调用
 
     return SingleChildScrollView(
@@ -84,11 +84,11 @@ class _AnalysisTabState extends State<AnalysisTab> {
           // 内存状态卡片
           _buildMemoryStatusCard(context, memoryAnalysis),
           const SizedBox(height: 16),
-          
+
           // 资源泄露检测卡片
           _buildLeakDetectionCard(context, debugInfo),
           const SizedBox(height: 16),
-          
+
           // 实用建议卡片
           _buildActionableAdviceCard(context, debugInfo, memoryAnalysis),
         ],
@@ -102,30 +102,33 @@ class _AnalysisTabState extends State<AnalysisTab> {
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     // 检查是否正在收集数据（需要有数据点才算开始收集）
-    final isCollectingData = (analysis.suggestion.contains('Collecting data') || 
-                            analysis.suggestion.contains('Need more')) &&
-                            widget.memoryHistory.isNotEmpty;  // 只有有数据时才显示收集状态
-    
+    final isCollectingData = (analysis.suggestion.contains('Collecting data') ||
+            analysis.suggestion.contains('Need more')) &&
+        widget.memoryHistory.isNotEmpty; // 只有有数据时才显示收集状态
+
     // 检查是否未开始监控
     final notStarted = widget.memoryHistory.isEmpty;
-    
+
     final isStable = !analysis.isGrowing;
     final statusColor = notStarted
         ? colorScheme.onSurfaceVariant
-        : isCollectingData 
+        : isCollectingData
             ? colorScheme.primary
-            : (isStable ? Colors.green : 
-              (analysis.growthRateMBPerMinute > 10 ? Colors.red : Colors.orange));
+            : (isStable
+                ? Colors.green
+                : (analysis.growthRateMBPerMinute > 10
+                    ? Colors.red
+                    : Colors.orange));
     final statusIcon = notStarted
         ? Icons.play_circle_outline
-        : isCollectingData 
-            ? null  // 收集数据时不显示图标
+        : isCollectingData
+            ? null // 收集数据时不显示图标
             : (isStable ? Icons.check_circle : Icons.warning_amber);
     final statusText = notStarted
         ? 'Not Monitoring'
-        : isCollectingData 
+        : isCollectingData
             ? 'Analyzing'
             : (isStable ? 'Stable' : 'Growing');
 
@@ -160,15 +163,17 @@ class _AnalysisTabState extends State<AnalysisTab> {
               ],
             ),
             const SizedBox(height: 12),
-            if (!notStarted && !isCollectingData && analysis.growthRateMBPerMinute.abs() > 0.1) ...[
+            if (!notStarted &&
+                !isCollectingData &&
+                analysis.growthRateMBPerMinute.abs() > 0.1) ...[
               _buildMetricRowWithIcon(
                 context,
                 'Growth Rate',
                 '${analysis.growthRateMBPerMinute.abs().toStringAsFixed(1)} MB/min',
                 statusColor,
-                icon: analysis.growthRateMBPerMinute > 0 
-                  ? Icons.trending_up 
-                  : Icons.trending_down,
+                icon: analysis.growthRateMBPerMinute > 0
+                    ? Icons.trending_up
+                    : Icons.trending_down,
               ),
               const SizedBox(height: 8),
             ],
@@ -188,8 +193,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
                       size: 14,
                       color: colorScheme.onSurfaceVariant,
                     ),
-                  if (isCollectingData)
-                    const SizedBox(width: 4),
+                  if (isCollectingData) const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       analysis.suggestion,
@@ -213,10 +217,10 @@ class _AnalysisTabState extends State<AnalysisTab> {
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     final activeTimers = debugInfo['activeTimers'] as int;
     final activeSubscriptions = debugInfo['activeSubscriptions'] as int;
-    
+
     // 判断是否有潜在问题
     final hasTimerIssue = activeTimers > 10;
     final hasSubscriptionIssue = activeSubscriptions > 10;
@@ -248,31 +252,37 @@ class _AnalysisTabState extends State<AnalysisTab> {
             ),
             const SizedBox(height: 16),
             InkWell(
-              onTap: activeTimers > 0 ? () {
-                setState(() {
-                  _showTimerDetails = !_showTimerDetails;
-                });
-              } : null,
+              onTap: activeTimers > 0
+                  ? () {
+                      setState(() {
+                        _showTimerDetails = !_showTimerDetails;
+                      });
+                    }
+                  : null,
               borderRadius: BorderRadius.circular(8),
               child: _buildMetricRowWithAction(
                 context,
                 'Active Timers',
                 '$activeTimers',
                 hasTimerIssue ? Colors.orange : colorScheme.primary,
-                trailing: activeTimers > 0 ? Icon(
-                  _showTimerDetails ? Icons.expand_less : Icons.expand_more,
-                  size: 20,
-                  color: colorScheme.onSurfaceVariant,
-                ) : null,
+                trailing: activeTimers > 0
+                    ? Icon(
+                        _showTimerDetails
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                        size: 20,
+                        color: colorScheme.onSurfaceVariant,
+                      )
+                    : null,
               ),
             ),
-            
+
             // Timer 详情列表
             if (_showTimerDetails && activeTimers > 0) ...[
               const SizedBox(height: 8),
               _buildTimerDetailsList(context, debugInfo),
             ],
-            
+
             const SizedBox(height: 8),
             _buildMetricRow(
               context,
@@ -292,9 +302,9 @@ class _AnalysisTabState extends State<AnalysisTab> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      hasTimerIssue 
-                        ? 'High number of active timers detected'
-                        : 'High number of active subscriptions detected',
+                      hasTimerIssue
+                          ? 'High number of active timers detected'
+                          : 'High number of active subscriptions detected',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.orange,
                       ),
@@ -316,12 +326,12 @@ class _AnalysisTabState extends State<AnalysisTab> {
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     final activeTimers = debugInfo['activeTimers'] as int;
     final activeSubscriptions = debugInfo['activeSubscriptions'] as int;
-    
+
     final advice = <String>[];
-    
+
     // 实用的建议
     if (memoryAnalysis.growthRateMBPerMinute > 20) {
       advice.add('🔴 Immediate action needed: Memory growing rapidly');
@@ -332,19 +342,20 @@ class _AnalysisTabState extends State<AnalysisTab> {
       advice.add('• Check dispose() methods in StatefulWidgets');
       advice.add('• Verify stream subscriptions are canceled');
     }
-    
+
     if (activeTimers > 10) {
       advice.add('⏱️ Too many active timers ($activeTimers)');
       advice.add('• Ensure Timer.cancel() is called in dispose()');
-      advice.add('• Consider using Timer.periodic() instead of multiple timers');
+      advice
+          .add('• Consider using Timer.periodic() instead of multiple timers');
     }
-    
+
     if (activeSubscriptions > 10) {
       advice.add('📡 Too many stream subscriptions ($activeSubscriptions)');
       advice.add('• Call subscription.cancel() in dispose()');
       advice.add('• Use StreamBuilder for automatic cleanup');
     }
-    
+
     // 如果没有问题，不显示 Advice 卡片
     if (advice.isEmpty) {
       return const SizedBox.shrink();
@@ -376,17 +387,19 @@ class _AnalysisTabState extends State<AnalysisTab> {
             ),
             const SizedBox(height: 12),
             ...advice.map((item) => Padding(
-              padding: const EdgeInsets.only(bottom: 6.0),
-              child: Text(
-                item,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: item.startsWith('•') ? FontWeight.normal : FontWeight.w600,
-                  color: item.startsWith('•') 
-                    ? colorScheme.onSurfaceVariant 
-                    : colorScheme.onSurface,
-                ),
-              ),
-            )),
+                  padding: const EdgeInsets.only(bottom: 6.0),
+                  child: Text(
+                    item,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: item.startsWith('•')
+                          ? FontWeight.normal
+                          : FontWeight.w600,
+                      color: item.startsWith('•')
+                          ? colorScheme.onSurfaceVariant
+                          : colorScheme.onSurface,
+                    ),
+                  ),
+                )),
           ],
         ),
       ),
@@ -400,7 +413,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
     Color valueColor,
   ) {
     final theme = Theme.of(context);
-    
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -425,7 +438,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
       ],
     );
   }
-  
+
   Widget _buildMetricRowWithIcon(
     BuildContext context,
     String label,
@@ -434,7 +447,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
     IconData? icon,
   }) {
     final theme = Theme.of(context);
-    
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -472,7 +485,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
       ],
     );
   }
-  
+
   Widget _buildMetricRowWithAction(
     BuildContext context,
     String label,
@@ -481,7 +494,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
     Widget? trailing,
   }) {
     final theme = Theme.of(context);
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -495,7 +508,8 @@ class _AnalysisTabState extends State<AnalysisTab> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: valueColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -518,19 +532,21 @@ class _AnalysisTabState extends State<AnalysisTab> {
       ),
     );
   }
-  
-  Widget _buildTimerDetailsList(BuildContext context, Map<String, dynamic> debugInfo) {
+
+  Widget _buildTimerDetailsList(
+      BuildContext context, Map<String, dynamic> debugInfo) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     var timerInfos = debugInfo['timerInfos'] as List<TimerInfo>? ?? [];
-    
+
     // 根据设置过滤内部 Timer
     if (widget.hideInternalTimers) {
       timerInfos = timerInfos.where((info) => !info.isInternalTimer).toList();
     }
-    
-    final totalTimerCount = (debugInfo['timerInfos'] as List<TimerInfo>? ?? []).length;
-    
+
+    final totalTimerCount =
+        (debugInfo['timerInfos'] as List<TimerInfo>? ?? []).length;
+
     if (timerInfos.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(12),
@@ -540,7 +556,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
         ),
         child: Text(
           widget.hideInternalTimers && totalTimerCount > 0
-              ? 'All timers are internal (hidden)'
+              ? 'All timers are internal (setting in config above)'
               : 'No timer details available',
           style: theme.textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
@@ -548,11 +564,11 @@ class _AnalysisTabState extends State<AnalysisTab> {
         ),
       );
     }
-    
+
     // 限制显示数量
     final timersToShow = timerInfos.take(widget.maxTimersToShow).toList();
     final hasMoreTimers = timerInfos.length > widget.maxTimersToShow;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest,
@@ -562,59 +578,61 @@ class _AnalysisTabState extends State<AnalysisTab> {
         children: [
           // Timer 列表
           ...timersToShow.map((info) {
-          final location = info.location;
-          final isPeriodic = info.isPeriodic;
-          
-          // 格式化创建时间为 HH:mm:ss
-          final timeStr = '${info.createdAt.hour.toString().padLeft(2, '0')}:'
-                         '${info.createdAt.minute.toString().padLeft(2, '0')}:'
-                         '${info.createdAt.second.toString().padLeft(2, '0')}';
-          
-          return InkWell(
-            onTap: () => _showTimerDetailsDialog(context, info),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: [
-                  Icon(
-                    isPeriodic ? Icons.loop : Icons.timer,
-                    size: 16,
-                    color: isPeriodic ? Colors.orange : colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          location,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          '${isPeriodic ? "Periodic" : "One-time"} • $timeStr',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
+            final location = info.location;
+            final isPeriodic = info.isPeriodic;
+
+            // 格式化创建时间为 HH:mm:ss
+            final timeStr = '${info.createdAt.hour.toString().padLeft(2, '0')}:'
+                '${info.createdAt.minute.toString().padLeft(2, '0')}:'
+                '${info.createdAt.second.toString().padLeft(2, '0')}';
+
+            return InkWell(
+              onTap: () => _showTimerDetailsDialog(context, info),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      isPeriodic ? Icons.loop : Icons.timer,
+                      size: 16,
+                      color: isPeriodic ? Colors.orange : colorScheme.primary,
                     ),
-                  ),
-                  Icon(
-                    Icons.chevron_right,
-                    size: 16,
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            location,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            '${isPeriodic ? "Periodic" : "One-time"} • $timeStr',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 16,
+                      color:
+                          colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        }),
+            );
+          }),
           // 如果有更多 Timer，显示提示
           if (hasMoreTimers) ...[
             const Divider(height: 1),
@@ -646,11 +664,11 @@ class _AnalysisTabState extends State<AnalysisTab> {
       ),
     );
   }
-  
+
   void _showTimerDetailsDialog(BuildContext context, TimerInfo info) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -662,7 +680,8 @@ class _AnalysisTabState extends State<AnalysisTab> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(info.isPeriodic ? 'Periodic Timer' : 'One-time Timer'),
+              child:
+                  Text(info.isPeriodic ? 'Periodic Timer' : 'One-time Timer'),
             ),
             if (info.isInternalTimer)
               Container(
@@ -691,7 +710,8 @@ class _AnalysisTabState extends State<AnalysisTab> {
               const SizedBox(height: 12),
               _buildDetailRow('Created', info.createdAt.toString()),
               const SizedBox(height: 12),
-              _buildDetailRow('Type', info.isPeriodic ? 'Periodic' : 'One-time'),
+              _buildDetailRow(
+                  'Type', info.isPeriodic ? 'Periodic' : 'One-time'),
               const SizedBox(height: 12),
               _buildDetailRow('Active', info.timer.isActive ? 'Yes' : 'No'),
               if (info.stackTrace != null) ...[
@@ -770,7 +790,7 @@ class _AnalysisTabState extends State<AnalysisTab> {
       ),
     );
   }
-  
+
   Widget _buildDetailRow(String label, String value) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
