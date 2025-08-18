@@ -281,8 +281,13 @@ class _NetworkFabContent extends StatefulWidget {
 
 class _NetworkFabContentState extends State<_NetworkFabContent> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
-  Duration? _lastRequestDuration;
-  double _totalSize = 0; // 总流量 KB
+  
+  // 最近一批请求的统计（惰性计算）
+  int _recentRequestCount = 0;
+  double _recentTotalSize = 0; // KB
+  int _recentAvgDuration = 0; // ms
+  DateTime? _lastBatchEndTime; // 最后一批请求的结束时间
+  bool _hasBatchData = false; // 是否有批次数据
   
   @override
   void initState() {
@@ -301,30 +306,57 @@ class _NetworkFabContentState extends State<_NetworkFabContent> with SingleTicke
     super.dispose();
   }
   
-  void _updateMetrics() {
-    // 获取最新请求的耗时
-    if (widget.controller.allRequests.isNotEmpty) {
-      final latestRequest = widget.controller.allRequests.first;
-      if (latestRequest.duration != null) {
-        _lastRequestDuration = latestRequest.duration;
-      }
-      
-      // 计算总流量
-      _totalSize = 0;
-      for (final req in widget.controller.allRequests) {
+  void _updateMetrics({bool skipSetState = false}) {
+    // 策略：显示最近一批请求的统计，持续显示直到有新批次
+    final now = DateTime.now();
+    
+    // 定义批次窗口：3秒内的请求算作一批
+    final batchWindow = const Duration(seconds: 3);
+    final recentThreshold = now.subtract(batchWindow);
+    
+    // 计算当前时间窗口内的请求
+    int currentBatchCount = 0;
+    double currentBatchSize = 0;
+    int currentTotalDuration = 0;
+    int currentDurationCount = 0;
+    DateTime? latestEndTime;
+    
+    for (final req in widget.controller.allRequests) {
+      if (req.endTime != null && req.endTime!.isAfter(recentThreshold)) {
+        currentBatchCount++;
         if (req.responseSize != null) {
-          _totalSize += req.responseSize! / 1024; // 转换为KB
+          currentBatchSize += req.responseSize! / 1024; // 转换为KB
+        }
+        if (req.duration != null) {
+          currentTotalDuration += req.duration!.inMilliseconds;
+          currentDurationCount++;
+        }
+        // 记录最新的结束时间
+        if (latestEndTime == null || req.endTime!.isAfter(latestEndTime)) {
+          latestEndTime = req.endTime;
         }
       }
     }
+    
+    // 如果有新的批次数据，更新统计
+    if (currentBatchCount > 0) {
+      _recentRequestCount = currentBatchCount;
+      _recentTotalSize = currentBatchSize;
+      if (currentDurationCount > 0) {
+        _recentAvgDuration = currentTotalDuration ~/ currentDurationCount;
+      }
+      _lastBatchEndTime = latestEndTime;
+      _hasBatchData = true;
+    }
+    // 否则保持之前的统计数据（如果有）
+    // 这样即使超过3秒，统计信息也会保持显示
+    
+    // 触发UI更新（除非在 build 中调用）
+    if (!skipSetState && mounted) {
+      setState(() {});
+    }
   }
   
-  String _formatDuration(Duration? duration) {
-    if (duration == null) return '';
-    final ms = duration.inMilliseconds;
-    if (ms < 1000) return '${ms}ms';
-    return '${(ms / 1000).toStringAsFixed(1)}s';
-  }
   
   String _formatSize(double sizeKB) {
     if (sizeKB < 1024) return '${sizeKB.toStringAsFixed(0)}K';
@@ -343,6 +375,9 @@ class _NetworkFabContentState extends State<_NetworkFabContent> with SingleTicke
     return ListenableBuilder(
       listenable: widget.controller,
       builder: (context, _) {
+        // 每次 build 时都重新计算最近的请求统计（跳过 setState）
+        _updateMetrics(skipSetState: true);
+        
         // 使用会话统计而不是总统计
         final pendingCount = widget.controller.sessionPendingCount;
         final errorCount = widget.controller.sessionErrorCount;
@@ -361,16 +396,6 @@ class _NetworkFabContentState extends State<_NetworkFabContent> with SingleTicke
           }
         } else {
           _animationController.stop();
-        }
-        
-        // 计算最慢的请求
-        Duration? slowestRequest;
-        for (final req in widget.controller.allRequests) {
-          if (req.duration != null) {
-            if (slowestRequest == null || req.duration!.inMilliseconds > slowestRequest.inMilliseconds) {
-              slowestRequest = req.duration;
-            }
-          }
         }
         
         return Column(
@@ -413,6 +438,7 @@ class _NetworkFabContentState extends State<_NetworkFabContent> with SingleTicke
                       style: const TextStyle(
                         fontSize: 10,
                         fontFamily: 'monospace',
+                        fontWeight: FontWeight.w500,
                       ),
                       children: [
                         // Pending请求 - 优先显示
@@ -427,49 +453,59 @@ class _NetworkFabContentState extends State<_NetworkFabContent> with SingleTicke
                           const TextSpan(text: ' '),
                         ],
                         
-                        // 成功/错误统计 - 简化大数字
-                        TextSpan(
-                          text: _formatCount(successCount),
-                          style: const TextStyle(
-                            color: Colors.lightGreenAccent,
-                            fontSize: 9,
-                          ),
-                        ),
-                        if (errorCount > 0) ...[
-                          const TextSpan(text: '/'),
+                        // 如果有批次数据，优先显示统计信息（常驻）
+                        if (_hasBatchData) ...[  
+                          // 显示最近一批请求的统计: Nreq/xxxK avgMs
                           TextSpan(
-                            text: _formatCount(errorCount),
+                            text: '${_recentRequestCount}req',
                             style: const TextStyle(
-                              color: Colors.redAccent,
-                              fontWeight: FontWeight.bold,
+                              color: Colors.white70,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ],
-                        
-                        // 最慢请求时间 - 只在特别慢时显示
-                        if (slowestRequest != null && slowestRequest.inMilliseconds > 1000) ...[
-                          const TextSpan(text: ' '),
+                          if (_recentTotalSize > 1) ...[ // 大于1KB才显示流量
+                            TextSpan(
+                              text: '/${_formatSize(_recentTotalSize)}',
+                              style: const TextStyle(
+                                color: Colors.white60,
+                                fontSize: 9,
+                              ),
+                            ),
+                          ],
+                          if (_recentAvgDuration > 0) ...[ // 显示平均耗时
+                            const TextSpan(text: ' '),
+                            TextSpan(
+                              text: _recentAvgDuration < 1000 
+                                  ? '${_recentAvgDuration}ms'
+                                  : '${(_recentAvgDuration / 1000).toStringAsFixed(1)}s',
+                              style: TextStyle(
+                                color: _recentAvgDuration > 1000 
+                                    ? Colors.amberAccent 
+                                    : Colors.white54,
+                                fontSize: 9,
+                              ),
+                            ),
+                          ],
+                        ] else ...[
+                          // 没有最近请求时，显示会话总统计
                           TextSpan(
-                            text: '⚡${_formatDuration(slowestRequest)}',
-                            style: TextStyle(
-                              color: slowestRequest.inMilliseconds > 3000 
-                                  ? Colors.redAccent 
-                                  : Colors.amberAccent,
+                            text: _formatCount(successCount),
+                            style: const TextStyle(
+                              color: Colors.lightGreenAccent,
                               fontSize: 9,
                             ),
                           ),
-                        ],
-                        
-                        // 流量统计 - 只在较大时显示
-                        if (_totalSize > 100) ...[  // 大于100KB才显示
-                          const TextSpan(text: ' '),
-                          TextSpan(
-                            text: '↓${_formatSize(_totalSize)}',
-                            style: const TextStyle(
-                              color: Colors.white60,
-                              fontSize: 9,
+                          if (errorCount > 0) ...[
+                            const TextSpan(text: '/'),
+                            TextSpan(
+                              text: _formatCount(errorCount),
+                              style: const TextStyle(
+                                color: Colors.redAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ],
                     ),

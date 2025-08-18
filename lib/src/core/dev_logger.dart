@@ -380,6 +380,93 @@ class DevLogger {
     }
   }
   
+  /// 智能检测日志级别（优化版）
+  /// 使用单次遍历和早期退出策略，提高性能
+  LogLevel _detectLogLevel(String message) {
+    // 策略1: 检查 Logger 包特有的 emoji 模式
+    // Logger 包的 emoji 通常在行首或者紧跟在 │ 后面
+    // 格式如: "│ 🐛 Debug message" 或 "┌─ 🐛 Debug"
+    if (message.contains('│') || message.contains('├') || message.contains('┌') || message.contains('└')) {
+      // 这可能是 Logger 包的输出，检查 emoji
+      const debugEmojis = ['🐛', '🔍'];
+      const errorEmojis = ['⛔', '❌', '🔴', '👾'];
+      const warnEmojis = ['⚠️', '⚠', '🟡'];
+      const infoEmojis = ['💡', 'ℹ️', '🔵'];
+      const verboseEmojis = ['🔊', '📝'];
+      
+      // Logger 包的多行输出，emoji 可能在任何一行
+      // 检查整个消息中的 emoji（因为确认是 Logger 包格式）
+      for (final emoji in debugEmojis) {
+        if (message.contains(emoji)) return LogLevel.debug;
+      }
+      for (final emoji in errorEmojis) {
+        if (message.contains(emoji)) return LogLevel.error;
+      }
+      for (final emoji in warnEmojis) {
+        if (message.contains(emoji)) return LogLevel.warning;
+      }
+      for (final emoji in infoEmojis) {
+        if (message.contains(emoji)) return LogLevel.info;
+      }
+      for (final emoji in verboseEmojis) {
+        if (message.contains(emoji)) return LogLevel.verbose;
+      }
+    }
+    
+    // 策略2: 使用组合正则表达式一次性匹配多个模式
+    const levelPattern = r'\[([EWDIV])\]|^[│\s]*(ERROR|WARN(?:ING)?|DEBUG|INFO|VERBOSE)\s*[:\-│]';
+    final combinedPattern = RegExp(levelPattern, caseSensitive: false, multiLine: true);
+    final match = combinedPattern.firstMatch(message);
+    if (match != null) {
+      // 检查是否是方括号格式 [E], [W], etc.
+      final bracketLevel = match.group(1);
+      if (bracketLevel != null) {
+        switch (bracketLevel) {
+          case 'E': return LogLevel.error;
+          case 'W': return LogLevel.warning;
+          case 'D': return LogLevel.debug;
+          case 'I': return LogLevel.info;
+          case 'V': return LogLevel.verbose;
+        }
+      }
+      
+      // 检查是否是前缀格式 ERROR:, WARN:, etc.
+      final prefixLevel = match.group(2)?.toUpperCase();
+      if (prefixLevel != null) {
+        if (prefixLevel.startsWith('ERROR')) return LogLevel.error;
+        if (prefixLevel.startsWith('WARN')) return LogLevel.warning;
+        if (prefixLevel.startsWith('DEBUG')) return LogLevel.debug;
+        if (prefixLevel.startsWith('INFO')) return LogLevel.info;
+        if (prefixLevel.startsWith('VERBOSE')) return LogLevel.verbose;
+      }
+    }
+    
+    // 策略3: 关键字检查（更严格的上下文匹配）
+    
+    // 检查是否是异常堆栈（最可靠的错误标识）
+    if (message.contains('Exception') && message.contains('at ') && message.contains('.dart:')) {
+      return LogLevel.error;
+    }
+    
+    // 检查明确的错误格式（Error: 或 [ERROR]）
+    if (RegExp(r'^\s*(error:|exception:|\[error\])', caseSensitive: false).hasMatch(message)) {
+      return LogLevel.error;
+    }
+    
+    // 检查明确的警告格式（Warning: 或 [WARN]）
+    if (RegExp(r'^\s*(warning:|warn:|\[warn\])', caseSensitive: false).hasMatch(message)) {
+      return LogLevel.warning;
+    }
+    
+    // 检查明确的调试格式（Debug: 或 [DEBUG]）
+    if (RegExp(r'^\s*(debug:|trace:|\[debug\])', caseSensitive: false).hasMatch(message)) {
+      return LogLevel.debug;
+    }
+    
+    // 默认为 info
+    return LogLevel.info;
+  }
+  
   /// Flush the Logger buffer as a single log entry
   /// 
   /// This method is critical for handling Logger package's multi-line output.
@@ -401,16 +488,8 @@ class DevLogger {
     final combinedMessage = _loggerBuffer.join('\n');
     
     // Detect log level from the combined message
-    LogLevel detectedLevel = LogLevel.info;
-    if (combinedMessage.contains('⛔') || combinedMessage.contains('Error')) {
-      detectedLevel = LogLevel.error;
-    } else if (combinedMessage.contains('⚠️') || combinedMessage.contains('Warning')) {
-      detectedLevel = LogLevel.warning;
-    } else if (combinedMessage.contains('🐛') || combinedMessage.contains('Debug')) {
-      detectedLevel = LogLevel.debug;
-    } else if (combinedMessage.contains('💡') || combinedMessage.contains('Info')) {
-      detectedLevel = LogLevel.info;
-    }
+    // 使用更健壮的检测策略
+    LogLevel detectedLevel = _detectLogLevel(combinedMessage);
     
     // Clean up the message for display
     String cleanMessage = combinedMessage
@@ -487,24 +566,10 @@ class DevLogger {
     // Check for Logger package format (e.g., "│ ⛔ Error message")
     if (message.contains('│') || message.contains('┌') || message.contains('└') || message.contains('├') || message.contains('┄')) {
       // Logger package format detected
-      LogLevel? level;
       String cleanMessage = message;
       
       // Remove Logger package decorations but keep the content
       cleanMessage = cleanMessage.replaceAll(RegExp(r'[┌─├│└╟╚╔╗╝═║╠┄]'), '').trim();
-      
-      // Detect level from Logger emoji/symbols
-      if (message.contains('⛔') || cleanMessage.contains('Error') || message.contains('👾')) {
-        level = LogLevel.error;
-      } else if (message.contains('⚠️') || cleanMessage.contains('Warning')) {
-        level = LogLevel.warning;  
-      } else if (message.contains('💡') || cleanMessage.contains('Info')) {
-        level = LogLevel.info;
-      } else if (message.contains('🐛') || cleanMessage.contains('Debug')) {
-        level = LogLevel.debug;
-      } else if (cleanMessage.contains('Verbose') || cleanMessage.contains('Trace')) {
-        level = LogLevel.verbose;
-      }
       
       // For Logger package, return cleaned message
       if (cleanMessage.isNotEmpty) {
@@ -514,36 +579,32 @@ class DevLogger {
             .replaceAll(RegExp(r'\[38;5;\d+m'), '')
             .replaceAll(RegExp(r'\[\d+m'), '')
             .replaceAll('[0m', '');
+        
+        // 使用统一的日志级别检测方法
+        final level = _detectLogLevel(message);
         return _ParsedLog(level: level, message: cleanMessage);
       } else {
         // Only skip if this is purely a Logger decoration line (only contains Logger special chars)
         // Don't skip user's intentional empty prints
         final hasOnlyLoggerChars = RegExp(r'^[┌─├│└╟╚╔╗╝═║╠┄\s]*$').hasMatch(message);
         if (hasOnlyLoggerChars) {
-          return _ParsedLog(level: level, message: null, skip: true);
+          return _ParsedLog(level: null, message: null, skip: true);
         } else {
           // Keep the message as is (might be intentional empty line from user)
-          return _ParsedLog(level: level, message: message);
+          return _ParsedLog(level: null, message: message);
         }
       }
     }
     
-    // Check for common log patterns
-    final lowerMessage = message.toLowerCase();
-    if (lowerMessage.startsWith('error:') || lowerMessage.startsWith('[error]')) {
-      return _ParsedLog(level: LogLevel.error, message: message);
-    } else if (lowerMessage.startsWith('warning:') || lowerMessage.startsWith('[warning]') || lowerMessage.startsWith('warn:')) {
-      return _ParsedLog(level: LogLevel.warning, message: message);
-    } else if (lowerMessage.startsWith('info:') || lowerMessage.startsWith('[info]')) {
-      return _ParsedLog(level: LogLevel.info, message: message);
-    } else if (lowerMessage.startsWith('debug:') || lowerMessage.startsWith('[debug]')) {
-      return _ParsedLog(level: LogLevel.debug, message: message);
-    } else if (lowerMessage.startsWith('verbose:') || lowerMessage.startsWith('[verbose]')) {
-      return _ParsedLog(level: LogLevel.verbose, message: message);
-    }
+    // 对于非 Logger 包的消息，使用统一的检测方法
+    final detectedLevel = _detectLogLevel(message);
     
-    // Return the message as is, without adding [Print] prefix
-    return _ParsedLog(level: null, message: message);
+    // 如果检测到的不是默认的 info，使用检测到的级别
+    // 否则返回 null，让调用者使用传入的默认级别
+    return _ParsedLog(
+      level: detectedLevel != LogLevel.info ? detectedLevel : null, 
+      message: message
+    );
   }
   
   // Public logging methods - respect user's configuration
