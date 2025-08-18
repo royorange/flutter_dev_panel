@@ -15,7 +15,7 @@ class DevPanelConfig {
   final bool loadFromEnvFiles;  // 是否自动加载 .env 文件
 
   const DevPanelConfig({
-    this.triggerModes = const {TriggerMode.fab},
+    this.triggerModes = const {TriggerMode.fab, TriggerMode.shake},
     this.animationDuration = const Duration(milliseconds: 300),
     this.lightTheme,
     this.darkTheme,
