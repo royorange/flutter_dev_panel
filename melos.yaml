@@ -29,6 +29,11 @@ command:
         melos exec -- flutter pub get
         
   publish:
+    # 发布配置
+    # 自动处理依赖关系
+    publishOptions:
+      # 跳过验证步骤
+      skipValidation: false
     # 发布时的钩子
     # hooks:
     #   pre: |

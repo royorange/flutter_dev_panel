@@ -173,37 +173,28 @@ jobs:
             dart run melos publish --dry-run --yes
           fi
       
-      - name: Prepare for Publishing
+      - name: Prepare for Publishing  
         if: |
           (github.event.inputs.action == 'publish' || github.event.inputs.action == 'version-publish') &&
           github.event.inputs.dry_run == 'false'
         run: |
-          # Replace path dependencies with version dependencies
-          echo "Replacing path dependencies with version dependencies..."
+          # 关键：删除所有 pubspec_overrides.yaml 文件
+          # Melos 3.0+ 使用这些文件管理本地依赖，但发布时必须删除
+          echo "Removing pubspec_overrides.yaml files..."
+          find . -name "pubspec_overrides.yaml" -type f -delete
           
-          # Get main package version
+          # 同时确保子包的 pubspec.yaml 使用正确的版本依赖
           MAIN_VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)
           echo "Main package version: $MAIN_VERSION"
           
-          # Update all sub-packages
           for package_dir in packages/*; do
             if [ -d "$package_dir" ]; then
               echo "Updating $package_dir/pubspec.yaml"
-              
-              # Backup original
-              cp "$package_dir/pubspec.yaml" "$package_dir/pubspec.yaml.bak"
-              
-              # Replace path dependency with version dependency
-              sed -i "s|flutter_dev_panel:.*|flutter_dev_panel: ^$MAIN_VERSION|g" "$package_dir/pubspec.yaml"
+              # 将 path 依赖改为版本依赖
+              sed -i.bak "s|flutter_dev_panel:.*|flutter_dev_panel: ^$MAIN_VERSION|g" "$package_dir/pubspec.yaml"
               sed -i "/path: \.\.\/\.\./d" "$package_dir/pubspec.yaml"
-              
-              # Also remove pubspec_overrides.yaml if it exists
-              rm -f "$package_dir/pubspec_overrides.yaml"
             fi
           done
-          
-          # Also remove root pubspec_overrides.yaml
-          rm -f pubspec_overrides.yaml
       
       - name: Publish Packages
         if: |
@@ -211,20 +202,8 @@ jobs:
           github.event.inputs.dry_run == 'false'
         run: |
           export PATH="$PATH:$HOME/.pub-cache/bin"
+          # 使用标准的 Melos 发布命令
           dart run melos publish --no-dry-run --yes
-      
-      - name: Restore Path Dependencies
-        if: |
-          (github.event.inputs.action == 'publish' || github.event.inputs.action == 'version-publish') &&
-          github.event.inputs.dry_run == 'false' &&
-          always()
-        run: |
-          # Restore original pubspec.yaml files
-          for package_dir in packages/*; do
-            if [ -f "$package_dir/pubspec.yaml.bak" ]; then
-              mv "$package_dir/pubspec.yaml.bak" "$package_dir/pubspec.yaml"
-            fi
-          done
       
       # Summary
       - name: Generate Summary
