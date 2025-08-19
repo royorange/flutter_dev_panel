@@ -1,0 +1,101 @@
+name: flutter_dev_panel
+repository: https://github.com/royorange/flutter_dev_panel
+
+packages:
+  - .
+  - packages/**
+
+command:
+  version:
+    # 版本联动策略
+    linkToCommits: true
+    workspaceChangelog: true
+    
+    # 生成提交信息
+    message: |
+      chore: release packages
+      
+      {new_package_versions}
+    
+    # tag 格式
+    # 这里会生成 flutter_dev_panel-v1.0.0 格式
+    # 我们在 CI 中处理成短格式
+    tagReleaseFormat: "{package_name}-v{version}"
+    
+  bootstrap:
+    # 在 bootstrap 后运行
+    hooks:
+      post: |
+        melos exec -- flutter pub get
+        
+  publish:
+    # 发布时的钩子
+    # hooks:
+    #   pre: |
+    #     melos run test --no-select
+    #     melos run analyze --no-select
+
+scripts:
+  # 分析所有包
+  analyze:
+    run: flutter analyze
+    exec:
+      concurrency: 1
+    description: Run flutter analyze in all packages
+
+  # 测试所有包
+  test:
+    run: flutter test
+    exec:
+      concurrency: 5
+      failFast: true
+    description: Run tests in all packages
+    
+  # 测试单个包
+  test:selective:
+    run: flutter test
+    exec:
+      concurrency: 5
+    packageFilters:
+      scope: "*"
+    description: Run tests in selected packages
+
+  # 格式化代码
+  format:
+    run: dart format .
+    description: Format all Dart files
+
+  # 检查格式
+  format:check:
+    run: dart format --set-exit-if-changed .
+    description: Check if all Dart files are formatted
+
+  # 清理
+  clean:
+    run: flutter clean
+    exec:
+      concurrency: 5
+    description: Clean all packages
+
+  # 发布 dry-run
+  publish:dry:
+    run: flutter pub publish --dry-run
+    exec:
+      concurrency: 1
+    packageFilters:
+      noPrivate: true
+    description: Dry run publish for all public packages
+
+  # 检查发布状态
+  publish:check:
+    run: flutter pub publish --dry-run
+    exec:
+      concurrency: 1
+    packageFilters:
+      noPrivate: true
+    description: Check if packages are ready to publish
+
+# IDE 配置
+ide:
+  intellij:
+    enabled: true

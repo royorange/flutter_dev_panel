@@ -132,7 +132,7 @@ packages:
       path: "../.."
       relative: true
     source: path
-    version: "0.0.2"
+    version: "1.0.0"
   flutter_dotenv:
     dependency: transitive
     description:
@@ -247,14 +247,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.0"
-  logger:
-    dependency: "direct main"
-    description:
-      name: logger
-      sha256: "55d6c23a6c15db14920e037fe7e0dc32e7cdaf3b64b4b25df2d541b5b6b81c0c"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.6.1"
   logging:
     dependency: transitive
     description:

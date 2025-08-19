@@ -1,0 +1,222 @@
+name: Melos Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - test              # Run tests only
+          - analyze           # Run analysis only
+          - version           # Version packages and create tags
+          - publish           # Publish packages to pub.dev
+          - version-publish   # Version and publish in one go
+      version_type:
+        description: 'Version type (for version actions)'
+        required: false
+        type: choice
+        default: 'auto'
+        options:
+          - auto              # Based on conventional commits
+          - patch             # 1.0.0 -> 1.0.1
+          - minor             # 1.0.0 -> 1.1.0
+          - major             # 1.0.0 -> 2.0.0
+          - graduate          # 1.0.0-dev.1 -> 1.0.0
+      prerelease:
+        description: 'Create prerelease version'
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Dry run (simulate without making changes)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  melos:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      id-token: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for analyzing commit history
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+      
+      - name: Install Dependencies
+        run: |
+          flutter pub get
+          dart pub global activate melos
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+      
+      - name: Bootstrap Packages
+        run: |
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          dart run melos bootstrap
+      
+      # Test Action
+      - name: Run Tests
+        if: github.event.inputs.action == 'test'
+        run: |
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          dart run melos run test --no-select
+      
+      # Analyze Action
+      - name: Run Analysis
+        if: github.event.inputs.action == 'analyze'
+        run: |
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          dart run melos run analyze --no-select
+      
+      # Version Action
+      - name: Version Packages
+        if: |
+          (github.event.inputs.action == 'version' || github.event.inputs.action == 'version-publish') &&
+          github.event.inputs.dry_run == 'false'
+        run: |
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          
+          # Build version command based on inputs
+          VERSION_CMD="dart run melos version"
+          
+          # Handle version type
+          if [ "${{ github.event.inputs.version_type }}" == "graduate" ]; then
+            VERSION_CMD="$VERSION_CMD --graduate"
+          elif [ "${{ github.event.inputs.version_type }}" != "auto" ]; then
+            # Manual version for all packages
+            TYPE="${{ github.event.inputs.version_type }}"
+            VERSION_CMD="$VERSION_CMD"
+            VERSION_CMD="$VERSION_CMD --manual-version flutter_dev_panel:$TYPE"
+            VERSION_CMD="$VERSION_CMD --manual-version flutter_dev_panel_console:$TYPE"
+            VERSION_CMD="$VERSION_CMD --manual-version flutter_dev_panel_network:$TYPE"
+            VERSION_CMD="$VERSION_CMD --manual-version flutter_dev_panel_device:$TYPE"
+            VERSION_CMD="$VERSION_CMD --manual-version flutter_dev_panel_performance:$TYPE"
+          fi
+          
+          # Add prerelease flag if needed
+          if [ "${{ github.event.inputs.prerelease }}" == "true" ] && [ "${{ github.event.inputs.version_type }}" != "graduate" ]; then
+            VERSION_CMD="$VERSION_CMD --prerelease"
+          fi
+          
+          # Execute version command
+          $VERSION_CMD --yes
+          
+          # Create short tags (v1.0.0, console-v1.0.0, etc)
+          echo "Creating short tags..."
+          for tag in $(git tag --points-at HEAD); do
+            if [[ $tag == flutter_dev_panel-v* ]]; then
+              # Main package: flutter_dev_panel-v1.0.0 -> v1.0.0
+              short_tag=${tag#flutter_dev_panel-}
+              git tag $short_tag
+              echo "Created tag: $short_tag"
+            elif [[ $tag == flutter_dev_panel_*-v* ]]; then
+              # Sub packages: flutter_dev_panel_console-v1.0.0 -> console-v1.0.0
+              short_tag=${tag#flutter_dev_panel_}
+              git tag $short_tag
+              echo "Created tag: $short_tag"
+            fi
+          done
+      
+      - name: Push Changes
+        if: |
+          (github.event.inputs.action == 'version' || github.event.inputs.action == 'version-publish') &&
+          github.event.inputs.dry_run == 'false'
+        run: |
+          git push
+          git push --tags
+      
+      # Publish Action
+      - name: Setup Pub Credentials
+        if: |
+          (github.event.inputs.action == 'publish' || github.event.inputs.action == 'version-publish') &&
+          github.event.inputs.dry_run == 'false'
+        run: |
+          mkdir -p $HOME/.config/dart
+          echo '${{ secrets.PUB_CREDENTIALS }}' > $HOME/.config/dart/pub-credentials.json
+      
+      - name: Dry Run Info
+        if: github.event.inputs.dry_run == 'true'
+        run: |
+          echo "🔍 DRY RUN MODE - No actual changes will be made"
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          
+          if [[ "${{ github.event.inputs.action }}" == *"version"* ]]; then
+            echo "Would version packages based on:"
+            echo "  - Version type: ${{ github.event.inputs.version_type }}"
+            echo "  - Prerelease: ${{ github.event.inputs.prerelease }}"
+            echo ""
+            echo "Current versions:"
+            dart run melos list --long
+          fi
+          
+          if [[ "${{ github.event.inputs.action }}" == *"publish"* ]]; then
+            echo ""
+            echo "Would publish the following packages:"
+            dart run melos publish --dry-run --yes
+          fi
+      
+      - name: Publish Packages
+        if: |
+          (github.event.inputs.action == 'publish' || github.event.inputs.action == 'version-publish') &&
+          github.event.inputs.dry_run == 'false'
+        run: |
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          dart run melos publish --no-dry-run --yes
+      
+      # Summary
+      - name: Generate Summary
+        if: always()
+        run: |
+          echo "## 📊 Melos Workflow Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "**Action:** ${{ github.event.inputs.action }}" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            echo "**Mode:** 🔍 Dry Run (no changes made)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Mode:** ✅ Live Run" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ github.event.inputs.action }}" == *"version"* ]]; then
+            echo "### Version Settings" >> $GITHUB_STEP_SUMMARY
+            echo "- **Type:** ${{ github.event.inputs.version_type }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Prerelease:** ${{ github.event.inputs.prerelease }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "### Package Status" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          export PATH="$PATH:$HOME/.pub-cache/bin"
+          dart run melos list --long >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ github.event.inputs.action }}" == "version" ] || [ "${{ github.event.inputs.action }}" == "version-publish" ]; then
+            if [ "${{ github.event.inputs.dry_run }}" == "false" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### Created Tags" >> $GITHUB_STEP_SUMMARY
+              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+              git tag --points-at HEAD >> $GITHUB_STEP_SUMMARY
+              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
