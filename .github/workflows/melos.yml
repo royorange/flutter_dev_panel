@@ -173,6 +173,38 @@ jobs:
             dart run melos publish --dry-run --yes
           fi
       
+      - name: Prepare for Publishing
+        if: |
+          (github.event.inputs.action == 'publish' || github.event.inputs.action == 'version-publish') &&
+          github.event.inputs.dry_run == 'false'
+        run: |
+          # Replace path dependencies with version dependencies
+          echo "Replacing path dependencies with version dependencies..."
+          
+          # Get main package version
+          MAIN_VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)
+          echo "Main package version: $MAIN_VERSION"
+          
+          # Update all sub-packages
+          for package_dir in packages/*; do
+            if [ -d "$package_dir" ]; then
+              echo "Updating $package_dir/pubspec.yaml"
+              
+              # Backup original
+              cp "$package_dir/pubspec.yaml" "$package_dir/pubspec.yaml.bak"
+              
+              # Replace path dependency with version dependency
+              sed -i "s|flutter_dev_panel:.*|flutter_dev_panel: ^$MAIN_VERSION|g" "$package_dir/pubspec.yaml"
+              sed -i "/path: \.\.\/\.\./d" "$package_dir/pubspec.yaml"
+              
+              # Also remove pubspec_overrides.yaml if it exists
+              rm -f "$package_dir/pubspec_overrides.yaml"
+            fi
+          done
+          
+          # Also remove root pubspec_overrides.yaml
+          rm -f pubspec_overrides.yaml
+      
       - name: Publish Packages
         if: |
           (github.event.inputs.action == 'publish' || github.event.inputs.action == 'version-publish') &&
@@ -180,6 +212,19 @@ jobs:
         run: |
           export PATH="$PATH:$HOME/.pub-cache/bin"
           dart run melos publish --no-dry-run --yes
+      
+      - name: Restore Path Dependencies
+        if: |
+          (github.event.inputs.action == 'publish' || github.event.inputs.action == 'version-publish') &&
+          github.event.inputs.dry_run == 'false' &&
+          always()
+        run: |
+          # Restore original pubspec.yaml files
+          for package_dir in packages/*; do
+            if [ -f "$package_dir/pubspec.yaml.bak" ]; then
+              mv "$package_dir/pubspec.yaml.bak" "$package_dir/pubspec.yaml"
+            fi
+          done
       
       # Summary
       - name: Generate Summary
