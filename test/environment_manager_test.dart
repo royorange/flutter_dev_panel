@@ -295,7 +295,7 @@ void main() {
           'test-key-123',
         );
         expect(
-          EnvironmentManager.instance.getString('missing', defaultValue: 'default'),
+          EnvironmentManager.instance.getStringOr('missing', 'default'),
           'default',
         );
         expect(
@@ -308,7 +308,7 @@ void main() {
         expect(EnvironmentManager.instance.getBool('debug'), true);
         expect(EnvironmentManager.instance.getBool('enable_analytics'), false);
         expect(
-          EnvironmentManager.instance.getBool('missing', defaultValue: true),
+          EnvironmentManager.instance.getBoolOr('missing', true),
           true,
         );
         expect(EnvironmentManager.instance.getBool('missing'), null);
@@ -326,7 +326,7 @@ void main() {
         
         // Default value
         expect(
-          EnvironmentManager.instance.getInt('missing', defaultValue: 100),
+          EnvironmentManager.instance.getIntOr('missing', 100),
           100,
         );
         expect(EnvironmentManager.instance.getInt('missing'), null);
@@ -344,7 +344,7 @@ void main() {
         
         // Default value
         expect(
-          EnvironmentManager.instance.getDouble('missing', defaultValue: 0.0),
+          EnvironmentManager.instance.getDoubleOr('missing', 0.0),
           0.0,
         );
         expect(EnvironmentManager.instance.getDouble('missing'), null);
@@ -358,7 +358,7 @@ void main() {
         expect(features, ['feature_a', 'feature_b']);
         
         expect(
-          EnvironmentManager.instance.getList<String>('missing', defaultValue: ['default']),
+          EnvironmentManager.instance.getListOr<String>('missing', ['default']),
           ['default'],
         );
         expect(EnvironmentManager.instance.getList<String>('missing'), null);

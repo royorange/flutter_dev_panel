@@ -395,8 +395,12 @@ class GraphQLService extends ChangeNotifier {
     final endpoint = DevPanel.environment.getString('graphql_endpoint') 
         ?? 'https://api.example.com/graphql';
     
+    final httpLink = HttpLink(endpoint);
+    final authLink = AuthLink(getToken: () async => 'Bearer $token');
+    
+    // Chain links: Auth → Monitor → HTTP
     final link = NetworkModule.createGraphQLLink(
-      HttpLink(endpoint),
+      Link.from([authLink, httpLink]),
       endpoint: endpoint,
     );
     
@@ -649,6 +653,36 @@ ConsoleModule(
 // Default configuration is usually sufficient
 ConsoleModule()  // Uses default: maxLogs=1000, autoScroll=true, combineLoggerOutput=true
 ```
+
+### Network Module
+
+#### Quick Integration
+```dart
+// Dio
+NetworkModule.attachToDio(dio);
+
+// HTTP Package
+final client = NetworkModule.createHttpClient();
+
+// GraphQL
+final link = NetworkModule.createGraphQLLink(httpLink, endpoint: endpoint);
+```
+
+#### Key Features
+- **Multi-library Support**: Works with Dio, http package, and GraphQL
+- **Real-time Monitoring**: Live stats in FAB (e.g., `5req/315K 300ms`)
+- **GraphQL Support**: Operation name detection, query inspection
+- **Smart JSON Viewer**: Collapsible tree view for complex data
+- **Environment Integration**: Dynamic endpoint switching
+
+#### GraphQL with Environment Switching
+```dart
+// Automatically recreate GraphQL client when environment changes
+final endpoint = DevPanel.environment.getStringOr('GRAPHQL_ENDPOINT', defaultUrl);
+final link = NetworkModule.createGraphQLLink(HttpLink(endpoint), endpoint: endpoint);
+```
+
+📖 [View Network Module Documentation →](./packages/flutter_dev_panel_network/) for GraphQL integration, environment switching, and advanced usage.
 
 ### Performance Module
 

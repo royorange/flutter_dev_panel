@@ -17,8 +17,8 @@ Console/Logs monitoring module for Flutter Dev Panel.
 
 ```yaml
 dependencies:
-  flutter_dev_panel: ^0.0.1
-  flutter_dev_panel_console: ^0.0.1
+  flutter_dev_panel: ^1.0.0
+  flutter_dev_panel_console: ^1.0.0
 ```
 
 ## Usage

@@ -1,6 +1,6 @@
 name: flutter_dev_panel
 description: "A comprehensive Flutter debug panel for development with network monitoring, performance tracking, and environment switching."
-version: 0.0.2
+version: 1.0.0
 homepage: https://github.com/royorange/flutter-dev-panel
 # publish_to: none  # 注释掉以允许发布
 
@@ -19,10 +19,10 @@ dependencies:
   
   # Module packages - 作为独立包发布
   # 用户需要单独添加所需的模块
-  # flutter_dev_panel_console: ^0.0.1
-  # flutter_dev_panel_network: ^0.0.1
-  # flutter_dev_panel_device: ^0.0.1
-  # flutter_dev_panel_performance: ^0.0.1
+  # flutter_dev_panel_console: ^1.0.0
+  # flutter_dev_panel_network: ^1.0.0
+  # flutter_dev_panel_device: ^1.0.0
+  # flutter_dev_panel_performance: ^1.0.0
 
 dev_dependencies:
   flutter_test:

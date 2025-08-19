@@ -172,35 +172,35 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "0.0.2"
+    version: "1.0.0"
   flutter_dev_panel_console:
     dependency: "direct main"
     description:
       path: "../packages/flutter_dev_panel_console"
       relative: true
     source: path
-    version: "0.0.2"
+    version: "1.0.0"
   flutter_dev_panel_device:
     dependency: "direct main"
     description:
       path: "../packages/flutter_dev_panel_device"
       relative: true
     source: path
-    version: "0.0.2"
+    version: "1.0.0"
   flutter_dev_panel_network:
     dependency: "direct main"
     description:
       path: "../packages/flutter_dev_panel_network"
       relative: true
     source: path
-    version: "0.0.2"
+    version: "1.0.0"
   flutter_dev_panel_performance:
     dependency: "direct main"
     description:
       path: "../packages/flutter_dev_panel_performance"
       relative: true
     source: path
-    version: "0.0.2"
+    version: "1.0.0"
   flutter_dotenv:
     dependency: transitive
     description:
