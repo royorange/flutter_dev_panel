@@ -1,51 +1,51 @@
-# 环境变量使用指南
+# Environment Variables Usage Guide
 
-Flutter Dev Panel 提供了强大的环境管理功能，支持多种方式获取和监听环境变量。
+Flutter Dev Panel provides powerful environment management capabilities, supporting various ways to get and listen to environment variables.
 
-## 便捷方法（推荐）
+## Convenience Methods (Recommended)
 
-无需指定泛型，代码更简洁：
+No need to specify generics, cleaner code:
 
 ```dart
-// 获取字符串
+// Get string
 final apiUrl = DevPanel.environment.getString('api_url');
 final apiUrl = DevPanel.environment.getString('api_url', defaultValue: 'https://api.example.com');
 
-// 获取布尔值
+// Get boolean
 final isDebug = DevPanel.environment.getBool('debug');
 final isDebug = DevPanel.environment.getBool('debug', defaultValue: false);
 
-// 获取整数（支持从字符串解析）
+// Get integer (supports parsing from string)
 final timeout = DevPanel.environment.getInt('timeout');
 final timeout = DevPanel.environment.getInt('timeout', defaultValue: 30000);
 
-// 获取浮点数（支持从整数转换）
+// Get double (supports conversion from integer)
 final version = DevPanel.environment.getDouble('version');
 final version = DevPanel.environment.getDouble('version', defaultValue: 1.0);
 
-// 获取列表
+// Get list
 final servers = DevPanel.environment.getList<String>('servers');
 final servers = DevPanel.environment.getList<String>('servers', defaultValue: ['server1']);
 
-// 获取 Map
+// Get Map
 final config = DevPanel.environment.getMap('database');
 final config = DevPanel.environment.getMap('database', defaultValue: {'host': 'localhost'});
 ```
 
-## 泛型方法（灵活）
+## Generic Methods (Flexible)
 
-当需要获取特殊类型时使用：
+Use when you need to get special types:
 
 ```dart
-// 泛型方法
+// Generic method
 final apiUrl = DevPanel.environment.getVariable<String>('api_url');
 final timeout = DevPanel.environment.getVariable<int>('timeout', defaultValue: 10000);
 final customObject = DevPanel.environment.getVariable<MyConfig>('config');
 ```
 
-## 监听环境变更
+## Listen to Environment Changes
 
-### 方法1：使用 addListener
+### Method 1: Using addListener
 
 ```dart
 class _MyScreenState extends State<MyScreen> {
@@ -72,7 +72,7 @@ class _MyScreenState extends State<MyScreen> {
 }
 ```
 
-### 方法2：使用 ListenableBuilder
+### Method 2: Using ListenableBuilder
 
 ```dart
 @override
@@ -94,13 +94,13 @@ Widget build(BuildContext context) {
 }
 ```
 
-## 实际使用示例
+## Practical Usage Examples
 
-### 配置服务
+### Configuration Service
 
 ```dart
 class AppConfig {
-  // 使用便捷方法，代码更简洁
+  // Using convenience methods for cleaner code
   static String get apiUrl => 
     DevPanel.environment.getString('api_url') ?? 'https://api.example.com';
   
@@ -125,7 +125,7 @@ class AppConfig {
 }
 ```
 
-### Dio 配置示例
+### Dio Configuration Example
 
 ```dart
 class ApiService {
@@ -135,7 +135,7 @@ class ApiService {
     _dio = Dio();
     _updateDioConfig();
     
-    // 监听环境变更，自动更新配置
+    // Listen to environment changes, automatically update configuration
     DevPanel.environment.addListener(_updateDioConfig);
   }
   
@@ -155,7 +155,7 @@ class ApiService {
 }
 ```
 
-### 完整应用示例
+### Complete Application Example
 
 ```dart
 import 'package:flutter/material.dart';
@@ -164,7 +164,7 @@ import 'package:flutter_dev_panel/flutter_dev_panel.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 初始化环境配置
+  // Initialize environment configuration
   await DevPanel.environment.initialize(
     environments: [
       const EnvironmentConfig(
@@ -182,7 +182,7 @@ void main() async {
         name: 'Production',
         variables: {
           'api_url': 'https://api.example.com',
-          'api_key': '', // 通过 --dart-define 注入
+          'api_key': '', // Inject via --dart-define
           'debug': false,
           'timeout': 10000,
           'theme_mode': 'light',
@@ -201,7 +201,7 @@ class MyApp extends StatelessWidget {
     return ListenableBuilder(
       listenable: DevPanel.environment,
       builder: (context, _) {
-        // 根据环境变量动态调整应用行为
+        // Dynamically adjust app behavior based on environment variables
         final isDarkMode = DevPanel.environment.getString('theme_mode') == 'dark';
         final appTitle = DevPanel.environment.currentEnvironment?.name ?? 'App';
         
@@ -235,7 +235,7 @@ class HomePage extends StatelessWidget {
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('环境: ${DevPanel.environment.currentEnvironment?.name}'),
+                Text('Environment: ${DevPanel.environment.currentEnvironment?.name}'),
                 Text('API: ${DevPanel.environment.getString('api_url')}'),
                 Text('Debug: ${DevPanel.environment.getBool('debug')}'),
                 Text('Timeout: ${DevPanel.environment.getInt('timeout')}ms'),
@@ -244,12 +244,12 @@ class HomePage extends StatelessWidget {
                 
                 ElevatedButton(
                   onPressed: () {
-                    // 切换环境
+                    // Switch environment
                     final current = DevPanel.environment.currentEnvironment?.name;
                     final newEnv = current == 'Development' ? 'Production' : 'Development';
                     DevPanel.environment.switchEnvironment(newEnv);
                   },
-                  child: Text('切换环境'),
+                  child: Text('Switch Environment'),
                 ),
                 
                 if (DevPanel.environment.getBool('debug') ?? false)
@@ -257,7 +257,7 @@ class HomePage extends StatelessWidget {
                     margin: EdgeInsets.only(top: 20),
                     padding: EdgeInsets.all(10),
                     color: Colors.yellow.withOpacity(0.3),
-                    child: Text('调试模式已启用'),
+                    child: Text('Debug Mode Enabled'),
                   ),
               ],
             );
@@ -269,27 +269,27 @@ class HomePage extends StatelessWidget {
 }
 ```
 
-## 类型转换
+## Type Conversion
 
-便捷方法支持智能类型转换：
+Convenience methods support intelligent type conversion:
 
-### getInt 转换规则
-- `int` → 直接返回
-- `String` → 尝试解析（"123" → 123）
-- `double` → 转为整数（10.5 → 10）
+### getInt Conversion Rules
+- `int` → Returns directly
+- `String` → Attempts to parse ("123" → 123)
+- `double` → Converts to integer (10.5 → 10)
 
-### getDouble 转换规则
-- `double` → 直接返回
-- `int` → 转为浮点数（10 → 10.0）
-- `String` → 尝试解析（"10.5" → 10.5）
+### getDouble Conversion Rules
+- `double` → Returns directly
+- `int` → Converts to double (10 → 10.0)
+- `String` → Attempts to parse ("10.5" → 10.5)
 
-### getBool 转换规则
-- `bool` → 直接返回
-- 其他类型 → 返回默认值
+### getBool Conversion Rules
+- `bool` → Returns directly
+- Other types → Returns default value
 
-## API 参考
+## API Reference
 
-### 便捷方法
+### Convenience Methods
 ```dart
 String? getString(String key, {String? defaultValue})
 bool? getBool(String key, {bool? defaultValue})
@@ -299,31 +299,31 @@ List<T>? getList<T>(String key, {List<T>? defaultValue})
 Map<String, dynamic>? getMap(String key, {Map<String, dynamic>? defaultValue})
 ```
 
-### 泛型方法
+### Generic Methods
 ```dart
 T? getVariable<T>(String key, {T? defaultValue})
 ```
 
-### 环境管理
+### Environment Management
 ```dart
-// 获取当前环境
+// Get current environment
 EnvironmentConfig? get currentEnvironment
 
-// 切换环境
+// Switch environment
 void switchEnvironment(String name)
 
-// 更新变量
+// Update variable
 void updateVariable(String key, dynamic value)
 
-// 监听变更
+// Listen to changes
 void addListener(VoidCallback listener)
 void removeListener(VoidCallback listener)
 ```
 
-## 最佳实践
+## Best Practices
 
-1. **使用便捷方法**：优先使用 `getString`、`getBool` 等便捷方法，代码更简洁
-2. **提供默认值**：始终提供合理的默认值，避免空值异常
-3. **监听变更**：使用 `ListenableBuilder` 自动响应环境变更
-4. **生命周期管理**：记得在 `dispose()` 中移除监听器
-5. **类型安全**：使用具体的类型方法而不是 `dynamic`
+1. **Use convenience methods**: Prefer `getString`, `getBool` and other convenience methods for cleaner code
+2. **Provide default values**: Always provide reasonable default values to avoid null exceptions
+3. **Listen to changes**: Use `ListenableBuilder` to automatically respond to environment changes
+4. **Lifecycle management**: Remember to remove listeners in `dispose()`
+5. **Type safety**: Use specific type methods instead of `dynamic`

@@ -1,16 +1,16 @@
-# GraphQL Endpoint 环境切换指南
+# GraphQL Endpoint Environment Switching Guide
 
-当使用 Flutter Dev Panel 的环境管理功能时，如何动态切换 GraphQL endpoint？
+How to dynamically switch GraphQL endpoints when using Flutter Dev Panel's environment management feature?
 
-## 核心思路
+## Core Concept
 
-GraphQL 客户端的 `link` 是不可变的，所以切换 endpoint 需要重新创建客户端。
+GraphQL client's `link` is immutable, so switching endpoints requires recreating the client.
 
-## 解决方案
+## Solutions
 
-### 方案 1：Service 模式（推荐）
+### Solution 1: Service Pattern (Recommended)
 
-创建一个 Service 来管理 GraphQL 客户端：
+Create a Service to manage the GraphQL client:
 
 ```dart
 class GraphQLService extends ChangeNotifier {
@@ -22,22 +22,22 @@ class GraphQLService extends ChangeNotifier {
   
   void initialize() {
     _client = _createClient();
-    // 监听环境变更
+    // Listen to environment changes
     DevPanel.environment.addListener(_onEnvironmentChanged);
   }
   
   void _onEnvironmentChanged() {
-    // 环境变更时重新创建客户端
+    // Recreate client when environment changes
     _client = _createClient();
     notifyListeners();
   }
   
   GraphQLClient _createClient() {
-    // 从环境变量获取 endpoint
+    // Get endpoint from environment variables
     final endpoint = DevPanel.environment.getString('graphql_endpoint') 
         ?? 'https://api.example.com/graphql';
     
-    // 使用 NetworkModule 创建带监控的 Link
+    // Create monitored Link using NetworkModule
     final link = NetworkModule.createGraphQLLink(
       HttpLink(endpoint),
       endpoint: endpoint,
@@ -57,7 +57,7 @@ class GraphQLService extends ChangeNotifier {
 }
 ```
 
-使用：
+Usage:
 
 ```dart
 class MyApp extends StatelessWidget {
@@ -76,7 +76,7 @@ class MyApp extends StatelessWidget {
 }
 ```
 
-### 方案 2：直接在 Widget 中处理
+### Solution 2: Direct Widget Handling
 
 ```dart
 class MyApp extends StatelessWidget {
@@ -85,7 +85,7 @@ class MyApp extends StatelessWidget {
     return ListenableBuilder(
       listenable: DevPanel.environment,
       builder: (context, _) {
-        // 每次环境变更时重新创建客户端
+        // Recreate client on each environment change
         final endpoint = DevPanel.environment.getString('graphql_endpoint') 
             ?? 'https://api.example.com/graphql';
         
@@ -109,7 +109,7 @@ class MyApp extends StatelessWidget {
 }
 ```
 
-### 方案 3：使用 Provider
+### Solution 3: Using Provider
 
 ```dart
 class GraphQLClientProvider extends ChangeNotifier {
@@ -145,7 +145,7 @@ class GraphQLClientProvider extends ChangeNotifier {
   }
 }
 
-// 使用
+// Usage
 MultiProvider(
   providers: [
     ChangeNotifierProvider(create: (_) => GraphQLClientProvider()),
@@ -154,7 +154,7 @@ MultiProvider(
 );
 ```
 
-## 环境配置示例
+## Environment Configuration Example
 
 ```dart
 await DevPanel.environment.initialize(
@@ -178,46 +178,46 @@ await DevPanel.environment.initialize(
       name: 'Production',
       variables: {
         'graphql_endpoint': 'https://api.example.com/graphql',
-        'api_key': '', // 通过 --dart-define 注入
+        'api_key': '', // Inject via --dart-define
       },
     ),
   ],
 );
 ```
 
-## Dio 对比
+## Comparison with Dio
 
-Dio 的处理更简单，因为可以直接修改 `BaseOptions`：
+Dio handling is simpler because you can directly modify `BaseOptions`:
 
 ```dart
 class ApiService {
   final dio = Dio();
   
   ApiService() {
-    NetworkModule.attachToDio(dio); // 只需要一次
+    NetworkModule.attachToDio(dio); // Only needed once
     _updateConfig();
     DevPanel.environment.addListener(_updateConfig);
   }
   
   void _updateConfig() {
-    // 直接修改配置，不需要重新创建
+    // Directly modify configuration, no need to recreate
     dio.options.baseUrl = DevPanel.environment.getString('api_url') ?? '';
     dio.options.headers['Authorization'] = 'Bearer ${DevPanel.environment.getString('api_key')}';
   }
 }
 ```
 
-## 关键点
+## Key Points
 
-1. **GraphQL 需要重新创建客户端**：因为 `link` 是不可变的
-2. **Dio 可以直接修改配置**：因为 `options` 是可变的
-3. **使用 ListenableBuilder**：自动响应环境变更
-4. **记得清理监听器**：在 `dispose` 中移除监听器
+1. **GraphQL requires recreating the client**: Because `link` is immutable
+2. **Dio can directly modify configuration**: Because `options` is mutable
+3. **Use ListenableBuilder**: Automatically respond to environment changes
+4. **Remember to clean up listeners**: Remove listeners in `dispose`
 
-## 最佳实践
+## Best Practices
 
-- ✅ 使用 Service 模式管理 GraphQL 客户端
-- ✅ 监听环境变更自动更新
-- ✅ 使用 `NetworkModule.createGraphQLLink` 确保监控生效
-- ✅ 在环境配置中定义所有 endpoint
-- ❌ 避免硬编码 endpoint
+- ✅ Use Service pattern to manage GraphQL client
+- ✅ Listen to environment changes for automatic updates
+- ✅ Use `NetworkModule.createGraphQLLink` to ensure monitoring works
+- ✅ Define all endpoints in environment configuration
+- ❌ Avoid hardcoding endpoints

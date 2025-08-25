@@ -745,25 +745,6 @@ flutter build ios --release \
 - 代码被 tree-shaking 完全移除
 - 不影响应用大小或性能
 
-## 架构
-
-Flutter Dev Panel 遵循模块化架构：
-
-```
-flutter_dev_panel/              # 核心框架（必需）
-├── lib/
-│   └── src/
-│       ├── core/               # 核心功能
-│       ├── models/             # 数据模型
-│       └── ui/                 # UI 组件
-├── packages/                   # 可选模块
-│   ├── flutter_dev_panel_console/     # 控制台/日志模块
-│   ├── flutter_dev_panel_network/     # 网络监控模块
-│   ├── flutter_dev_panel_device/      # 设备信息模块
-│   └── flutter_dev_panel_performance/ # 性能监控模块
-└── example/                    # 示例应用
-```
-
 每个模块包都依赖于核心 `flutter_dev_panel` 包，可以独立安装。
 
 ## 测试
