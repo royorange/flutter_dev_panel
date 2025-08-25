@@ -6,16 +6,16 @@
 
 ```yaml
 dependencies:
-  flutter_dev_panel: ^1.0.0
+  flutter_dev_panel: ^1.0.1
 ```
 
 ### Option 2: With Specific Modules (Recommended)
 
 ```yaml
 dependencies:
-  flutter_dev_panel: ^1.0.0
-  flutter_dev_panel_console: ^1.0.0    # Logging features
-  flutter_dev_panel_network: ^1.0.0    # Network monitoring
+  flutter_dev_panel: ^1.0.1
+  flutter_dev_panel_console: ^1.0.1    # Logging features
+  flutter_dev_panel_network: ^1.0.1    # Network monitoring
   # Add only the modules you need
 ```
 
@@ -23,11 +23,11 @@ dependencies:
 
 ```yaml
 dependencies:
-  flutter_dev_panel: ^1.0.0
-  flutter_dev_panel_console: ^1.0.0
-  flutter_dev_panel_network: ^1.0.0
-  flutter_dev_panel_device: ^1.0.0
-  flutter_dev_panel_performance: ^1.0.0
+  flutter_dev_panel: ^1.0.1
+  flutter_dev_panel_console: ^1.0.1
+  flutter_dev_panel_network: ^1.0.1
+  flutter_dev_panel_device: ^1.0.1
+  flutter_dev_panel_performance: ^1.0.1
 ```
 
 ## Quick Start

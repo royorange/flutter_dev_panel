@@ -20,8 +20,8 @@ Network monitoring module for Flutter Dev Panel that provides unified request tr
 
 ```yaml
 dependencies:
-  flutter_dev_panel: ^1.0.0
-  flutter_dev_panel_network: ^1.0.0
+  flutter_dev_panel: ^1.0.1
+  flutter_dev_panel_network: ^1.0.1
 ```
 
 ## Basic Usage
