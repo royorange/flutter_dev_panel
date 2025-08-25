@@ -202,8 +202,42 @@ jobs:
           github.event.inputs.dry_run == 'false'
         run: |
           export PATH="$PATH:$HOME/.pub-cache/bin"
-          # 使用标准的 Melos 发布命令
-          dart run melos publish --no-dry-run --yes
+          
+          # 先发布主包
+          echo "Publishing main package first..."
+          cd .
+          dart pub publish --force
+          cd -
+          
+          # 等待 pub.dev 同步（每5秒检查一次，最多2分钟）
+          echo "Waiting for pub.dev to sync main package..."
+          MAIN_VERSION=$(grep "^version:" pubspec.yaml | cut -d' ' -f2)
+          MAX_ATTEMPTS=24  # 24 * 5秒 = 120秒 = 2分钟
+          ATTEMPT=0
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT+1))
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Checking if flutter_dev_panel $MAIN_VERSION is available..."
+            
+            # 尝试解析依赖，如果成功说明包已经可用
+            if flutter pub cache add flutter_dev_panel:$MAIN_VERSION 2>/dev/null; then
+              echo "✅ Main package is available on pub.dev!"
+              break
+            fi
+            
+            if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+              echo "Package not yet available, waiting 5 seconds..."
+              sleep 5
+            fi
+          done
+          
+          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+            echo "⚠️ Warning: Reached maximum wait time, attempting to publish sub-packages anyway..."
+          fi
+          
+          # 发布子包
+          echo "Publishing sub-packages..."
+          dart run melos publish --no-dry-run --yes --no-published-filter
       
       # Summary
       - name: Generate Summary
