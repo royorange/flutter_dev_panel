@@ -34,7 +34,7 @@ class LogItem extends StatelessWidget {
     final theme = Theme.of(context);
     final levelColor = provider.getLevelColor(log.level);
     final timeFormat = DateFormat('HH:mm:ss.SSS');
-    
+
     return InkWell(
       onTap: onTap ?? () => _showLogDetail(context),
       onLongPress: () => _copyToClipboard(context),
@@ -70,7 +70,7 @@ class LogItem extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // 时间戳
             Container(
               height: 24, // 与级别标识相同高度
@@ -84,9 +84,9 @@ class LogItem extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             const SizedBox(width: 8),
-            
+
             // 日志内容
             Expanded(
               child: Column(
@@ -103,7 +103,7 @@ class LogItem extends StatelessWidget {
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  
+
                   // 错误信息（如果有）
                   if (log.error != null) ...[
                     const SizedBox(height: 4),
@@ -127,7 +127,7 @@ class LogItem extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // 展开图标
             Icon(
               Icons.chevron_right,
@@ -139,7 +139,7 @@ class LogItem extends StatelessWidget {
       ),
     );
   }
-  
+
   /// 显示日志详情
   void _showLogDetail(BuildContext context) {
     showModalBottomSheet(
@@ -149,7 +149,7 @@ class LogItem extends StatelessWidget {
       builder: (context) => LogDetailSheet(log: log, provider: provider),
     );
   }
-  
+
   /// 复制到剪贴板
   void _copyToClipboard(BuildContext context) {
     final text = StringBuffer();
@@ -161,9 +161,9 @@ class LogItem extends StatelessWidget {
     if (log.stackTrace != null) {
       text.writeln('Stack Trace:\n${log.stackTrace}');
     }
-    
+
     Clipboard.setData(ClipboardData(text: text.toString()));
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Log copied to clipboard'),
@@ -189,7 +189,7 @@ class LogDetailSheet extends StatelessWidget {
     final theme = Theme.of(context);
     final levelColor = provider.getLevelColor(log.level);
     final timeFormat = DateFormat('yyyy-MM-dd HH:mm:ss.SSS');
-    
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: BoxDecoration(
@@ -208,14 +208,15 @@ class LogDetailSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          
+
           // 标题栏
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: levelColor.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
@@ -252,9 +253,9 @@ class LogDetailSheet extends StatelessWidget {
               ],
             ),
           ),
-          
+
           const Divider(),
-          
+
           // 日志内容
           Expanded(
             child: SingleChildScrollView(
@@ -265,39 +266,39 @@ class LogDetailSheet extends StatelessWidget {
                   // 时间戳
                   _buildSection(
                     context,
-                    title: '时间',
+                    title: 'Time',
                     content: timeFormat.format(log.timestamp),
                     icon: Icons.access_time,
                   ),
-                  
+
                   const SizedBox(height: 16),
-                  
+
                   // 消息
                   _buildSection(
                     context,
-                    title: '消息',
+                    title: 'Message',
                     content: log.message,
                     icon: Icons.message,
                   ),
-                  
+
                   // 错误信息
                   if (log.error != null) ...[
                     const SizedBox(height: 16),
                     _buildSection(
                       context,
-                      title: '错误',
+                      title: 'Error',
                       content: log.error!,
                       icon: Icons.error_outline,
                       isError: true,
                     ),
                   ],
-                  
+
                   // 堆栈跟踪
                   if (log.stackTrace != null) ...[
                     const SizedBox(height: 16),
                     _buildSection(
                       context,
-                      title: '堆栈跟踪',
+                      title: 'StackTrace',
                       content: log.stackTrace!,
                       icon: Icons.layers,
                       isMonospace: true,
@@ -311,7 +312,7 @@ class LogDetailSheet extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildSection(
     BuildContext context, {
     required String title,
@@ -321,7 +322,7 @@ class LogDetailSheet extends StatelessWidget {
     bool isMonospace = false,
   }) {
     final theme = Theme.of(context);
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -342,14 +343,14 @@ class LogDetailSheet extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isError 
-              ? Colors.red.withValues(alpha: 0.1)
-              : theme.colorScheme.surfaceContainerHighest,
+            color: isError
+                ? Colors.red.withValues(alpha: 0.1)
+                : theme.colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isError
-                ? Colors.red.withValues(alpha: 0.3)
-                : theme.dividerColor.withValues(alpha: 0.2),
+                  ? Colors.red.withValues(alpha: 0.3)
+                  : theme.dividerColor.withValues(alpha: 0.2),
             ),
           ),
           child: SelectableText(
@@ -363,7 +364,7 @@ class LogDetailSheet extends StatelessWidget {
       ],
     );
   }
-  
+
   void _copyToClipboard(BuildContext context) {
     final text = StringBuffer();
     text.writeln('[${log.levelText}] ${log.formattedTime}');
@@ -374,9 +375,9 @@ class LogDetailSheet extends StatelessWidget {
     if (log.stackTrace != null) {
       text.writeln('Stack Trace:\n${log.stackTrace}');
     }
-    
+
     Clipboard.setData(ClipboardData(text: text.toString()));
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Log copied to clipboard'),
