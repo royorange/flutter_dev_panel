@@ -7,6 +7,8 @@
 
 [English Documentation](README.md)
 
+![Flutter Dev Panel Demo](screenshots/devpanel-demo.jpg)
+
 ## 特性
 
 ### 核心能力
@@ -39,6 +41,8 @@
 - 可配置的日志保留和自动滚动
 - 智能合并 Logger 包的多行输出
 
+![Console Module](screenshots/console-module.jpg)
+
 ### Network 模块 (`flutter_dev_panel_network`)
 - HTTP 请求/响应监控
 - GraphQL 查询和变更跟踪
@@ -47,6 +51,9 @@
 - 详细的请求/响应检查
 - 带语法高亮的 JSON 查看器
 
+![Network Module](screenshots/network-module.jpg)
+![Network Response Detail](screenshots/network-module-response.jpg)
+
 ### Device 模块 (`flutter_dev_panel_device`)
 - 设备型号和规格
 - 屏幕尺寸和 PPI 计算
@@ -54,12 +61,16 @@
 - 平台特定详情
 - 应用包信息
 
+![Device Module](screenshots/device-module.jpg)
+
 ### Performance 模块 (`flutter_dev_panel_performance`)
 - 实时 FPS 监控
 - 内存使用跟踪
 - 帧丢失检测
 - 性能图表和趋势
 - 内存峰值跟踪
+
+![Performance Module](screenshots/performance-module.jpg)
 
 ## 架构
 

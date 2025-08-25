@@ -7,6 +7,8 @@ A modular, zero-intrusion debugging panel for Flutter applications that provides
 
 [中文文档](README_CN.md)
 
+![Flutter Dev Panel Demo](screenshots/devpanel-demo.jpg)
+
 ## Features
 
 ### Core Capabilities
@@ -39,6 +41,8 @@ A modular, zero-intrusion debugging panel for Flutter applications that provides
 - Configurable log retention and auto-scroll
 - Smart merging of Logger package multi-line output
 
+![Console Module](screenshots/console-module.jpg)
+
 ### Network Module (`flutter_dev_panel_network`)
 - HTTP request/response monitoring
 - GraphQL query and mutation tracking
@@ -47,12 +51,17 @@ A modular, zero-intrusion debugging panel for Flutter applications that provides
 - Detailed request/response inspection
 - JSON viewer with syntax highlighting
 
+![Network Module](screenshots/network-module.jpg)
+![Network Response Detail](screenshots/network-module-response.jpg)
+
 ### Device Module (`flutter_dev_panel_device`)  
 - Device model and specifications
 - Screen dimensions and PPI calculation
 - Operating system information
 - Platform-specific details
 - App package information
+
+![Device Module](screenshots/device-module.jpg)
 
 ### Performance Module (`flutter_dev_panel_performance`)
 - Real-time FPS monitoring with visual charts
@@ -61,6 +70,8 @@ A modular, zero-intrusion debugging panel for Flutter applications that provides
 - Resource leak detection (Timers & StreamSubscriptions)
 - Interactive performance analysis with actionable advice
 - 📖 [View full documentation →](./packages/flutter_dev_panel_performance/)
+
+![Performance Module](screenshots/performance-module.jpg)
 
 ## Architecture
 
@@ -766,25 +777,6 @@ When not forced in release builds:
 - No performance monitoring
 - Code is completely removed by tree-shaking
 - No impact on app size or performance
-
-## Architecture
-
-Flutter Dev Panel follows a modular architecture:
-
-```
-flutter_dev_panel/              # Core framework (required)
-├── lib/
-│   └── src/
-│       ├── core/               # Core functionality
-│       ├── models/             # Data models
-│       └── ui/                 # UI components
-├── packages/                   # Optional modules
-│   ├── flutter_dev_panel_console/     # Console/logging module
-│   ├── flutter_dev_panel_network/     # Network monitoring module
-│   ├── flutter_dev_panel_device/      # Device info module
-│   └── flutter_dev_panel_performance/ # Performance monitoring module
-└── example/                    # Example app
-```
 
 Each module package depends on the core `flutter_dev_panel` package and can be independently installed.
 
